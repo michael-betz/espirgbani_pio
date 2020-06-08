@@ -29,6 +29,7 @@
 #include "soc/io_mux_reg.h"
 #include "rom/lldesc.h"
 #include "esp_heap_caps.h"
+
 #include "i2s_parallel.h"
 
 typedef struct {
@@ -72,13 +73,12 @@ static void fill_dma_desc(volatile lldesc_t *dmadesc, i2s_parallel_buffer_desc_t
     }
     //Loop last back to first
     dmadesc[n-1].qe.stqe_next=(lldesc_t*)&dmadesc[0];
-    printf("fill_dma_desc: filled %d descriptors\n", n);
 }
 
-static void gpio_setup_out(int gpio, int sig, bool isInverted) {
+static void gpio_setup_out(gpio_num_t gpio, int sig, bool isInverted) {
     if (gpio==-1) return;
     PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
-    gpio_set_direction(gpio, GPIO_MODE_DEF_OUTPUT);
+    gpio_set_direction(gpio, GPIO_MODE_OUTPUT);
     gpio_matrix_out(gpio, sig, isInverted, false);
 }
 
@@ -99,7 +99,6 @@ static int i2snum(i2s_dev_t *dev) {
 
 void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     //Figure out which signal numbers to use for routing
-    printf("Setting up parallel I2S bus at I2S%d\n", i2snum(dev));
     int sig_data_base, sig_clk;
     if (dev==&I2S0) {
         sig_data_base=I2S0O_DATA_OUT0_IDX;
@@ -181,12 +180,12 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
     dev->timing.val=0;
 
     //Allocate DMA descriptors
-    i2s_state[i2snum(dev)]=malloc(sizeof(i2s_parallel_state_t));
+    i2s_state[i2snum(dev)] = (i2s_parallel_state_t*)malloc(sizeof(i2s_parallel_state_t));
     i2s_parallel_state_t *st=i2s_state[i2snum(dev)];
     st->desccount_a=calc_needed_dma_descs_for(cfg->bufa);
     st->desccount_b=calc_needed_dma_descs_for(cfg->bufb);
-    st->dmadesc_a=heap_caps_malloc(st->desccount_a*sizeof(lldesc_t), MALLOC_CAP_DMA);
-    st->dmadesc_b=heap_caps_malloc(st->desccount_b*sizeof(lldesc_t), MALLOC_CAP_DMA);
+    st->dmadesc_a = (volatile lldesc_t *)heap_caps_malloc(st->desccount_a*sizeof(lldesc_t), MALLOC_CAP_DMA);
+    st->dmadesc_b = (volatile lldesc_t *)heap_caps_malloc(st->desccount_b*sizeof(lldesc_t), MALLOC_CAP_DMA);
 
     //and fill them
     fill_dma_desc(st->dmadesc_a, cfg->bufa);

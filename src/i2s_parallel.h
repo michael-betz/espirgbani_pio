@@ -2,6 +2,7 @@
 #define I2S_PARALLEL_H
 
 #include <stdint.h>
+#include "driver/gpio.h"
 #include "soc/i2s_struct.h"
 
 typedef enum {
@@ -16,8 +17,8 @@ typedef struct {
 } i2s_parallel_buffer_desc_t;
 
 typedef struct {
-    int gpio_bus[24];
-    int gpio_clk;
+    gpio_num_t gpio_bus[24];
+    gpio_num_t gpio_clk;
     int clk_div;
     bool is_clk_inverted;
     i2s_parallel_cfg_bits_t bits;

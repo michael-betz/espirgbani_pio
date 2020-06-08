@@ -35,7 +35,7 @@ font_t *loadFntFile(char *file_name) {
         fclose(f);
         return NULL;
     }
-    fDat = malloc(sizeof(font_t));
+    fDat = (font_t *)malloc(sizeof(font_t));
     memset(fDat, 0x00, sizeof(font_t));
     while(1) {
         blockType = 0;
@@ -47,29 +47,29 @@ font_t *loadFntFile(char *file_name) {
         ESP_LOGD(T, "block %d of size %d", blockType, blockSize);
         switch(blockType) {
             case 1:
-                fDat->info = malloc(blockSize);
+                fDat->info = (fontInfo_t*)malloc(blockSize);
                 fread(fDat->info, 1, blockSize, f);
                 break;
 
             case 2:
-                fDat->common = malloc(blockSize);
+                fDat->common = (fontCommon_t*)malloc(blockSize);
                 fread(fDat->common, 1, blockSize, f);
                 break;
 
             case 3:
-                fDat->pageNames = malloc(blockSize);
+                fDat->pageNames = (char*)malloc(blockSize);
                 fDat->pageNamesLen = blockSize;
                 fread(fDat->pageNames, 1, blockSize, f);
                 break;
 
             case 4:
-                fDat->chars = malloc(blockSize);
+                fDat->chars = (fontChar_t*)malloc(blockSize);
                 fDat->charsLen = blockSize;
                 fread(fDat->chars, 1, blockSize, f);
                 break;
 
             case 5:
-                fDat->kerns = malloc(blockSize);
+                fDat->kerns = (fontKern_t*)malloc(blockSize);
                 fDat->kernsLen = blockSize;
                 fread(fDat->kerns, 1, blockSize, f);
                 break;

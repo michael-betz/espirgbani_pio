@@ -3,17 +3,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "esp_log.h"
-#include "web_console.h"
 #include "esp_heap_caps.h"
-#include "i2s_parallel.h"
 #include "frame_buffer.h"
 #include "rgb_led_panel.h"
 #include "assert.h"
-// #include "wifi_startup.h"
 #include "json_settings.h"
 
-
-static const char *T = "RGB_LED_PANEL";
+extern "C" {
+    #include "i2s_parallel.h"
+}
 
 int g_rgbLedBrightness = 1;
 //which buffer is the backbuffer, as in, which one is not active so we can write to it
@@ -27,16 +25,34 @@ static int latch_offset = 0;
 static unsigned extra_blank = 0;
 static bool isColumnSwapped = false;
 
-void init_rgb(){
+void init_rgb()
+{
     initFb();
+
     i2s_parallel_buffer_desc_t bufdesc[2][1<<BITPLANE_CNT];
-    i2s_parallel_config_t cfg = {
-        .gpio_bus={GPIO_R1, GPIO_G1, GPIO_B1,   GPIO_R2, GPIO_G2, GPIO_B2,   GPIO_A, GPIO_B, GPIO_C, GPIO_D,   GPIO_LAT, GPIO_BLANK,   -1, -1, -1, -1},
-        .gpio_clk=GPIO_CLK,
-        .bits=I2S_PARALLEL_BITS_16,
-        .bufa=bufdesc[0],
-        .bufb=bufdesc[1],
-    };
+    i2s_parallel_config_t cfg;
+
+    cfg.gpio_clk = GPIO_CLK;
+    cfg.gpio_bus[0] = GPIO_R1;
+    cfg.gpio_bus[1] = GPIO_G1;
+    cfg.gpio_bus[2] = GPIO_B1;
+    cfg.gpio_bus[3] = GPIO_R2;
+    cfg.gpio_bus[4] = GPIO_G2;
+    cfg.gpio_bus[5] = GPIO_B2;
+    cfg.gpio_bus[6] = GPIO_A;
+    cfg.gpio_bus[7] = GPIO_B;
+    cfg.gpio_bus[8] = GPIO_C;
+    cfg.gpio_bus[9] = GPIO_D;
+    cfg.gpio_bus[10] = GPIO_LAT;
+    cfg.gpio_bus[11] = GPIO_BLANK;
+    cfg.gpio_bus[12] = (gpio_num_t)(-1);
+    cfg.gpio_bus[13] = (gpio_num_t)(-1);
+    cfg.gpio_bus[14] = (gpio_num_t)(-1);
+    cfg.gpio_bus[15] = (gpio_num_t)(-1);
+
+    cfg.bits = I2S_PARALLEL_BITS_16,
+    cfg.bufa = bufdesc[0];
+    cfg.bufb = bufdesc[1];
 
     //--------------------------
     // .json configuration
@@ -47,12 +63,12 @@ void init_rgb(){
     // Swap pixel x[0] with x[1]
     isColumnSwapped = jGetB(jPanel, "column_swap", false);
     if (isColumnSwapped)
-        ESP_LOGW(T, "column_swap applied!");
+        log_w("column_swap applied!");
 
     // adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
     latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
     latch_offset %= DISPLAY_WIDTH;
-    ESP_LOGW(T, "latch_offset = %d", latch_offset);
+    log_w("latch_offset = %d", latch_offset);
 
     // adjust extra blanking cycles to reduce ghosting effects
     extra_blank = jGetI(jPanel, "extra_blank", 1);
@@ -60,7 +76,7 @@ void init_rgb(){
     // set clock divider
     cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
     if (cfg.clk_div < 1) cfg.clk_div = 1;
-    ESP_LOGW(T, "clkm_div_num = %d", cfg.clk_div);
+    log_w("clkm_div_num = %d", cfg.clk_div);
 
     cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
 
@@ -69,7 +85,7 @@ void init_rgb(){
     //--------------------------
     for (int i=0; i<BITPLANE_CNT; i++) {
         for (int j=0; j<2; j++) {
-            bitplane[j][i] = heap_caps_malloc(BITPLANE_SZ*2, MALLOC_CAP_DMA);
+            bitplane[j][i] = (uint16_t*)heap_caps_malloc(BITPLANE_SZ*2, MALLOC_CAP_DMA);
             assert(bitplane[j][i] && "Can't allocate bitplane memory");
             memset(bitplane[j][i], 0, BITPLANE_SZ*2);
         }
@@ -101,10 +117,10 @@ void init_rgb(){
     //Setup I2S
     i2s_parallel_setup(&I2S1, &cfg);
 
-    ESP_LOGI(T,"I2S setup done.");
+    log_i("I2S setup done.");
 }
 
-void updateFrame(){
+void updateFrame() {
     // Wait until all the layers are done updating
     waitDrawingDone();
     //Fill bitplanes with the data for the current image from frameBuffer

@@ -1,6 +1,6 @@
 //  opens bitmap (.bmp) files
-
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 #include "esp_log.h"
@@ -36,44 +36,44 @@ void copyBmpToFbRect(FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp, uint
     if (bmpF == NULL || bmInfo == NULL)
         return;
     if (chOffset >= bmInfo->biWidth / 8) {
-        ESP_LOGE(T, "There's only %d color channels dude!", bmInfo->biWidth/8 );
+        ESP_LOGE(T, "There's only %d color channels dude!", bmInfo->biWidth/8);
         chOffset = bmInfo->biWidth/8 - 1;
     }
-    int rowSize = ( (bmInfo->biBitCount * bmInfo->biWidth + 31)/32 * 4 );       //how many bytes per row
-    uint8_t *rowBuffer = malloc( rowSize );                                     //allocate buffer for one input row
+    int rowSize = ((bmInfo->biBitCount * bmInfo->biWidth + 31) / 32 * 4);  //how many bytes per row
+    uint8_t *rowBuffer = (uint8_t *)malloc(rowSize);  //allocate buffer for one input row
     if (rowBuffer == NULL) {
         ESP_LOGE(T, "Could not allocate rowbuffer");
         return;
     }
-	int startPos = ftell( bmpF );
+	int startPos = ftell(bmpF);
 	//move vertically to the right row
     fseek(bmpF, rowSize*(bmInfo->biHeight-yBmp-h), SEEK_CUR);
-    for ( int rowId=0; rowId<h; rowId++ ){
+    for (int rowId=0; rowId<h; rowId++) {
     	//read the whole row
-    	if( fread( rowBuffer, 1, rowSize, bmpF ) != rowSize ){
-            fseek( bmpF, startPos, SEEK_SET );               // skipped over last row
-            free( rowBuffer );
+    	if(fread(rowBuffer, 1, rowSize, bmpF) != rowSize) {
+            fseek(bmpF, startPos, SEEK_SET);               // skipped over last row
+            free(rowBuffer);
             return;
         }
     	//copy one row of relevant pixels
-		for ( uint16_t colId=0; colId<w; colId++ ){
+		for (uint16_t colId=0; colId<w; colId++) {
             uint16_t rowAddr = (xBmp+colId) * (bmInfo->biBitCount/8);
-            if( rowAddr >= rowSize ){
+            if(rowAddr >= rowSize) {
                 break;
             }
             uint8_t shade = rowBuffer[rowAddr+chOffset];
             // Decoding for packed format (doesn't anti-alias the outline :(
-            // if( isOutline ){
+            // if(isOutline) {
             //     shade = shade > 127 ? 255 : 2*shade;
             // } else {
             //     shade = shade > 127 ? 2*shade-255 : 0;
             // }
             int xPixel = colId+xFb;
             int yPixel = h-rowId-1+yFb;
-            if( xPixel < 0 || yPixel < 0 ) continue;
-            setPixelOver( layerFb, xPixel, yPixel, (shade<<24)|scale32(shade,color) );
+            if(xPixel < 0 || yPixel < 0) continue;
+            setPixelOver(layerFb, xPixel, yPixel, (shade<<24)|scale32(shade,color));
 		}
     }
-    fseek( bmpF, startPos, SEEK_SET );
-    free( rowBuffer );
+    fseek(bmpF, startPos, SEEK_SET);
+    free(rowBuffer);
 }
