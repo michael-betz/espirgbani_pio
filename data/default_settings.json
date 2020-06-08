@@ -1,0 +1,35 @@
+{
+    "_wifi_ssid": "",
+    "_wifi_pw": "",
+    "hostname": "espirgbani",
+    "enable_ota": false,
+    "timezone": "PST8PDT,M3.2.0,M11.1.0",
+    "panel": {
+        "test_pattern": true,
+        "tp_brightness":  10,
+        "is_clk_inverted": true,
+        "column_swap": false,
+        "latch_offset": 0,
+        "extra_blank": 1,
+        "clkm_div_num": 4
+    },
+    "power": {
+        "hi": {
+            "h": 9,
+            "m": 0,
+            "p": 50,
+            "pingIp": "0.0.0.0"
+        },
+        "lo": {
+            "h": 22,
+            "m": 45,
+            "p": 1
+        }
+    },
+    "delays": {
+        "font":  60,
+        "color": 10,
+        "ani":   15,
+        "ping":  60
+    }
+}
