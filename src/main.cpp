@@ -90,25 +90,25 @@ void setup()
 		vTaskDelete(NULL);  // kill current task (== return;)
 	}
 
-    //-----------------------------------
-    // Startup animated background layer
-    //-----------------------------------
-    // this one calls updateFrame and hence
-    // sets the global maximum frame-rate
-    delay(1000);
-    xTaskCreate(&aniBackgroundTask, "aniBackground", 4096, NULL, 0, NULL);
-
-    //------------------------------
-    // Startup clock layer
-    //------------------------------
-    delay(1000);
-    xTaskCreate(&aniClockTask, "aniClock", 4096, NULL, 0, NULL);
+	//-----------------------------------
+	// Startup animated background layer
+	//-----------------------------------
+	// this one calls updateFrame and hence
+	// sets the global maximum frame-rate
+	delay(1000);
+	xTaskCreate(&aniBackgroundTask, "aniBackground", 4096, NULL, 0, NULL);
 
 	//------------------------------
-    // Draw animations
-    //------------------------------
-    // blocks forever ...
-    delay(1000);
+	// Startup clock layer
+	//------------------------------
+	delay(1000);
+	xTaskCreate(&aniClockTask, "aniClock", 4096, NULL, 0, NULL);
+
+	//------------------------------
+	// Draw animations
+	//------------------------------
+	// blocks forever ...
+	delay(1000);
 	aniPinballTask(f);
 }
 

@@ -5,7 +5,8 @@
 #include "json_settings.h"
 #include "animations.h"
 
-int getFileHeader(FILE *f, fileHeader_t *fh)
+// Reads the filehader and fills `fh`
+static int getFileHeader(FILE *f, fileHeader_t *fh)
 {
 	char tempCh[3];
 	fseek(f, 0x00000000, SEEK_SET);
@@ -23,10 +24,11 @@ int getFileHeader(FILE *f, fileHeader_t *fh)
 	return 0;
 }
 
-int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
+// Fills the headerEntry struct with data.
+// Specify an `headerIndex` from 0 to nAnimations
+static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 {
 	// Copys header info into h. Note that h->nFrameEntries must be freed!
-	// leaves file f seeked to the beginning of the animation data
 	fseek(f, HEADER_OFFS + HEADER_SIZE * headerIndex, SEEK_SET);
 	fread(h, sizeof(*h), 1, f);
 	h->name[31] = '\0';
@@ -51,50 +53,67 @@ int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 		}
 		fh++;
 	}
-	fseek(f, h->byteOffset+HEADER_SIZE, SEEK_SET);
 
-	log_v("%s", h->name);
-	log_v("--------------------------------");
-	log_v("animationId:       0x%04x", h->animationId);
-	log_v("nStoredFrames:         %d", h->nStoredFrames);
-	log_v("byteOffset:    0x%08x", h->byteOffset);
-	log_v("nFrameEntries:         %d", h->nFrameEntries);
-	log_v("width: 0x%02x  height: 0x%02x  unknown0: 0x%02x", h->width, h->height, h->unknown0);
+	log_d(
+		"%s: index: %d, w: %d, h: %d, nMem: %d, nAni: %d, del: %d",
+		h->name,
+		headerIndex,
+		h->width,
+		h->height,
+		h->nStoredFrames,
+		h->nFrameEntries,
+		h->frameHeader->frameDur
+	);
 	return 0;
 }
 
-void seekToFrame(FILE *f, int byteOffset, int frameOffset)
+// seek the file f to the beginning of a specific animation frame
+static void seekToFrame(FILE *f, int byteOffset, int frameId)
 {
-	byteOffset += DISPLAY_WIDTH * DISPLAY_HEIGHT * frameOffset / 2;
+	// without fast-seek enabled, this takes tens of ms when seeking backwards
+	// http://www.elm-chan.org/fsw/ff/doc/lseek.html
+	if (frameId <= 0)
+		return;
+	byteOffset += DISPLAY_WIDTH * DISPLAY_HEIGHT * (frameId - 1) / 2;
 	fseek(f, byteOffset, SEEK_SET);
 }
 
-void playAni(FILE *f, headerEntry_t *h)
+// play a single animation, start to finish
+static void playAni(FILE *f, headerEntry_t *h)
 {
-	uint8_t r, g, b;
-	TickType_t xLastWakeTime;
+	if (h->nFrameEntries == 0)
+		return;
 
 	// get a random color
+	uint8_t r, g, b;
 	fast_hsv2rgb_32bit(RAND_AB(0,HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
 	unsigned color = SRGBA(r,g,b,0xFF);
 
-	 xLastWakeTime = xTaskGetTickCount();
+	// pre-seek the file to beginning of frame
+	frameHeaderEntry_t fh = h->frameHeader[0];
+	seekToFrame(f, h->byteOffset + HEADER_SIZE, fh.frameId);
+	unsigned cur_delay = fh.frameDur;
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 
 	for(int i=0; i<h->nFrameEntries; i++) {
-		frameHeaderEntry_t fh = h->frameHeader[i];
-		if(fh.frameId == 0) {
-			// invalid frame = translucent black
-			startDrawing(2);
-			setAll(2, 0xFF000000);
-		} else {
-			seekToFrame(f, h->byteOffset + HEADER_SIZE, fh.frameId - 1);
-			startDrawing(2);
+		startDrawing(2);
+		if(fh.frameId <= 0)
+			setAll(2, 0xFF000000);  // invalid frame = translucent black
+		else
 			setFromFile(f, 2, color);
-		}
 		doneDrawing(2);
-		if (i == 0)
-			 xLastWakeTime = xTaskGetTickCount();
-		vTaskDelayUntil(&xLastWakeTime, fh.frameDur / portTICK_PERIOD_MS);
+
+		// get the next frame ready in advance
+		if (i < h->nFrameEntries - 1) {
+			fh = h->frameHeader[i + 1];
+			seekToFrame(f, h->byteOffset + HEADER_SIZE, fh.frameId);
+		}
+
+		// wait for N ms, measured from last call to vTaskDelayUntil()
+		if (cur_delay < 20)
+			cur_delay = 20;
+		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
+		cur_delay = fh.frameDur;
 	}
 }
 
@@ -114,6 +133,7 @@ void aniPinballTask(FILE *f)
 		delay(jGetI(jDelay, "ani", 15) * 1000);
 
 		aniId = RAND_AB(0, fh.nAnimations - 1);
+		// aniId = 0x0619;
 		readHeaderEntry(f, &myHeader, aniId);
 		playAni(f, &myHeader);
 		free(myHeader.frameHeader);

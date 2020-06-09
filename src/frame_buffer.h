@@ -20,14 +20,14 @@
 
 //Scales all 4 components in p with the same scaling factor scale (255*255=255)
 static inline unsigned scale32(unsigned scale, unsigned p) {
-    scale += 1;
-    unsigned ag = (p>>8) & 0x00FF00FF;
-    unsigned rb =  p     & 0x00FF00FF;
-    unsigned sag = scale * ag;
-    unsigned srb = scale * rb;
-    sag =  sag     & 0xFF00FF00;
-    srb = (srb>>8) & 0x00FF00FF;
-    return sag | srb;
+	scale += 1;
+	unsigned ag = (p>>8) & 0x00FF00FF;
+	unsigned rb =  p     & 0x00FF00FF;
+	unsigned sag = scale * ag;
+	unsigned srb = scale * rb;
+	sag =  sag     & 0xFF00FF00;
+	srb = (srb>>8) & 0x00FF00FF;
+	return sag | srb;
 }
 
 #define GC(p,ci) (((p)>>((ci)*8))&0xFF)
@@ -79,10 +79,10 @@ void startDrawing(unsigned layer);
 // called by layer drawing functions when done with drawing a frame
 void doneDrawing(unsigned layer);
 
-// called before compositing in updateFrame()
-void waitDrawingDone();
-
-// called when done compositing in updateFrame(). Completes the frame cycle.
+// called when done compositing. Completes the frame cycle.
 void doneUpdating();
+
+// called before compositing
+void waitDrawingDone();
 
 #endif

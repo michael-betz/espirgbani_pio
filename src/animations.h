@@ -33,19 +33,6 @@ typedef struct {
 	frameHeaderEntry_t *frameHeader;// the frame table
 } __attribute__ ((__packed__)) headerEntry_t;
 
-// Reads the filehader and fills `fh`
-int getFileHeader(FILE *f, fileHeader_t *fh);
-
-// Fills the headerEntry struct with data.
-// Specify an `headerIndex` from 0 to nAnimations
-int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex);
-
-// seek the file f to the beginning of a specific animation frame
-void seekToFrame(FILE *f, int byteOffset, int frameOffset);
-
-// play a single animation, start to finish
-void playAni(FILE *f, headerEntry_t *h);
-
 // blocks and forever shows pinball animations on layer 2
 void aniPinballTask(FILE *f);
 

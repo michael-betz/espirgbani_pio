@@ -33,6 +33,7 @@ void initFb()
 }
 
 // called by layer drawing functions before beginning to draw a frame
+// blocks until compositing cycle is complete
 void startDrawing(unsigned layer)
 {
 	// waits on doneUpdating()
@@ -160,64 +161,64 @@ void setAll(unsigned layer, unsigned color) {
 // ---------------
 static void tp_stripes(unsigned width, unsigned offset, bool isY)
 {
-    for (unsigned y=0; y<DISPLAY_HEIGHT; y++) {
-        for (unsigned x=0; x<DISPLAY_WIDTH; x++) {
-            unsigned var = isY ? x : y;
-            unsigned col = (var + offset) % width == 0 ? 0xFFFFFFFF : 0xFF000000;
-            setPixel(2, x, y, col);
-        }
-    }
-    updateFrame();
+	for (unsigned y=0; y<DISPLAY_HEIGHT; y++) {
+		for (unsigned x=0; x<DISPLAY_WIDTH; x++) {
+			unsigned var = isY ? x : y;
+			unsigned col = (var + offset) % width == 0 ? 0xFFFFFFFF : 0xFF000000;
+			setPixel(2, x, y, col);
+		}
+	}
+	updateFrame();
 }
 
 static void tp_stripes_sequence(bool isY)
 {
-    for (unsigned i=0; i<8; i++) {
-        log_i("stripes %d / 8", i + 1);
-        tp_stripes(8, i, isY);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-    for (unsigned i=0; i<4; i++) {
-        log_i("stripes %d / 2", (i % 2) + 1);
-        tp_stripes(2, i % 2, isY);
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
+	for (unsigned i=0; i<8; i++) {
+		log_i("stripes %d / 8", i + 1);
+		tp_stripes(8, i, isY);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+	}
+	for (unsigned i=0; i<4; i++) {
+		log_i("stripes %d / 2", (i % 2) + 1);
+		tp_stripes(2, i % 2, isY);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
+	}
 }
 
 void tp_sequence()
 {
 	setAll(0, 0xFF000000);
-    setAll(1, 0xFF000000);
-    setAll(2, 0xFF000000);
-    updateFrame();
+	setAll(1, 0xFF000000);
+	setAll(2, 0xFF000000);
+	updateFrame();
 
-    log_i("Diagonal");
-    for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
-        for (unsigned x=0; x<DISPLAY_WIDTH; x++)
-            setPixel(2, x, y, (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000);
-    updateFrame();
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
+	log_i("Diagonal");
+	for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
+		for (unsigned x=0; x<DISPLAY_WIDTH; x++)
+			setPixel(2, x, y, (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000);
+	updateFrame();
+	vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    log_i("Vertical stripes ...");
-    tp_stripes_sequence(true);
+	log_i("Vertical stripes ...");
+	tp_stripes_sequence(true);
 
-    log_i("Horizontal stripes ...");
-    tp_stripes_sequence(false);
+	log_i("Horizontal stripes ...");
+	tp_stripes_sequence(false);
 
-    log_i("All red");
-    setAll(2, 0xFF0000FF);
-    updateFrame();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+	log_i("All red");
+	setAll(2, 0xFF0000FF);
+	updateFrame();
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    log_i("All green");
-    setAll(2, 0xFF00FF00);
-    updateFrame();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+	log_i("All green");
+	setAll(2, 0xFF00FF00);
+	updateFrame();
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    log_i("All blue");
-    setAll(2, 0xFFFF0000);
-    updateFrame();
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
+	log_i("All blue");
+	setAll(2, 0xFFFF0000);
+	updateFrame();
+	vTaskDelay(1000 / portTICK_PERIOD_MS);
 }
 
 // take a shade (0-15) from animation file and 24 bit RGB color. Return a RGBA color.
