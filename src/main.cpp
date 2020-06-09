@@ -16,12 +16,26 @@
 #include "rgb_led_panel.h"
 #include "frame_buffer.h"
 #include "animations.h"
+#include "shaders.h"
+#include "font.h"
 
-// Web socket RX callback
+// Web-socket RX callback
 static void onMsg(websockets::WebsocketsMessage msg)
 {
-	if (msg.c_str()[0] == 'a') wsDumpRtc();
-	settings_ws_handler(msg);
+	if (msg.length() <= 0)
+		return;
+
+	switch (msg.c_str()[0]) {
+		case 'a':
+			wsDumpRtc();  // read rolling log buffer in RTC memory
+			break;
+		case 'b':
+			settings_ws_handler(msg);  // read / write settings.json
+			break;
+		case 'r':
+			ESP.restart();
+			break;
+	}
 }
 
 void setup()
@@ -29,10 +43,10 @@ void setup()
 	//------------------------------
 	// init stuff
 	//------------------------------
-	// forwards each serial character to web-console
+	// forward serial characters to web-console
 	ets_install_putc2(wsDebugPutc);
 
-	// Mount spiffs for .html and defaults .json
+	// Mount spiffs for *.html and defaults.json
 	SPIFFS.begin(true, "/spiffs", 10);
 
 	// Mount SD for animations, fonts and for settings.json
@@ -40,7 +54,6 @@ void setup()
 	bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 5);
 	if (!ret) {
 		log_e("SD-card mount Failed :( :( :(");
-		set_settings_file("/spiffs/default_settings.json", NULL);
 	} else {
 		// When settings.json cannot be opened, try to copy the default_settings over
 		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
@@ -54,7 +67,7 @@ void setup()
 	init_comms(true, SPIFFS, "/", onMsg);
 
 	//------------------------------
-	// display test-pattern
+	// Display test-patterns
 	//------------------------------
 	cJSON *jPanel = jGet(getSettings(), "panel");
 	g_rgbLedBrightness = jGetI(jPanel, "tp_brightness", 10);
@@ -68,7 +81,7 @@ void setup()
 	}
 
 	//------------------------------
-	// Read animation file from SD
+	// Open animation file on SD
 	//------------------------------
 	FILE *f = fopen(ANIMATION_FILE, "r");
 	if (!f) {
@@ -77,48 +90,26 @@ void setup()
 		vTaskDelete(NULL);  // kill current task (== return;)
 	}
 
-	fileHeader_t fh;
-	getFileHeader(f, &fh);
-	fseek(f, HEADER_OFFS, SEEK_SET);
-	headerEntry_t myHeader;
+    //-----------------------------------
+    // Startup animated background layer
+    //-----------------------------------
+    // this one calls updateFrame and hence
+    // sets the global maximum frame-rate
+    delay(1000);
+    xTaskCreate(&aniBackgroundTask, "aniBackground", 4096, NULL, 0, NULL);
 
-	int aniId;
-	cJSON *jDelay = jGet(getSettings(), "delays");
+    //------------------------------
+    // Startup clock layer
+    //------------------------------
+    delay(1000);
+    xTaskCreate(&aniClockTask, "aniClock", 4096, NULL, 0, NULL);
 
-	while (1) {
-		aniId = RAND_AB(0, fh.nAnimations-1);
-		readHeaderEntry(f, &myHeader, aniId);
-		playAni(f, &myHeader);
-		free(myHeader.frameHeader);
-		myHeader.frameHeader = NULL;
-
-		// Keep a single frame displayed for a bit
-		if (myHeader.nStoredFrames <= 3 || myHeader.nFrameEntries <= 3)
-			delay(3000);
-
-		// Fade out the frame
-		uint32_t nTouched = 1;
-		while (nTouched) {
-			// startDrawing(2);
-			nTouched = fadeOut(2, 10);
-			// doneDrawing(2);
-			updateFrame();
-			delay(20);
-		}
-
-		// startDrawing(2);
-		setAll(2, 0x00000000); // Make layer fully transparent
-		// doneDrawing(2);
-		updateFrame();
-
-		delay(jGetI(jDelay, "ani", 15) * 1000);
-	}
-	fclose(f);
+	//------------------------------
+    // Draw animations
+    //------------------------------
+    // blocks forever ...
+    delay(1000);
+	aniPinballTask(f);
 }
 
-void loop() {
-	static unsigned cycle=0;
-	// refresh_comms();  // only needed when init_comms(false, ...)
-	cycle++;
-	delay(10);
-}
+void loop() {vTaskDelete(NULL);}

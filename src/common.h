@@ -37,20 +37,17 @@
 #define GPIO_BLANK  GPIO_NUM_25
 #define GPIO_CLK    GPIO_NUM_22
 
-//Width of the chain of panels (shift registers) [pixels]
+// Width and height of the chain of panels [pixels]
+// ... don't change it, things will catch fire! :p
 #define DISPLAY_WIDTH  128
 #define DISPLAY_HEIGHT  32
 
-
 #define ANIMATION_FILE "/sd/runDmd.img"
-
-#define WS_ID_WEBCONSOLE 'a'
-#define WS_ID_JSON       'c'
 
 #define MIN(a, b) (a < b ? a : b)
 #define MAX(a, b) (a > b ? a : b)
 
-enum {BR_DAY, BR_ALONE, BR_NIGHT} brightNessState;
+// enum {BR_DAY, BR_ALONE, BR_NIGHT} brightNessState;
 extern int g_maxFnt;	//Max number prefix of the font filename
 extern int g_fontNumberRequest;
 

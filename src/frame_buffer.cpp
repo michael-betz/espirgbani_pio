@@ -25,9 +25,10 @@ unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 void initFb()
 {
 	layersDoneDrawingFlags = xEventGroupCreate();
+	// set all layers to transparent black and unblock
 	for (int i=0; i<N_LAYERS; i++) {
 		xEventGroupSetBits(layersDoneDrawingFlags, (1 << i));
-		setAll(i, SRGBA(0, 0, 0, 0xFF));
+		setAll(i, 0x00000000);
 	}
 }
 
@@ -117,7 +118,7 @@ unsigned getPixel(unsigned layer, unsigned x, unsigned y) {
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color) {
 	if (x>=DISPLAY_WIDTH || y>=DISPLAY_HEIGHT || layer>=N_LAYERS)
 		return;
-	unsigned p = g_frameBuff[layer][x+y*DISPLAY_WIDTH];
+	unsigned p = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
 	unsigned resR = INT_PRELERP(GR(p), GR(color), GA(color));
 	unsigned resG = INT_PRELERP(GG(p), GG(color), GA(color));
 	unsigned resB = INT_PRELERP(GB(p), GB(color), GA(color));
@@ -125,15 +126,15 @@ void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color) {
 	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = SRGBA(resR, resG, resB, resA);
 }
 
-unsigned fadeOut(unsigned layer, unsigned factor){
+unsigned fadeOut(unsigned layer, unsigned factor) {
 	if (layer >= N_LAYERS)
 		return 0;
 	if (factor <= 0)
 		factor = 1;
 	unsigned scale = 255 - factor;
 	unsigned *p = (unsigned*)g_frameBuff[layer];
-	unsigned nTouched=0;
-	for (int i=0; i<DISPLAY_WIDTH*DISPLAY_HEIGHT; i++){
+	unsigned nTouched = 0;
+	for (int i=0; i<DISPLAY_WIDTH * DISPLAY_HEIGHT; i++) {
 		if (*p > 0){
 			*p = scale32(scale, *p);
 			nTouched++;
@@ -149,7 +150,7 @@ void setAll(unsigned layer, unsigned color) {
 		return;
 	}
 	unsigned *p = (unsigned*)g_frameBuff[layer];
-	for (int i=0; i<DISPLAY_WIDTH*DISPLAY_HEIGHT; i++){
+	for (int i=0; i<DISPLAY_WIDTH * DISPLAY_HEIGHT; i++) {
 		*p++ = color;
 	}
 }

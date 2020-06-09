@@ -81,4 +81,7 @@ void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t
 // Returns the number of consecutive `path/0.fnt` files
 int cntFntFiles(const char* path);
 
+// Draws the clock on layer 1 every minute
+void aniClockTask(void *pvParameters);
+
 #endif

@@ -2,17 +2,16 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include "Arduino.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "esp_log.h"
 #include "frame_buffer.h"
 #include "bmp.h"
+#include "json_settings.h"
 #include "font.h"
-
-static const char *T = "FONT";
 
 FILE 				*g_bmpFile = NULL;
 bitmapFileHeader_t 	g_bmpFileHeader;
@@ -26,12 +25,12 @@ font_t *loadFntFile(char *file_name) {
     uint32_t blockSize;
     FILE *f = fopen(file_name, "rb");
     if (!f) {
-        ESP_LOGE(T, " fopen(%s, rb) failed: %s", file_name, strerror(errno));
+        log_e(" fopen(%s, rb) failed: %s", file_name, strerror(errno));
         return NULL;
     }
     fread(temp, 4, 1, f);
     if(strncmp((char*)temp, "BMF", 3) != 0) {
-        ESP_LOGE(T, "Wrong header");
+        log_e("Wrong header");
         fclose(f);
         return NULL;
     }
@@ -40,11 +39,11 @@ font_t *loadFntFile(char *file_name) {
     while(1) {
         blockType = 0;
         if (fread(&blockType, 1,1,f) < 1) {
-            ESP_LOGV(T, "No more data");
+            log_v("No more data");
             break;
         }
         fread(&blockSize, 1, 4, f);
-        ESP_LOGD(T, "block %d of size %d", blockType, blockSize);
+        log_v("block %d of size %d", blockType, blockSize);
         switch(blockType) {
             case 1:
                 fDat->info = (fontInfo_t*)malloc(blockSize);
@@ -75,7 +74,7 @@ font_t *loadFntFile(char *file_name) {
                 break;
 
             default:
-                ESP_LOGW(T,"Unknown block type: %d\n", blockType);
+                log_w("Unknown block type: %d\n", blockType);
                 fseek(f, blockSize, SEEK_CUR);
                 continue;
         }
@@ -86,26 +85,20 @@ font_t *loadFntFile(char *file_name) {
 
 // prints (some) content of a font_t object
 void printFntFile(font_t *fDat) {
-    ESP_LOGD(T, "--------------------------------------");
-    ESP_LOGD(T, "fontSize: %d", fDat->info->fontSize);
-    ESP_LOGD(T, "aa: %d", fDat->info->aa);
-    ESP_LOGD(T, "name: %s", fDat->info->fontName);
-    ESP_LOGD(T, "--------------------------------------");
-    ESP_LOGD(T, "lineHeight: %d", fDat->common->lineHeight);
-    ESP_LOGD(T, "scaleW: %d", fDat->common->scaleW);
-    ESP_LOGD(T, "scaleH: %d", fDat->common->scaleH);
-    ESP_LOGD(T, "pages: %d", fDat->common->pages);
-    ESP_LOGD(T, "--------------------------------------");
-    ESP_LOGD(T, "pagenames[0]: %s", fDat->pageNames);
-    // for(int i=0; i<fDat->pageNamesLen; i++) {
-    //     ESP_LOGD(T, "%c", fDat->pageNames[i]);
-    // }
-    ESP_LOGD(T, "--------------------------------------");
-    int nChars = fDat->charsLen/(int)sizeof(fontChar_t);
-    ESP_LOGV(T, "chars: %d", nChars);
-    for(int i=0; i<nChars; i++)
-        ESP_LOGV(T, "id: %3d, x: %3d, y: %3d, w: %3d, h: %3d", fDat->chars[i].id, fDat->chars[i].x, fDat->chars[i].y, fDat->chars[i].width, fDat->chars[i].height);
-    ESP_LOGV(T, "--------------------------------------");
+    log_d(
+        "name: %s, bmp: %s",
+        fDat->info->fontName,
+        fDat->pageNames
+    );
+    log_d(
+        "size: %d, aa: %d, height: %d, scaleW: %d, scaleH: %d, pages: %d",
+        fDat->info->fontSize,
+        fDat->info->aa,
+        fDat->common->lineHeight,
+        fDat->common->scaleW,
+        fDat->common->scaleH,
+        fDat->common->pages
+    );
 }
 
 // get pointer to fontChar_t for a specific character, or NULL if not found
@@ -147,18 +140,18 @@ bool initFont(const char *filePrefix) {
         g_bmpFile = NULL;
     }
     sprintf(tempFileName, "%s.fnt", filePrefix);
-    ESP_LOGI(T, "Loading %s", tempFileName);
+    log_v("Loading %s", tempFileName);
     g_fontInfo = loadFntFile(tempFileName);
     if (g_fontInfo == NULL) {
-        ESP_LOGE(T, "Could not load %s", tempFileName);
+        log_e("Could not load %s", tempFileName);
         return false;
     }
     printFntFile(g_fontInfo);
     sprintf(tempFileName, "%s_0.bmp", filePrefix);
-    ESP_LOGI(T, "Loading %s", tempFileName);
+    log_v("Loading %s", tempFileName);
     g_bmpFile = loadBitmapFile(tempFileName, &g_bmpFileHeader, &g_bmpInfoHeader);
     if (g_bmpFile == NULL) {
-        ESP_LOGE(T, "Could not load %s", tempFileName);
+        log_e("Could not load %s", tempFileName);
         return false;
     }
     return true;
@@ -209,7 +202,7 @@ int getStrWidth(const char *str) {
 
 void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
 	const char *c = str;
-    ESP_LOGI(T, "(%d,%d): %s", x, y, str);
+    log_v("x: %d, y: %d, str: %s", x, y, str);
     setCur(x, y);
 	while(*c) {
         // Render outline first (from green channel)
@@ -229,9 +222,9 @@ void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t
     if (g_bmpFile == NULL || g_fontInfo == NULL) return;
     h = g_fontInfo->common->lineHeight;
     w = getStrWidth(str);
-    ESP_LOGI(T, "getStrDim(w = %d, h = %d)", w, h);
-    xOff = (DISPLAY_WIDTH-w)/2;
-    yOff = (DISPLAY_HEIGHT-h)/2;
+    log_v("w: %d, h: %d", w, h);
+    xOff = (DISPLAY_WIDTH - w)/2;
+    yOff = (DISPLAY_HEIGHT - h)/2;
     startDrawing(layer);
     setAll(layer, 0x00000000);
     drawStr(str, xOff, yOff, layer, cOutline, cFill);
@@ -252,4 +245,61 @@ int cntFntFiles(const char* path) {
         }
     }
     return nFiles;
+}
+
+void aniClockTask(void *pvParameters) {
+    // takes care of things which need to happen
+    // every minute (like redrawing the clock)
+    time_t now = 0;
+    struct tm timeinfo;
+    timeinfo.tm_min =  0;
+    timeinfo.tm_hour= 18;
+    char strftime_buf[64];
+
+    unsigned col = rand();
+    unsigned ticks_font=0, ticks_color=0;  // for counting ticks [min]
+    cJSON *jDelay = jGet(getSettings(), "delays");
+    TickType_t xLastWakeTime;
+    xLastWakeTime = xTaskGetTickCount();
+
+    // count font files and choose a random one
+    int maxFnt = cntFntFiles("/sd/fnt") - 1;
+    int fntRequest = -1;
+    if (maxFnt < 0) {
+        log_e("no fonts found on SD card :( :( :(");
+    } else {
+        log_i("last font file: /sd/fnt/%d.fnt", maxFnt);
+        fntRequest = RAND_AB(0, maxFnt);
+    }
+
+    while(1) {
+        log_v(" ticks_font: %u, max: %d", ticks_font, jGetI(jDelay, "font", 60));
+        if (maxFnt > 0 && ticks_font > jGetI(jDelay, "font", 60)) {
+            // every delays.font minutes
+            fntRequest = RAND_AB(0, maxFnt);
+            ticks_font = 0;
+        }
+        if (ticks_color > jGetI(jDelay, "color", 10)) {
+            col = 0xFF000000 | rand();
+            ticks_color = 0;
+        }
+        // every minute
+        if(maxFnt > 0 && fntRequest >= 0 && fntRequest <= maxFnt) {
+            sprintf(strftime_buf, "/sd/fnt/%d", fntRequest);
+            initFont(strftime_buf);
+            fntRequest = -1;
+        }
+        // Redraw the clock
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
+        drawStrCentered(strftime_buf, 1, col, 0xFF000000);
+        // manageBrightness(&timeinfo);
+        ticks_font++;
+        ticks_color++;
+
+        // wait for the next minute
+        vTaskDelayUntil(&xLastWakeTime, 1000 * 60 / portTICK_PERIOD_MS);
+    }
+    vTaskDelete(NULL);
 }

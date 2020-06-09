@@ -2,6 +2,7 @@
 #include "Arduino.h"
 #include "fast_hsv2rgb.h"
 #include "frame_buffer.h"
+#include "json_settings.h"
 #include "animations.h"
 
 int getFileHeader(FILE *f, fileHeader_t *fh)
@@ -53,37 +54,84 @@ int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 	fseek(f, h->byteOffset+HEADER_SIZE, SEEK_SET);
 
 	log_v("%s", h->name);
-    log_v("--------------------------------");
-    log_v("animationId:       0x%04x", h->animationId);
-    log_v("nStoredFrames:         %d", h->nStoredFrames);
-    log_v("byteOffset:    0x%08x", h->byteOffset);
-    log_v("nFrameEntries:         %d", h->nFrameEntries);
-    log_v("width: 0x%02x  height: 0x%02x  unknown0: 0x%02x", h->width, h->height, h->unknown0);
+	log_v("--------------------------------");
+	log_v("animationId:       0x%04x", h->animationId);
+	log_v("nStoredFrames:         %d", h->nStoredFrames);
+	log_v("byteOffset:    0x%08x", h->byteOffset);
+	log_v("nFrameEntries:         %d", h->nFrameEntries);
+	log_v("width: 0x%02x  height: 0x%02x  unknown0: 0x%02x", h->width, h->height, h->unknown0);
 	return 0;
 }
 
 void seekToFrame(FILE *f, int byteOffset, int frameOffset)
 {
-    byteOffset += DISPLAY_WIDTH * DISPLAY_HEIGHT * frameOffset / 2;
-    fseek(f, byteOffset, SEEK_SET);
+	byteOffset += DISPLAY_WIDTH * DISPLAY_HEIGHT * frameOffset / 2;
+	fseek(f, byteOffset, SEEK_SET);
 }
 
 void playAni(FILE *f, headerEntry_t *h)
 {
-    uint8_t r,g,b;
-    fast_hsv2rgb_32bit(RAND_AB(0,HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
-    for(int i=0; i<h->nFrameEntries; i++) {
-        frameHeaderEntry_t fh = h->frameHeader[i];
-        if(fh.frameId == 0) {
-            startDrawing(2);
-            setAll(2, 0xFF000000);
-        } else {
-            seekToFrame(f, h->byteOffset+HEADER_SIZE, fh.frameId-1);
-            startDrawing(2);
-            setFromFile(f, 2, SRGBA(r,g,b,0xFF));
-        }
-        doneDrawing(2);
-        updateFrame();
-        delay(fh.frameDur);
-    }
+	uint8_t r, g, b;
+	TickType_t xLastWakeTime;
+
+	// get a random color
+	fast_hsv2rgb_32bit(RAND_AB(0,HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
+	unsigned color = SRGBA(r,g,b,0xFF);
+
+	 xLastWakeTime = xTaskGetTickCount();
+
+	for(int i=0; i<h->nFrameEntries; i++) {
+		frameHeaderEntry_t fh = h->frameHeader[i];
+		if(fh.frameId == 0) {
+			// invalid frame = translucent black
+			startDrawing(2);
+			setAll(2, 0xFF000000);
+		} else {
+			seekToFrame(f, h->byteOffset + HEADER_SIZE, fh.frameId - 1);
+			startDrawing(2);
+			setFromFile(f, 2, color);
+		}
+		doneDrawing(2);
+		if (i == 0)
+			 xLastWakeTime = xTaskGetTickCount();
+		vTaskDelayUntil(&xLastWakeTime, fh.frameDur / portTICK_PERIOD_MS);
+	}
+}
+
+void aniPinballTask(FILE *f)
+{
+	fileHeader_t fh;
+	getFileHeader(f, &fh);
+	fseek(f, HEADER_OFFS, SEEK_SET);
+	headerEntry_t myHeader;
+
+	int aniId;
+	cJSON *jDelay = jGet(getSettings(), "delays");
+	TickType_t xLastWakeTime;
+
+	while (1) {
+		// delay between animations
+		delay(jGetI(jDelay, "ani", 15) * 1000);
+
+		aniId = RAND_AB(0, fh.nAnimations - 1);
+		readHeaderEntry(f, &myHeader, aniId);
+		playAni(f, &myHeader);
+		free(myHeader.frameHeader);
+		myHeader.frameHeader = NULL;
+
+		// Keep a single frame displayed for a bit
+		if (myHeader.nStoredFrames <= 3 || myHeader.nFrameEntries <= 3)
+			delay(3000);
+
+		// Fade out the frame
+		uint32_t nTouched = 1;
+		xLastWakeTime = xTaskGetTickCount();
+		while (nTouched) {
+			startDrawing(2);
+			nTouched = fadeOut(2, 10);
+			doneDrawing(2);
+			vTaskDelayUntil(&xLastWakeTime, 20 / portTICK_PERIOD_MS);
+		}
+	}
+	fclose(f);
 }
