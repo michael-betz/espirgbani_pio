@@ -44,7 +44,7 @@ void setup()
 	// init stuff
 	//------------------------------
 	// forward serial characters to web-console
-	ets_install_putc2(wsDebugPutc);
+	web_console_init();
 
 	// Mount spiffs for *.html and defaults.json
 	SPIFFS.begin(true, "/spiffs", 10);

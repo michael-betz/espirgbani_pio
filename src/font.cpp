@@ -13,6 +13,8 @@
 #include "json_settings.h"
 #include "font.h"
 
+#include "rom/rtc.h"
+
 FILE 				*g_bmpFile = NULL;
 bitmapFileHeader_t 	g_bmpFileHeader;
 bitmapInfoHeader_t 	g_bmpInfoHeader;
@@ -86,7 +88,7 @@ font_t *loadFntFile(char *file_name) {
 // prints (some) content of a font_t object
 void printFntFile(font_t *fDat) {
 	log_d(
-		"name: %s, bmp: %s",
+		"name: %s, f: %s",
 		fDat->info->fontName,
 		fDat->pageNames
 	);
@@ -247,6 +249,8 @@ int cntFntFiles(const char* path) {
 	return nFiles;
 }
 
+RTC_NOINIT_ATTR static unsigned max_uptime;
+
 void aniClockTask(void *pvParameters) {
 	// takes care of things which need to happen
 	// every minute (like redrawing the clock)
@@ -257,7 +261,7 @@ void aniClockTask(void *pvParameters) {
 	char strftime_buf[64];
 
 	unsigned col = rand();
-	unsigned ticks_font=0, ticks_color=0;  // for counting ticks [min]
+	unsigned uptime=0;  // for counting ticks [min]
 	cJSON *jDelay = jGet(getSettings(), "delays");
 	TickType_t xLastWakeTime;
 	xLastWakeTime = xTaskGetTickCount();
@@ -272,31 +276,41 @@ void aniClockTask(void *pvParameters) {
 		fntRequest = RAND_AB(0, maxFnt);
 	}
 
+	unsigned font_delay = jGetI(jDelay, "font", 60);
+	unsigned color_delay = jGetI(jDelay, "color", 10);
+
+	log_i("reset reason: %d", rtc_get_reset_reason(0));
+	if (rtc_get_reset_reason(0) == POWERON_RESET || rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
+		max_uptime = 0;
+
 	while(1) {
-		log_v(" ticks_font: %u, max: %d", ticks_font, jGetI(jDelay, "font", 60));
-		if (maxFnt > 0 && ticks_font > jGetI(jDelay, "font", 60)) {
-			// every delays.font minutes
+		if (uptime > max_uptime)
+			max_uptime = uptime;
+
+		log_i("uptime: %d, max_uptime: %d", uptime, max_uptime);
+
+		// change font every delays.font minutes
+		if (maxFnt > 0 && (uptime % font_delay) == 0)
 			fntRequest = RAND_AB(0, maxFnt);
-			ticks_font = 0;
-		}
-		if (ticks_color > jGetI(jDelay, "color", 10)) {
+
+		// change color every delays.color minutes
+		if ((uptime % color_delay) == 0)
 			col = 0xFF000000 | rand();
-			ticks_color = 0;
-		}
+
 		// every minute
-		if(maxFnt > 0 && fntRequest >= 0 && fntRequest <= maxFnt) {
+		if (maxFnt > 0 && fntRequest >= 0 && fntRequest <= maxFnt) {
 			sprintf(strftime_buf, "/sd/fnt/%d", fntRequest);
 			initFont(strftime_buf);
 			fntRequest = -1;
 		}
+
 		// Redraw the clock
 		time(&now);
 		localtime_r(&now, &timeinfo);
 		strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
 		drawStrCentered(strftime_buf, 1, col, 0xFF000000);
 		// manageBrightness(&timeinfo);
-		ticks_font++;
-		ticks_color++;
+		uptime++;
 
 		// wait for the next minute
 		vTaskDelayUntil(&xLastWakeTime, 1000 * 60 / portTICK_PERIOD_MS);
