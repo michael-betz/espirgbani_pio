@@ -70,7 +70,7 @@ void setup()
 	// Display test-patterns
 	//------------------------------
 	cJSON *jPanel = jGet(getSettings(), "panel");
-	g_rgbLedBrightness = jGetI(jPanel, "tp_brightness", 10);
+	g_rgbLedBrightness = jGetI(jPanel, "brightness", 10);
 	if (g_rgbLedBrightness < 1) g_rgbLedBrightness = 1;
 	// only if enabled in json
 	if (jGetB(jPanel, "test_pattern", true)) {

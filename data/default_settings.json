@@ -6,7 +6,7 @@
     "timezone": "PST8PDT,M3.2.0,M11.1.0",
     "panel": {
         "test_pattern": true,
-        "tp_brightness":  10,
+        "brightness":  10,
         "is_clk_inverted": true,
         "column_swap": false,
         "latch_offset": 0,

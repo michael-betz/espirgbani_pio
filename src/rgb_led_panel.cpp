@@ -141,7 +141,7 @@ void updateFrame() {
 
 				int v=lbits;
 				// Do not show image while the line bits are changing
-				if (fx < extra_blank || fx >= g_rgbLedBrightness + 8) v |= BIT_BLANK;
+				if (fx < extra_blank || fx >= g_rgbLedBrightness) v |= BIT_BLANK;
 
 				// latch on last bit...
 				if (fx == latch_offset) v |= BIT_LAT;
