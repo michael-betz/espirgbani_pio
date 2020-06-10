@@ -10,7 +10,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "palette.h"
+#include "comms.h"
 #include "shaders.h"
+
 
 static void drawXorFrame() {
 	static int frm=0;
@@ -181,6 +183,9 @@ void aniBackgroundTask(void *pvParameters) {
 				drawDoomFlameFrame();
 				break;
 		}
+
+		refresh_comms();
+
 		// maximum global frame-rate: 50 Hz
 		vTaskDelayUntil(&xLastWakeTime, 20 / portTICK_PERIOD_MS);
 		updateFrame();

@@ -63,12 +63,12 @@ void init_rgb()
 	// Swap pixel x[0] with x[1]
 	isColumnSwapped = jGetB(jPanel, "column_swap", false);
 	if (isColumnSwapped)
-		log_w("column_swap applied!");
+		log_v("column_swap applied!");
 
 	// adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
 	latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
 	latch_offset %= DISPLAY_WIDTH;
-	log_w("latch_offset = %d", latch_offset);
+	log_v("latch_offset = %d", latch_offset);
 
 	// adjust extra blanking cycles to reduce ghosting effects
 	extra_blank = jGetI(jPanel, "extra_blank", 1);
@@ -76,7 +76,7 @@ void init_rgb()
 	// set clock divider
 	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
 	if (cfg.clk_div < 1) cfg.clk_div = 1;
-	log_w("clkm_div_num = %d", cfg.clk_div);
+	log_v("clkm_div_num = %d", cfg.clk_div);
 
 	cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
 

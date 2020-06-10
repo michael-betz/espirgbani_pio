@@ -5,6 +5,7 @@
 #include "SPIFFS.h"
 #include "SPI.h"
 #include "SD.h"
+#include "rom/rtc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -45,26 +46,52 @@ void setup()
 	//------------------------------
 	// forward serial characters to web-console
 	web_console_init();
+	// report initial status
+	log_w(
+		"reset reason: %d, heap: %d, min_heap: %d",
+		rtc_get_reset_reason(0),
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
 
 	// Mount spiffs for *.html and defaults.json
 	SPIFFS.begin(true, "/spiffs", 10);
+	log_w(
+		"after SPIFFS, heap: %d, min_heap: %d",
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
 
 	// Mount SD for animations, fonts and for settings.json
 	SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
 	bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 5);
-	if (!ret) {
-		log_e("SD-card mount Failed :( :( :(");
-	} else {
-		// When settings.json cannot be opened, try to copy the default_settings over
+	// Load settings.json from SD card, try to create file if it doesn't exist
+	if (ret)
 		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
-	}
+
+	log_w(
+		"after SD, heap: %d, min_heap: %d",
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
+
 
 	// init I2S driven rgb - panel
 	init_rgb();
 	updateFrame();
+	log_w(
+		"after RGB, heap: %d, min_heap: %d",
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
 
 	// init web-server
-	init_comms(true, SPIFFS, "/", onMsg);
+	init_comms(false, SPIFFS, "/", onMsg);
+	log_w(
+		"after COMMS, heap: %d, min_heap: %d",
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
 
 	//------------------------------
 	// Display test-patterns

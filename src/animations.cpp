@@ -9,6 +9,10 @@
 static int getFileHeader(FILE *f, fileHeader_t *fh)
 {
 	char tempCh[3];
+
+	if (f == NULL || fh == NULL)
+		return -1;
+
 	fseek(f, 0x00000000, SEEK_SET);
 	fread(tempCh, 3, 1, f);
 	if(memcmp(tempCh,"DGD", 3) != 0) {
@@ -28,6 +32,9 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 // Specify an `headerIndex` from 0 to nAnimations
 static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 {
+	if (f == NULL || h == NULL)
+		return -1;
+
 	// Copys header info into h. Note that h->nFrameEntries must be freed!
 	fseek(f, HEADER_OFFS + HEADER_SIZE * headerIndex, SEEK_SET);
 	fread(h, sizeof(*h), 1, f);
@@ -72,7 +79,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId)
 {
 	// without fast-seek enabled, this takes tens of ms when seeking backwards
 	// http://www.elm-chan.org/fsw/ff/doc/lseek.html
-	if (frameId <= 0)
+	if (f == NULL || frameId <= 0)
 		return;
 	byteOffset += DISPLAY_WIDTH * DISPLAY_HEIGHT * (frameId - 1) / 2;
 	fseek(f, byteOffset, SEEK_SET);
@@ -81,7 +88,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId)
 // play a single animation, start to finish
 static void playAni(FILE *f, headerEntry_t *h)
 {
-	if (h->nFrameEntries == 0)
+	if (f == NULL || h == NULL || h->nFrameEntries == 0)
 		return;
 
 	// get a random color

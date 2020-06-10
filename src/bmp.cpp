@@ -11,22 +11,28 @@ static const char *T = "BMP";
 
 // Returns a filepointer seeked to the beginngin of the bitmap data
 FILE *loadBitmapFile(char *file_name, bitmapFileHeader_t *bitmapFileHeader, bitmapInfoHeader_t *bitmapInfoHeader) {
+	if (bitmapFileHeader == NULL || bitmapInfoHeader == NULL)
+		return NULL;
+
 	FILE *filePtr;
 	filePtr = fopen(file_name, "rb");
 	if (!filePtr) {
 		ESP_LOGE(T, " fopen(%s, rb) failed: %s", file_name, strerror(errno));
 		return NULL;
 	}
-	//read the bitmap file header
+
+	// read data into the bitmap file header
 	fread(bitmapFileHeader, sizeof(bitmapFileHeader_t), 1, filePtr);
-	//verify that this is a bmp file by check bitmap id
+	// verify that this is a bmp file by check bitmap id
 	if (bitmapFileHeader->bfType != 0x4D42) {
 		fclose(filePtr);
 		return NULL;
 	}
-	//read the bitmap info header
+
+	// read data into the bitmap info header
 	fread(bitmapInfoHeader, sizeof(bitmapInfoHeader_t), 1, filePtr);
-	//move file point to the beggining of bitmap data
+
+	//move file point to the beginning of bitmap data
 	fseek(filePtr, bitmapFileHeader->bfOffBits, SEEK_SET);
 	return filePtr;
 }
@@ -35,6 +41,7 @@ FILE *loadBitmapFile(char *file_name, bitmapFileHeader_t *bitmapFileHeader, bitm
 void copyBmpToFbRect(FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp, uint16_t yBmp, uint16_t w, uint16_t h, int xFb, int yFb, uint8_t layerFb, uint32_t color, uint8_t chOffset) {
 	if (bmpF == NULL || bmInfo == NULL)
 		return;
+
 	if (chOffset >= bmInfo->biWidth / 8) {
 		ESP_LOGE(T, "There's only %d color channels dude!", bmInfo->biWidth/8);
 		chOffset = bmInfo->biWidth/8 - 1;
