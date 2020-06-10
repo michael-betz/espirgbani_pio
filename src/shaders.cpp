@@ -10,7 +10,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "palette.h"
-#include "comms.h"
+#include "esp_comms.h"
 #include "shaders.h"
 
 

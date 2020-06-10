@@ -13,19 +13,6 @@
         "extra_blank": 1,
         "clkm_div_num": 4
     },
-    "power": {
-        "hi": {
-            "h": 9,
-            "m": 0,
-            "p": 50,
-            "pingIp": "0.0.0.0"
-        },
-        "lo": {
-            "h": 22,
-            "m": 45,
-            "p": 1
-        }
-    },
     "delays": {
         "font":  60,
         "color": 10,
