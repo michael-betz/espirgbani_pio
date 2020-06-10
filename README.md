@@ -63,7 +63,7 @@ Once the clock is connected to the network, `settings.json` can be edited in the
         "column_swap": false,
         "latch_offset": 0,
         "extra_blank": 1,
-        "clkm_div_num": 4
+        "clkm_div_num": 3
     },
     "delays": {
         "font":  60,
@@ -72,22 +72,24 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     }
 }
 ```
-__the `panel` section__
+### `panel` section
 Not all LED panels are the same. Here the timing parameters of the I2S panel driver can be configured.
 
-  * `test_pattern` is > 0: enters a LED panel test mode instead of normal operation
-  * `brightness`: led-panel global brightness, from 1 to 127. Current draw gets rather ridiculous for the larger values
-  * `is_clk_inverted` = 0: data changes on clock rising edge, `is_clk_inverted` = 1: data is stable on clock rising edge (most panels need the latter)
-  * when `column_swap` > 0: swap pairs of columns
-  * when `latch_offset` = 0: latch row-data with last pixel. For positive / negative numbers the latching happens n clock cycles earlier / later. Shifts the image horizontally.
-  * `extra_blank` adds N additional delay cycles after latching before enabling the LEDs to prevent ghosting artifacts from one row to another. This will reduce the maximum achievable brightness.
-  * `clkm_div_num` sets the I2S clock divider from 1 to 128. Set it too high and get flicker,  too low get ghost pixels. 3 = 10 MHz pixel clock works well for me.
+  * `test_pattern`: if true, enters a LED panel test mode instead of normal operation
+  * `tp_brightness`: brightness of the test pattern, from 1 to 127. Current draw gets ridiculous for the higher values
+  * `is_clk_inverted`: if `false`, data changes on the rising clock edge. If `true`, data is stable on the rising clock edge (most panels need `true`)
+  * `column_swap`: if true, swap each pair of vertical columns
+  * when `latch_offset = 0`: latch row-data with last pixel. For positive / negative numbers the latching happens n clock cycles earlier / later. Shifts the image horizontally
+  * `extra_blank` adds N additional delay cycles after latching before enabling the LEDs to prevent ghosting artifacts from one row to another
+  * `clkm_div_num` sets the I2S clock divider from 1 to 128. Set it too high and get flicker, too low get ghost pixels.
+  `"clkm_div_num": 3` corresponds to a 10 MHz pixel clock
 
-__the `delays` section__
+### `delays` section
 controls delays between random animations, color and font changes.
 
   * Changes the clock font every 60 minutes
   * Changes color of the clock font every 10 minutes
   * Plays a new pinball animation every 15 seconds
 
-__timezone__ is the local timezone in [TZ format](https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html). Look it up [here](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv).
+### `timezone`
+is the local timezone in [TZ format](https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html). Look it up [here](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv).
