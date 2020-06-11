@@ -81,7 +81,7 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     "_wifi_ssid": "",
     "_wifi_pw": "",
     "hostname": "espirgbani",
-    "enable_ota": false,
+    "enable_ota": true,
     "timezone": "PST8PDT,M3.2.0,M11.1.0"
 }
 ```
