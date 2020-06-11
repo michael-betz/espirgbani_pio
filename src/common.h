@@ -44,10 +44,9 @@
 
 #define ANIMATION_FILE "/sd/runDmd.img"
 
-#define MIN(a, b) (a < b ? a : b)
-#define MAX(a, b) (a > b ? a : b)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-// enum {BR_DAY, BR_ALONE, BR_NIGHT} brightNessState;
 extern int g_maxFnt;	//Max number prefix of the font filename
 extern int g_fontNumberRequest;
 

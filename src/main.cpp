@@ -96,11 +96,10 @@ void setup()
 	//------------------------------
 	// Display test-patterns
 	//------------------------------
-	cJSON *jPanel = jGet(getSettings(), "panel");
-	g_rgbLedBrightness = jGetI(jPanel, "brightness", 10);
-	if (g_rgbLedBrightness < 1) g_rgbLedBrightness = 1;
 	// only if enabled in json
+	cJSON *jPanel = jGet(getSettings(), "panel");
 	if (jGetB(jPanel, "test_pattern", true)) {
+		g_rgbLedBrightness = MAX(0, jGetI(jPanel, "tp_brightness", 10));
 		while(1) {
 			log_i("RGB test-pattern mode!!!");
 			tp_sequence();

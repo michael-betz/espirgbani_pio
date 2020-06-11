@@ -1,22 +1,33 @@
 {
-    "_wifi_ssid": "",
-    "_wifi_pw": "",
-    "hostname": "espirgbani",
-    "enable_ota": false,
-    "timezone": "PST8PDT,M3.2.0,M11.1.0",
     "panel": {
         "test_pattern": true,
-        "brightness":  10,
+        "tp_brightness":  10,
         "is_clk_inverted": true,
         "column_swap": false,
         "latch_offset": 0,
         "extra_blank": 1,
-        "clkm_div_num": 4
+        "clkm_div_num": 5
     },
     "delays": {
         "font":  60,
         "color": 10,
-        "ani":   15,
-        "ping":  60
-    }
+        "ani":   15
+    },
+    "power": {
+        "day": {
+            "h": 9,
+            "m": 0,
+            "p": 20
+        },
+        "night": {
+            "h": 22,
+            "m": 45,
+            "p": 2
+        }
+    },
+    "_wifi_ssid": "",
+    "_wifi_pw": "",
+    "hostname": "espirgbani",
+    "enable_ota": false,
+    "timezone": "PST8PDT,M3.2.0,M11.1.0"
 }

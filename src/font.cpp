@@ -287,31 +287,51 @@ int cntFntFiles(const char* path) {
 	return nFiles;
 }
 
+// --------- end of font related stuff ------------
+
+static void manageBrightness(struct tm *timeinfo)
+{
+	// get json dictionaries
+	cJSON *jPow = jGet(getSettings(), "power");
+	cJSON *jDay = jGet(jPow, "day");
+	cJSON *jNight = jGet(jPow, "night");
+
+	// convert times to minutes since 00:00
+	int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);
+	int iNight = jGetI(jNight,"h", 22) * 60 + jGetI(jNight, "m", 45);
+	int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
+
+	if (iNow >= iDay && iNow < iNight) {
+		// Daylight mode
+		g_rgbLedBrightness = jGetI(jDay, "p", 20);
+	} else {
+		// Nightdark mode
+		g_rgbLedBrightness = jGetI(jNight, "p", 2);
+	}
+}
+
 RTC_NOINIT_ATTR static unsigned max_uptime;
 
-void aniClockTask(void *pvParameters) {
+void aniClockTask(void *pvParameters)
+{
 	// takes care of things which need to happen
 	// every minute (like redrawing the clock)
 	time_t now = 0;
 	struct tm timeinfo;
-	timeinfo.tm_min =  0;
+	timeinfo.tm_min = 0;
 	timeinfo.tm_hour= 18;
 	char strftime_buf[64];
 
 	unsigned col = rand();
 	unsigned uptime=0;  // for counting ticks [min]
 	cJSON *jDelay = jGet(getSettings(), "delays");
-	TickType_t xLastWakeTime;
-	xLastWakeTime = xTaskGetTickCount();
 
 	// count font files and choose a random one
 	int maxFnt = cntFntFiles("/sd/fnt") - 1;
-	int fntRequest = -1;
 	if (maxFnt < 0)
 		log_e("no fonts found on SD card :( :( :(");
 	else
 		log_i("last font file: /sd/fnt/%d.fnt", maxFnt);
-
 
 	unsigned font_delay = jGetI(jDelay, "font", 60);
 	unsigned color_delay = jGetI(jDelay, "color", 10);
@@ -320,7 +340,7 @@ void aniClockTask(void *pvParameters) {
 		max_uptime = 0;
 
 	while(1) {
-		// uptime stats
+		// print uptime stats
 		if (uptime > max_uptime)
 			max_uptime = uptime;
 		log_i("uptime: %d, max_uptime: %d, heap: %d, min_heap: %d",
@@ -331,30 +351,25 @@ void aniClockTask(void *pvParameters) {
 		);
 
 		// change font every delays.font minutes
-		if (maxFnt > 0 && (uptime % font_delay) == 0)
-			fntRequest = RAND_AB(0, maxFnt);
+		if (maxFnt > 0 && (uptime % font_delay) == 0) {
+			sprintf(strftime_buf, "/sd/fnt/%d", RAND_AB(0, maxFnt));
+			initFont(strftime_buf);
+		}
 
 		// change color every delays.color minutes
 		if ((uptime % color_delay) == 0)
 			col = 0xFF000000 | rand();
-
-		// every minute
-		if (maxFnt > 0 && fntRequest >= 0 && fntRequest <= maxFnt) {
-			sprintf(strftime_buf, "/sd/fnt/%d", fntRequest);
-			initFont(strftime_buf);
-			fntRequest = -1;
-		}
 
 		// Redraw the clock
 		time(&now);
 		localtime_r(&now, &timeinfo);
 		strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
 		drawStrCentered(strftime_buf, 1, col, 0xFF000000);
-		// manageBrightness(&timeinfo);
+		manageBrightness(&timeinfo);
 		uptime++;
 
-		// wait for the next minute
-		vTaskDelayUntil(&xLastWakeTime, 1000 * 60 / portTICK_PERIOD_MS);
+		// wait for the next complete minute
+		delay(60 - timeinfo.tm_sec);
 	}
 	vTaskDelete(NULL);
 }
