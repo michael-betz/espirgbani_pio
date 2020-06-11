@@ -174,51 +174,53 @@ static void tp_stripes(unsigned width, unsigned offset, bool isY)
 static void tp_stripes_sequence(bool isY)
 {
 	for (unsigned i=0; i<8; i++) {
-		log_i("stripes %d / 8", i + 1);
+		log_d("stripes %d / 8", i + 1);
 		tp_stripes(8, i, isY);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		delay(500);
 	}
 	for (unsigned i=0; i<4; i++) {
-		log_i("stripes %d / 2", (i % 2) + 1);
+		log_d("stripes %d / 2", (i % 2) + 1);
 		tp_stripes(2, i % 2, isY);
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+		delay(500);
 	}
 }
 
-void tp_sequence()
+void tp_task(void *pvParameters)
 {
-	setAll(0, 0xFF000000);
-	setAll(1, 0xFF000000);
-	setAll(2, 0xFF000000);
-	updateFrame();
+	while(1) {
+		setAll(0, 0xFF000000);
+		setAll(1, 0xFF000000);
+		setAll(2, 0xFF000000);
+		updateFrame();
 
-	log_i("Diagonal");
-	for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
-		for (unsigned x=0; x<DISPLAY_WIDTH; x++)
-			setPixel(2, x, y, (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000);
-	updateFrame();
-	vTaskDelay(5000 / portTICK_PERIOD_MS);
+		log_d("Diagonal");
+		for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
+			for (unsigned x=0; x<DISPLAY_WIDTH; x++)
+				setPixel(2, x, y, (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000);
+		updateFrame();
+		delay(5000);
 
-	log_i("Vertical stripes ...");
-	tp_stripes_sequence(true);
+		log_d("Vertical stripes ...");
+		tp_stripes_sequence(true);
 
-	log_i("Horizontal stripes ...");
-	tp_stripes_sequence(false);
+		log_d("Horizontal stripes ...");
+		tp_stripes_sequence(false);
 
-	log_i("All red");
-	setAll(2, 0xFF0000FF);
-	updateFrame();
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+		log_d("All red");
+		setAll(2, 0xFF0000FF);
+		updateFrame();
+		delay(1000);
 
-	log_i("All green");
-	setAll(2, 0xFF00FF00);
-	updateFrame();
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+		log_d("All green");
+		setAll(2, 0xFF00FF00);
+		updateFrame();
+		delay(1000);
 
-	log_i("All blue");
-	setAll(2, 0xFFFF0000);
-	updateFrame();
-	vTaskDelay(1000 / portTICK_PERIOD_MS);
+		log_d("All blue");
+		setAll(2, 0xFFFF0000);
+		updateFrame();
+		delay(1000);
+	}
 }
 
 // take a shade (0-15) from animation file and 24 bit RGB color. Return a RGBA color.

@@ -99,10 +99,14 @@ void setup()
 	// only if enabled in json
 	cJSON *jPanel = jGet(getSettings(), "panel");
 	if (jGetB(jPanel, "test_pattern", true)) {
+		log_w("RGB test-pattern mode!!!");
 		g_rgbLedBrightness = MAX(0, jGetI(jPanel, "tp_brightness", 10));
+
+		xTaskCreate(&tp_task, "test_patterns", 2048, NULL, 0, NULL);
+
 		while(1) {
-			log_i("RGB test-pattern mode!!!");
-			tp_sequence();
+			refresh_comms();
+			delay(20);
 		}
 	}
 
@@ -122,20 +126,22 @@ void setup()
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	delay(1000);
-	xTaskCreate(&aniBackgroundTask, "aniBackground", 4096, NULL, 0, NULL);
+	xTaskCreate(&aniBackgroundTask, "aniBackground", 3000, NULL, 0, NULL);
 
 	//------------------------------
 	// Startup clock layer
 	//------------------------------
 	delay(1000);
-	xTaskCreate(&aniClockTask, "aniClock", 4096, NULL, 0, NULL);
+	xTaskCreate(&aniClockTask, "aniClock", 3000, NULL, 0, NULL);
 
 	//------------------------------
 	// Draw animations
 	//------------------------------
-	// blocks forever ...
 	delay(1000);
-	aniPinballTask(f);
+	xTaskCreate(&aniPinballTask, "aniPinball", 3000, f, 0, NULL);
 }
 
-void loop() {vTaskDelete(NULL);}
+void loop() {
+	refresh_comms();
+	delay(20);
+}

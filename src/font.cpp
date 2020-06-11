@@ -369,7 +369,7 @@ void aniClockTask(void *pvParameters)
 		uptime++;
 
 		// wait for the next complete minute
-		delay(60 - timeinfo.tm_sec);
+		delay((60 - timeinfo.tm_sec) * 1000);
 	}
 	vTaskDelete(NULL);
 }

@@ -124,8 +124,9 @@ static void playAni(FILE *f, headerEntry_t *h)
 	}
 }
 
-void aniPinballTask(FILE *f)
+void aniPinballTask(void *pvParameters)
 {
+	FILE *f = (FILE *)pvParameters;
 	fileHeader_t fh;
 	getFileHeader(f, &fh);
 	fseek(f, HEADER_OFFS, SEEK_SET);

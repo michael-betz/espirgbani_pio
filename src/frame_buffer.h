@@ -52,8 +52,8 @@ void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);
 // Set whole layer to fixed color
 void setAll(unsigned layer, unsigned color);
 
-// blocks a few seconds as it runs through test pattern sequence once
-void tp_sequence();
+// blocks and displays test-patterns forever
+void tp_task(void *pvParameters);
 
 // write image from a runDmd image file into layer with shades of color
 void setFromFile(FILE *f, unsigned layer, unsigned color);

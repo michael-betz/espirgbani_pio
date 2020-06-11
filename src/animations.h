@@ -34,6 +34,6 @@ typedef struct {
 } __attribute__ ((__packed__)) headerEntry_t;
 
 // blocks and forever shows pinball animations on layer 2
-void aniPinballTask(FILE *f);
+void aniPinballTask(void *pvParameters);
 
 #endif

@@ -184,8 +184,6 @@ void aniBackgroundTask(void *pvParameters) {
 				break;
 		}
 
-		refresh_comms();
-
 		// maximum global frame-rate: 50 Hz
 		vTaskDelayUntil(&xLastWakeTime, 20 / portTICK_PERIOD_MS);
 		updateFrame();
