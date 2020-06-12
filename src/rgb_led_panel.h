@@ -38,4 +38,6 @@ extern int g_rgbLedBrightness;
 void init_rgb();
 void updateFrame();
 
+extern unsigned g_frames;
+
 #endif

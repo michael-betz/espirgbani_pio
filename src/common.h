@@ -53,4 +53,10 @@ extern int g_fontNumberRequest;
 // Random number within the range [a,b]
 int RAND_AB(int a, int b);
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+extern TaskHandle_t t_backg;
+extern TaskHandle_t t_clock;
+extern TaskHandle_t t_pinb;
+
 #endif

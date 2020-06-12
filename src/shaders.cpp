@@ -30,7 +30,7 @@ static void drawXorFrame() {
 	if((frm % 1024) == 0) {
 		aniZoom = rand();
 		boost = RAND_AB(1, 8);
-		log_i("aniZoom = %d,  boost = %d", aniZoom, boost);
+		log_v("aniZoom = %d,  boost = %d", aniZoom, boost);
 	}
 	frm++;
 }
@@ -154,7 +154,7 @@ static void drawDoomFlameFrame() {
 
 void aniBackgroundTask(void *pvParameters) {
 	uint32_t frameCount = 1;
-	uint8_t aniMode = 0;
+	uint8_t aniMode = 1;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	setAll(0, 0xFF000000);
 	while(1) {
@@ -165,6 +165,7 @@ void aniBackgroundTask(void *pvParameters) {
 				setAll(0, tempColor);
 			}
 		}
+
 		switch(aniMode) {
 			case 1:
 				// cool square patterns
@@ -184,8 +185,8 @@ void aniBackgroundTask(void *pvParameters) {
 				break;
 		}
 
-		// maximum global frame-rate: 50 Hz
-		vTaskDelayUntil(&xLastWakeTime, 20 / portTICK_PERIOD_MS);
+		// maximum global frame-rate: 33.3 Hz
+		vTaskDelayUntil(&xLastWakeTime, 30 / portTICK_PERIOD_MS);
 		updateFrame();
 		frameCount++;
 	}

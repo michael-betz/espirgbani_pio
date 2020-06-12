@@ -13,6 +13,7 @@ extern "C" {
 	#include "i2s_parallel.h"
 }
 
+unsigned g_frames = 0; // frame counter
 int g_rgbLedBrightness = 1;
 //which buffer is the backbuffer, as in, which one is not active so we can write to it
 int backbuf_id = 0;
@@ -166,4 +167,6 @@ void updateFrame() {
 	i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
 	//Switch bitplane buffers
 	backbuf_id ^= 1;
+
+	g_frames++;
 }

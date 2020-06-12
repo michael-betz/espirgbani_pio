@@ -1,7 +1,6 @@
 // demonstrates the use of esp-comms
 #include <stdio.h>
 #include "Arduino.h"
-#include "ArduinoWebsockets.h"
 #include "SPIFFS.h"
 #include "SPI.h"
 #include "SD.h"
@@ -20,21 +19,37 @@
 #include "shaders.h"
 #include "font.h"
 
-// Web-socket RX callback
-static void onMsg(websockets::WebsocketsMessage msg)
-{
-	if (msg.length() <= 0)
-		return;
+TaskHandle_t t_backg = NULL;
+TaskHandle_t t_clock = NULL;
+TaskHandle_t t_pinb = NULL;
 
-	switch (msg.c_str()[0]) {
+// Web socket RX data received callback
+static void on_ws_data(
+	AsyncWebSocket * server,
+	AsyncWebSocketClient * client,
+	AwsEventType type,
+	void * arg,
+	uint8_t *data,
+	size_t len
+) {
+	switch (data[0]) {
 		case 'a':
-			wsDumpRtc();  // read rolling log buffer in RTC memory
+			wsDumpRtc(client);  // read rolling log buffer in RTC memory
 			break;
+
 		case 'b':
-			settings_ws_handler(msg);  // read / write settings.json
+			settings_ws_handler(client, data, len);  // read / write settings.json
 			break;
+
 		case 'r':
 			ESP.restart();
+			break;
+
+		case 'h':
+			client->printf(
+				"h{\"heap\": %d, \"min_heap\": %d}",
+				esp_get_free_heap_size(), esp_get_minimum_free_heap_size()
+			);
 			break;
 	}
 }
@@ -46,6 +61,7 @@ void setup()
 	//------------------------------
 	// forward serial characters to web-console
 	web_console_init();
+
 	// report initial status
 	log_w(
 		"reset reason: %d, heap: %d, min_heap: %d",
@@ -86,7 +102,7 @@ void setup()
 	);
 
 	// init web-server
-	init_comms(false, SPIFFS, "/", onMsg);
+	init_comms(SPIFFS, "/", on_ws_data);
 	log_w(
 		"after COMMS, heap: %d, min_heap: %d",
 		esp_get_free_heap_size(),
@@ -101,13 +117,7 @@ void setup()
 	if (jGetB(jPanel, "test_pattern", true)) {
 		log_w("RGB test-pattern mode!!!");
 		g_rgbLedBrightness = MAX(0, jGetI(jPanel, "tp_brightness", 10));
-
-		xTaskCreate(&tp_task, "test_patterns", 2048, NULL, 0, NULL);
-
-		while(1) {
-			refresh_comms();
-			delay(20);
-		}
+		tp_task(NULL);
 	}
 
 	//------------------------------
@@ -126,22 +136,21 @@ void setup()
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	delay(1000);
-	xTaskCreate(&aniBackgroundTask, "aniBackground", 3000, NULL, 0, NULL);
+	xTaskCreate(&aniBackgroundTask, "aniBackground", 1000, NULL, 1, &t_backg);
 
 	//------------------------------
 	// Startup clock layer
 	//------------------------------
 	delay(1000);
-	xTaskCreate(&aniClockTask, "aniClock", 3000, NULL, 0, NULL);
+	xTaskCreate(&aniClockTask, "aniClock", 3000, NULL, 0, &t_clock);
 
 	//------------------------------
 	// Draw animations
 	//------------------------------
 	delay(1000);
-	xTaskCreate(&aniPinballTask, "aniPinball", 3000, f, 0, NULL);
+	xTaskCreate(&aniPinballTask, "aniPinball", 2000, f, 0, &t_pinb);
 }
 
 void loop() {
-	refresh_comms();
-	delay(20);
+	vTaskDelete(NULL);
 }

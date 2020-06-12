@@ -117,8 +117,8 @@ static void playAni(FILE *f, headerEntry_t *h)
 		}
 
 		// wait for N ms, measured from last call to vTaskDelayUntil()
-		if (cur_delay < 20)
-			cur_delay = 20;
+		if (cur_delay < 30)
+			cur_delay = 30;
 		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
 		cur_delay = fh.frameDur;
 	}
@@ -158,7 +158,7 @@ void aniPinballTask(void *pvParameters)
 			startDrawing(2);
 			nTouched = fadeOut(2, 10);
 			doneDrawing(2);
-			vTaskDelayUntil(&xLastWakeTime, 20 / portTICK_PERIOD_MS);
+			vTaskDelayUntil(&xLastWakeTime, 30 / portTICK_PERIOD_MS);
 		}
 	}
 	fclose(f);

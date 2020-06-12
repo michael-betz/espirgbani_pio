@@ -310,7 +310,38 @@ static void manageBrightness(struct tm *timeinfo)
 	}
 }
 
-RTC_NOINIT_ATTR static unsigned max_uptime;
+static void stats()
+{
+	RTC_NOINIT_ATTR static unsigned max_uptime;  // [minutes]
+	static unsigned last_frames = 0;
+	static unsigned last_time = 0;
+
+	unsigned cur_time = millis();
+	unsigned up_time = cur_time / 1000 / 60;
+	unsigned fps = (10000 * (g_frames - last_frames)) / (cur_time - last_time);
+	last_time = cur_time;
+	last_frames = g_frames;
+
+	// reset max_uptime counter on power cycle
+	if (up_time == 0)
+		if (rtc_get_reset_reason(0) == POWERON_RESET || rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
+			max_uptime = 0;
+
+	// print uptime stats
+	if (up_time > max_uptime)
+		max_uptime = up_time;
+
+	log_i("uptime: %d / %d, fps: %d, heap: %d / %d, stack ba: %d, cl: %d, pi: %d",
+		up_time,
+		max_uptime,
+		fps,
+		esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size(),
+		uxTaskGetStackHighWaterMark(t_backg),
+		uxTaskGetStackHighWaterMark(t_clock),
+		uxTaskGetStackHighWaterMark(t_pinb)
+	);
+}
 
 void aniClockTask(void *pvParameters)
 {
@@ -336,19 +367,8 @@ void aniClockTask(void *pvParameters)
 	unsigned font_delay = jGetI(jDelay, "font", 60);
 	unsigned color_delay = jGetI(jDelay, "color", 10);
 
-	if (rtc_get_reset_reason(0) == POWERON_RESET || rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
-		max_uptime = 0;
-
 	while(1) {
-		// print uptime stats
-		if (uptime > max_uptime)
-			max_uptime = uptime;
-		log_i("uptime: %d, max_uptime: %d, heap: %d, min_heap: %d",
-			uptime,
-			max_uptime,
-			esp_get_free_heap_size(),
-			esp_get_minimum_free_heap_size()
-		);
+		stats();
 
 		// change font every delays.font minutes
 		if (maxFnt > 0 && (uptime % font_delay) == 0) {
