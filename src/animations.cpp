@@ -275,6 +275,7 @@ void aniPinballTask(void *pvParameters)
 	unsigned color_delay = jGetI(jDelay, "color", 600);
 	color_delay = MAX(1, color_delay);
 
+	unsigned cur_fnt = 0;
 
 	while (1) {
 		bool doRedrawFont = false;
@@ -293,8 +294,10 @@ void aniPinballTask(void *pvParameters)
 		}
 
 		// change font every delays.font minutes
-		if (maxFnt > 0 && (cycles % font_delay) == 0) {
-			sprintf(strftime_buf, "/sd/fnt/%d", RAND_AB(0, maxFnt));
+		if (maxFnt >= 0 && (cycles % font_delay) == 0) {
+			cur_fnt = RAND_AB(0, maxFnt);
+			sprintf(strftime_buf, "/sd/fnt/%d", cur_fnt);
+			// cur_fnt = (cur_fnt + 1) % (maxFnt + 1);
 			initFont(strftime_buf);
 			doRedrawFont = true;
 		}

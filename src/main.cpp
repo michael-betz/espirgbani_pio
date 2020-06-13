@@ -136,7 +136,7 @@ void setup()
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	delay(1000);
-	xTaskCreate(&aniBackgroundTask, "aniBackground", 1000, NULL, 1, &t_backg);
+	xTaskCreate(&aniBackgroundTask, "aniBackground", 1500, NULL, 1, &t_backg);
 
 	//---------------------------------
 	// Draw animations and clock layer

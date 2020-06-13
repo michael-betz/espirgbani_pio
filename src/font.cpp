@@ -129,7 +129,7 @@ void free_font_info(font_t *f)
 // prints (some) content of a font_t object
 void print_font_info(font_t *fDat) {
 	log_d(
-		"name: %s, f: %s",
+		"name: %s, %s",
 		fDat->info->fontName,
 		fDat->pageNames
 	);
@@ -239,6 +239,7 @@ int getStrWidth(const char *str) {
 	return w;
 }
 
+// y = distance from top of display to top of character cell
 void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
 	const char *c = str;
 	log_v("x: %d, y: %d, str: %s", x, y, str);
@@ -259,11 +260,20 @@ void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, ui
 void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
 	int w, h, xOff, yOff;
 	if (g_bmpFile == NULL || g_fontInfo == NULL) return;
-	h = g_fontInfo->common->lineHeight;
+
+	// get width of the whole string
 	w = getStrWidth(str);
-	log_v("w: %d, h: %d", w, h);
-	xOff = (DISPLAY_WIDTH - w)/2;
-	yOff = (DISPLAY_HEIGHT - h)/2;
+	// horizontally center `str` on display
+	xOff = (DISPLAY_WIDTH - w) / 2;
+
+	// get glyph height of `0`, assume all numbers are the same height
+	fontChar_t *charInfo = getCharInfo(g_fontInfo, '0');
+	h = charInfo->height;
+	// align top of `0` with top of display
+	yOff = -charInfo->yoffset;
+	// vertically center `0` on display
+	yOff += (DISPLAY_HEIGHT - h) / 2;
+
 	startDrawing(layer);
 	setAll(layer, 0x00000000);
 	drawStr(str, xOff, yOff, layer, cOutline, cFill);
