@@ -20,8 +20,9 @@
 #include "font.h"
 
 TaskHandle_t t_backg = NULL;
-TaskHandle_t t_clock = NULL;
 TaskHandle_t t_pinb = NULL;
+
+unsigned g_f_del = 30;
 
 // Web socket RX data received callback
 static void on_ws_data(
@@ -71,7 +72,7 @@ void setup()
 	);
 
 	// Mount spiffs for *.html and defaults.json
-	SPIFFS.begin(true, "/spiffs", 10);
+	SPIFFS.begin(true, "/spiffs", 4);
 	log_w(
 		"after SPIFFS, heap: %d, min_heap: %d",
 		esp_get_free_heap_size(),
@@ -80,7 +81,7 @@ void setup()
 
 	// Mount SD for animations, fonts and for settings.json
 	SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
-	bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 5);
+	bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 3);
 	// Load settings.json from SD card, try to create file if it doesn't exist
 	if (ret)
 		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
@@ -90,7 +91,6 @@ void setup()
 		esp_get_free_heap_size(),
 		esp_get_minimum_free_heap_size()
 	);
-
 
 	// init I2S driven rgb - panel
 	init_rgb();
@@ -138,17 +138,11 @@ void setup()
 	delay(1000);
 	xTaskCreate(&aniBackgroundTask, "aniBackground", 1000, NULL, 1, &t_backg);
 
-	//------------------------------
-	// Startup clock layer
-	//------------------------------
+	//---------------------------------
+	// Draw animations and clock layer
+	//---------------------------------
 	delay(1000);
-	xTaskCreate(&aniClockTask, "aniClock", 3000, NULL, 0, &t_clock);
-
-	//------------------------------
-	// Draw animations
-	//------------------------------
-	delay(1000);
-	xTaskCreate(&aniPinballTask, "aniPinball", 2000, f, 0, &t_pinb);
+	xTaskCreate(&aniPinballTask, "aniPinball", 4000, f, 0, &t_pinb);
 }
 
 void loop() {

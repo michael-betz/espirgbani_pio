@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "esp_log.h"
+#include "common.h"
 #include "esp_heap_caps.h"
 #include "frame_buffer.h"
 #include "rgb_led_panel.h"
@@ -60,6 +61,9 @@ void init_rgb()
 	//--------------------------
 	// get `panel` dictionary
 	cJSON *jPanel = jGet(getSettings(), "panel");
+
+	// delay between updateFrame calls [ms]
+	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
 
 	// Swap pixel x[0] with x[1]
 	isColumnSwapped = jGetB(jPanel, "column_swap", false);

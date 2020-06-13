@@ -235,18 +235,22 @@ static unsigned get_pix_color(unsigned pix, unsigned color)
 		return scale32(pix * 17, color) | 0xFF000000;
 }
 
-void setFromFile(FILE *f, unsigned layer, unsigned color)
+void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 {
+	uint8_t frm_buff[DISPLAY_WIDTH * DISPLAY_HEIGHT / 2], *pix=frm_buff;
 	unsigned *p = g_frameBuff[layer];
-	unsigned pix, pixTemp;
+	fread(frm_buff, 1, sizeof(frm_buff), f);
+
+	if (lock_fb)
+		startDrawing(2);
 	for (int y=0; y<DISPLAY_HEIGHT; y++) {
 		for (int x=0; x<DISPLAY_WIDTH; x+=2) {
-			fread(&pix, 1, 1, f);
 			// unpack the 2 pixels per byte data into 1 pixel per byte and set the framebuffer
-			pixTemp = (pix >> 4) & 0x0F;
-			*p++ = get_pix_color(pixTemp, color);
-			pixTemp = pix & 0x0F;
-			*p++ = get_pix_color(pixTemp, color);
+			*p++ = get_pix_color(*pix >> 4, color);
+			*p++ = get_pix_color(*pix & 0x0F, color);
+			pix++;
 		}
 	}
+	if (lock_fb)
+		doneDrawing(2);
 }

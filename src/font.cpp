@@ -11,7 +11,6 @@
 #include "frame_buffer.h"
 #include "bmp.h"
 #include "json_settings.h"
-#include "rom/rtc.h"
 #include "font.h"
 
 
@@ -285,111 +284,4 @@ int cntFntFiles(const char* path) {
 		}
 	}
 	return nFiles;
-}
-
-// --------- end of font related stuff ------------
-
-static void manageBrightness(struct tm *timeinfo)
-{
-	// get json dictionaries
-	cJSON *jPow = jGet(getSettings(), "power");
-	cJSON *jDay = jGet(jPow, "day");
-	cJSON *jNight = jGet(jPow, "night");
-
-	// convert times to minutes since 00:00
-	int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);
-	int iNight = jGetI(jNight,"h", 22) * 60 + jGetI(jNight, "m", 45);
-	int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
-
-	if (iNow >= iDay && iNow < iNight) {
-		// Daylight mode
-		g_rgbLedBrightness = jGetI(jDay, "p", 20);
-	} else {
-		// Nightdark mode
-		g_rgbLedBrightness = jGetI(jNight, "p", 2);
-	}
-}
-
-static void stats()
-{
-	RTC_NOINIT_ATTR static unsigned max_uptime;  // [minutes]
-	static unsigned last_frames = 0;
-	static unsigned last_time = 0;
-
-	unsigned cur_time = millis();
-	unsigned up_time = cur_time / 1000 / 60;
-	unsigned fps = (10000 * (g_frames - last_frames)) / (cur_time - last_time);
-	last_time = cur_time;
-	last_frames = g_frames;
-
-	// reset max_uptime counter on power cycle
-	if (up_time == 0)
-		if (rtc_get_reset_reason(0) == POWERON_RESET || rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
-			max_uptime = 0;
-
-	// print uptime stats
-	if (up_time > max_uptime)
-		max_uptime = up_time;
-
-	log_i("uptime: %d / %d, fps: %d, heap: %d / %d, stack ba: %d, cl: %d, pi: %d",
-		up_time,
-		max_uptime,
-		fps,
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size(),
-		uxTaskGetStackHighWaterMark(t_backg),
-		uxTaskGetStackHighWaterMark(t_clock),
-		uxTaskGetStackHighWaterMark(t_pinb)
-	);
-}
-
-void aniClockTask(void *pvParameters)
-{
-	// takes care of things which need to happen
-	// every minute (like redrawing the clock)
-	time_t now = 0;
-	struct tm timeinfo;
-	timeinfo.tm_min = 0;
-	timeinfo.tm_hour= 18;
-	char strftime_buf[64];
-
-	unsigned col = rand();
-	unsigned uptime=0;  // for counting ticks [min]
-	cJSON *jDelay = jGet(getSettings(), "delays");
-
-	// count font files and choose a random one
-	int maxFnt = cntFntFiles("/sd/fnt") - 1;
-	if (maxFnt < 0)
-		log_e("no fonts found on SD card :( :( :(");
-	else
-		log_i("last font file: /sd/fnt/%d.fnt", maxFnt);
-
-	unsigned font_delay = jGetI(jDelay, "font", 60);
-	unsigned color_delay = jGetI(jDelay, "color", 10);
-
-	while(1) {
-		stats();
-
-		// change font every delays.font minutes
-		if (maxFnt > 0 && (uptime % font_delay) == 0) {
-			sprintf(strftime_buf, "/sd/fnt/%d", RAND_AB(0, maxFnt));
-			initFont(strftime_buf);
-		}
-
-		// change color every delays.color minutes
-		if ((uptime % color_delay) == 0)
-			col = 0xFF000000 | rand();
-
-		// Redraw the clock
-		time(&now);
-		localtime_r(&now, &timeinfo);
-		strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
-		drawStrCentered(strftime_buf, 1, col, 0xFF000000);
-		manageBrightness(&timeinfo);
-		uptime++;
-
-		// wait for the next complete minute
-		delay((60 - timeinfo.tm_sec) * 1000);
-	}
-	vTaskDelete(NULL);
 }

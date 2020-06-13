@@ -47,8 +47,7 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-extern int g_maxFnt;	//Max number prefix of the font filename
-extern int g_fontNumberRequest;
+extern unsigned g_f_del;  // global delay between frame updates [ms]
 
 // Random number within the range [a,b]
 int RAND_AB(int a, int b);
@@ -56,7 +55,6 @@ int RAND_AB(int a, int b);
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 extern TaskHandle_t t_backg;
-extern TaskHandle_t t_clock;
 extern TaskHandle_t t_pinb;
 
 #endif

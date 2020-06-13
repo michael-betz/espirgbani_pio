@@ -56,7 +56,7 @@ void setAll(unsigned layer, unsigned color);
 void tp_task(void *pvParameters);
 
 // write image from a runDmd image file into layer with shades of color
-void setFromFile(FILE *f, unsigned layer, unsigned color);
+void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb);
 
 // make the layer a little more transparent each call.
 // Factor=255 is strongest. Returns the number of pixels changed.

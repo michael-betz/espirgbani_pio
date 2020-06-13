@@ -1,17 +1,19 @@
 {
     "panel": {
         "test_pattern": true,
-        "tp_brightness":  10,
+        "tp_brightness": 10,
         "is_clk_inverted": true,
         "column_swap": false,
         "latch_offset": 0,
         "extra_blank": 1,
-        "clkm_div_num": 5
+        "clkm_div_num": 5,
+        "lock_frame_buffer": true,
+        "max_frame_rate": 30
     },
     "delays": {
-        "font":  60,
-        "color": 10,
-        "ani":   15
+        "font": 3600,
+        "color": 600,
+        "ani": 15
     },
     "power": {
         "day": {

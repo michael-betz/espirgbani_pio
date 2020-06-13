@@ -6,6 +6,7 @@
 #include <time.h>
 #include "Arduino.h"
 #include "rgb_led_panel.h"
+#include "json_settings.h"
 #include "frame_buffer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -154,8 +155,11 @@ static void drawDoomFlameFrame() {
 
 void aniBackgroundTask(void *pvParameters) {
 	uint32_t frameCount = 1;
-	uint8_t aniMode = 1;
+	uint8_t aniMode = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
+
+	unsigned _f_del = g_f_del / portTICK_PERIOD_MS;
+
 	setAll(0, 0xFF000000);
 	while(1) {
 		if ((frameCount % 10000) == 0) {
@@ -185,8 +189,8 @@ void aniBackgroundTask(void *pvParameters) {
 				break;
 		}
 
-		// maximum global frame-rate: 33.3 Hz
-		vTaskDelayUntil(&xLastWakeTime, 30 / portTICK_PERIOD_MS);
+		// maximum global frame-rate: 1 / f_del kHz
+		vTaskDelayUntil(&xLastWakeTime, _f_del);
 		updateFrame();
 		frameCount++;
 	}
