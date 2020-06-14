@@ -1,7 +1,6 @@
 #ifndef FONT_H
 #define FONT_H
 
-
 typedef struct{
 	int16_t   fontSize;
 	uint8_t   bitField;   // bit 0: smooth; bit 1: unicode; bit 2: italic; bit 3: bold; bit 4: fixedHeigth; bits 5-7: reserved

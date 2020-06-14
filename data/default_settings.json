@@ -6,8 +6,8 @@
         "column_swap": false,
         "latch_offset": 0,
         "extra_blank": 1,
-        "clkm_div_num": 5,
-        "lock_frame_buffer": true,
+        "clkm_div_num": 3,
+        "lock_frame_buffer": false,
         "max_frame_rate": 30
     },
     "delays": {

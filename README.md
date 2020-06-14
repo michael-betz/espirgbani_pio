@@ -59,8 +59,8 @@ Once the clock is connected to the network, `settings.json` can be edited in the
         "column_swap": false,
         "latch_offset": 0,
         "extra_blank": 1,
-        "clkm_div_num": 5,
-        "lock_frame_buffer": true,
+        "clkm_div_num": 3,
+        "lock_frame_buffer": false,
         "max_frame_rate": 30
     },
     "delays": {
@@ -96,7 +96,7 @@ Not all LED panels are the same. Here the timing parameters of the I2S panel dri
   * `column_swap`: if true, swap each pair of vertical columns
   * `latch_offset`: when 0, latch row-data with last pixel. For positive / negative numbers the latching happens N clock cycles earlier / later. Shifts the image horizontally
   * `extra_blank`: adds N additional delay cycles after latching before enabling the LEDs to prevent ghosting artifacts from one row to another
-  * `clkm_div_num`: sets the I2S clock divider from 1 to 128. Set it too high and get flicker, too low get ghost pixels
+  * `clkm_div_num`: sets the I2S clock divider from 1 to 128. Set it too high and get flicker, too low get ghost pixels. Flicker can be improved at the cost of color depth by reducing `BITPLANE_CNT` in `rgb_led_panel.h`.
   `"clkm_div_num": 3` corresponds to a 10 MHz pixel clock
   * `max_frame_rate`: the global maximum frame-rate limit in [Hz]. The background shader is updated at this rate. If the value is too large, freertos will become unresponsive
   * `lock_frame_buffer`: when true, prevent tearing artifacts at the cost of choppier animation playback

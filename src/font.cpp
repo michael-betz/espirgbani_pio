@@ -129,19 +129,17 @@ void free_font_info(font_t *f)
 
 // prints (some) content of a font_t object
 void print_font_info(font_t *fDat) {
-	log_d(
-		"name: %s, %s",
+	if (fDat == NULL)
+		return;
+	log_i(
+		"%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
 		fDat->info->fontName,
-		fDat->pageNames
-	);
-	log_d(
-		"size: %d, aa: %d, height: %d, scaleW: %d, scaleH: %d, pages: %d",
+		fDat->pageNames,
 		fDat->info->fontSize,
-		fDat->info->aa,
 		fDat->common->lineHeight,
+		fDat->common->base,
 		fDat->common->scaleW,
-		fDat->common->scaleH,
-		fDat->common->pages
+		fDat->common->scaleH
 	);
 }
 
@@ -232,7 +230,7 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 // calculate bounding box enclosing all characters
 // w = width, h = height, top = vertical offset to the top edge of BB
 // left = horizontal offset to left edge of BB
-// drawStr("bla", 0, -top) will make chars touch the upper left side of display
+// drawStr("bla", -left, -top) will make chars touch the upper left side of display
 void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
 	int i=0, _w=0, _top=INT_MAX, _bottom=INT_MIN;
 	while(*str) {

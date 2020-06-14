@@ -73,11 +73,6 @@ void setup()
 
 	// Mount spiffs for *.html and defaults.json
 	SPIFFS.begin(true, "/spiffs", 4);
-	log_w(
-		"after SPIFFS, heap: %d, min_heap: %d",
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size()
-	);
 
 	// Mount SD for animations, fonts and for settings.json
 	SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
@@ -86,20 +81,9 @@ void setup()
 	if (ret)
 		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
 
-	log_w(
-		"after SD, heap: %d, min_heap: %d",
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size()
-	);
-
 	// init I2S driven rgb - panel
 	init_rgb();
 	updateFrame();
-	log_w(
-		"after RGB, heap: %d, min_heap: %d",
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size()
-	);
 
 	// init web-server
 	init_comms(SPIFFS, "/", on_ws_data);
@@ -136,7 +120,7 @@ void setup()
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	delay(1000);
-	xTaskCreate(&aniBackgroundTask, "aniBackground", 1500, NULL, 1, &t_backg);
+	xTaskCreate(&aniBackgroundTask, "aniBackground", 1750, NULL, 1, &t_backg);
 
 	//---------------------------------
 	// Draw animations and clock layer

@@ -27,16 +27,19 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 	fseek(f, 0x000001EF, SEEK_SET);
 	fread(&fh->buildStr, 8, 1, f);
 
-	log_i("Build: %s, Found %d animations", fh->buildStr, fh->nAnimations);
+	log_i("nAnimations: %d, buildStr: %s", fh->nAnimations, fh->buildStr);
 	return 0;
 }
 
 // Fills the headerEntry struct with data.
 // Specify an `headerIndex` from 0 to nAnimations
+static int _cur_hi = 0;
 static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 {
 	if (f == NULL || h == NULL)
 		return -1;
+
+	_cur_hi = headerIndex;
 
 	// Copys header info into h. Note that h->nFrameEntries must be freed!
 	fseek(f, HEADER_OFFS + HEADER_SIZE * headerIndex, SEEK_SET);
@@ -63,17 +66,6 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 		}
 		fh++;
 	}
-
-	log_d(
-		"%s: index: %d, w: %d, h: %d, nMem: %d, nAni: %d, del: %d",
-		h->name,
-		headerIndex,
-		h->width,
-		h->height,
-		h->nStoredFrames,
-		h->nFrameEntries,
-		h->frameHeader->frameDur
-	);
 	return 0;
 }
 
@@ -146,10 +138,15 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb, unsigned f_del)
 		cur_delay = fh.frameDur;
 	}
 	log_d(
-		"max_seek: %d us,  mean_draw: %d us,  max_draw: %d us",
-		max_seek_time,
-		sum_draw_time / h->nFrameEntries,
-		max_draw_time
+		"%d, %s, f: %d / %d, d: %d, seek: %d ms, draw: %d / %d ms",
+		_cur_hi,
+		h->name,
+		h->nStoredFrames,
+		h->nFrameEntries,
+		h->frameHeader->frameDur,
+		max_seek_time / 1000,
+		sum_draw_time / h->nFrameEntries / 1000,
+		max_draw_time / 1000
 	);
 }
 
@@ -186,6 +183,8 @@ static void run_animation(FILE *f, unsigned aniId)
 
 static void manageBrightness(struct tm *timeinfo)
 {
+	static int curMode = -1;
+
 	// get json dictionaries
 	cJSON *jPow = jGet(getSettings(), "power");
 	cJSON *jDay = jGet(jPow, "day");
@@ -197,15 +196,21 @@ static void manageBrightness(struct tm *timeinfo)
 	int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
 
 	if (iNow >= iDay && iNow < iNight) {
-		// Daylight mode
-		g_rgbLedBrightness = jGetI(jDay, "p", 20);
+		if (curMode != 1) {
+			g_rgbLedBrightness = jGetI(jDay, "p", 20);
+			log_i("Daylight mode, p: %d", g_rgbLedBrightness);
+			curMode = 1;
+		}
 	} else {
-		// Nightdark mode
-		g_rgbLedBrightness = jGetI(jNight, "p", 2);
+		if (curMode != 0) {
+			g_rgbLedBrightness = jGetI(jNight, "p", 2);
+			log_i("Nightdark mode, p: %d", g_rgbLedBrightness);
+			curMode = 0;
+		}
 	}
 }
 
-static void stats()
+static void stats(unsigned cur_fnt)
 {
 	RTC_NOINIT_ATTR static unsigned max_uptime;  // [minutes]
 	static unsigned last_frames = 0;
@@ -226,7 +231,8 @@ static void stats()
 	if (up_time > max_uptime)
 		max_uptime = up_time;
 
-	log_i("uptime: %d / %d, fps: %.1f, heap: %d / %d, stack ba: %d, pi: %d",
+	log_d("fnt: %d, uptime: %d / %d, fps: %.1f, heap: %d / %d, ba: %d, pi: %d",
+		cur_fnt,
 		up_time,
 		max_uptime,
 		fps,
@@ -254,11 +260,11 @@ void aniPinballTask(void *pvParameters)
 	unsigned color = 0;
 
 	// count font files and choose a random one
-	int maxFnt = cntFntFiles("/sd/fnt") - 1;
-	if (maxFnt < 0)
+	int nFnts = cntFntFiles("/sd/fnt");
+	if (nFnts <= 0)
 		log_e("no fonts found on SD card :( :( :(");
 	else
-		log_i("last font file: /sd/fnt/%02d.fnt", maxFnt);
+		log_i("last font file: /sd/fnt/%02d.fnt", nFnts - 1);
 
 
 	cJSON *jDelay = jGet(getSettings(), "delays");
@@ -294,10 +300,10 @@ void aniPinballTask(void *pvParameters)
 		}
 
 		// change font every delays.font minutes
-		if (maxFnt >= 0 && (cycles % font_delay) == 0) {
-			cur_fnt = RAND_AB(0, maxFnt);
+		if (nFnts > 0 && (cycles % font_delay) == 0) {
+			cur_fnt = RAND_AB(0, nFnts - 1);
 			sprintf(strftime_buf, "/sd/fnt/%02d", cur_fnt);
-			// cur_fnt = (cur_fnt + 1) % (maxFnt + 1);
+			// cur_fnt = (cur_fnt + 1) % nFnts;
 			initFont(strftime_buf);
 			doRedrawFont = true;
 		}
@@ -310,15 +316,15 @@ void aniPinballTask(void *pvParameters)
 		// Redraw the clock
 		if (doRedrawFont || timeinfo.tm_sec == 0) {
 			strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
+			// randomly colored outline, black filling
 			drawStrCentered(strftime_buf, 1, color, 0xFF000000);
 			manageBrightness(&timeinfo);
-			stats();
+			stats(cur_fnt);
 		}
 
 		ArduinoOTA.handle();
 
 		cycles++;
-
 		vTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);
 	}
 	fclose(f);
