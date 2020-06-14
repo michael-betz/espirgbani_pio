@@ -231,19 +231,28 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 
 // calculate bounding box enclosing all characters
 // w = width, h = height, top = vertical offset to the top edge of BB
+// left = horizontal offset to left edge of BB
 // drawStr("bla", 0, -top) will make chars touch the upper left side of display
-void getStrBoundingBox(const char *str, int *w, int *h, int *top) {
-	int _w=0, _top=INT_MAX, _bottom=INT_MIN;
+void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
+	int i=0, _w=0, _top=INT_MAX, _bottom=INT_MIN;
 	while(*str) {
 		fontChar_t *charInfo = getCharInfo(g_fontInfo, *str);
 		if (charInfo) {
+			// left edge of BB
+			if (i == 0)
+				*left = charInfo->xoffset;
+
+			// width
 			_w += charInfo->xadvance;
+
 			// top edge of BB
 			_top = MIN(_top, charInfo->yoffset);
+
 			// bottom edge of BB
 			_bottom = MAX(_bottom, charInfo->yoffset + charInfo->height);
 		}
 		str++;
+		i++;
 	}
 	*w = _w;
 	*top = _top;
@@ -269,14 +278,17 @@ void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, ui
 }
 
 void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
-	int w=0, h=0, top=0, xOff=0, yOff=0;
+	int w=0, h=0, left=0, top=0, xOff=0, yOff=0;
 	if (g_bmpFile == NULL || g_fontInfo == NULL) return;
 
 	// get bounding box of the whole string
-	getStrBoundingBox(str, &w, &h, &top);
+	getStrBoundingBox(str, &w, &h, &left, &top);
+
+	// align left of BB with left of display
+	xOff = -left;
 
 	// horizontally center `str` on display
-	xOff = (DISPLAY_WIDTH - w) / 2;
+	xOff += (DISPLAY_WIDTH - w) / 2;
 
 	// align top of BB with top of display
 	yOff = -top;
@@ -296,7 +308,7 @@ int cntFntFiles(const char* path) {
 	char fNameBuffer[32];
 	struct stat   buffer;
 	while(1) {
-		sprintf(fNameBuffer, "%s/%d.fnt", path, nFiles);
+		sprintf(fNameBuffer, "%s/%02d.fnt", path, nFiles);
 		if(stat(fNameBuffer, &buffer) == 0) {
 			nFiles++;
 		} else {

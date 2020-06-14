@@ -258,7 +258,7 @@ void aniPinballTask(void *pvParameters)
 	if (maxFnt < 0)
 		log_e("no fonts found on SD card :( :( :(");
 	else
-		log_i("last font file: /sd/fnt/%d.fnt", maxFnt);
+		log_i("last font file: /sd/fnt/%02d.fnt", maxFnt);
 
 
 	cJSON *jDelay = jGet(getSettings(), "delays");
@@ -296,7 +296,7 @@ void aniPinballTask(void *pvParameters)
 		// change font every delays.font minutes
 		if (maxFnt >= 0 && (cycles % font_delay) == 0) {
 			cur_fnt = RAND_AB(0, maxFnt);
-			sprintf(strftime_buf, "/sd/fnt/%d", cur_fnt);
+			sprintf(strftime_buf, "/sd/fnt/%02d", cur_fnt);
 			// cur_fnt = (cur_fnt + 1) % (maxFnt + 1);
 			initFont(strftime_buf);
 			doRedrawFont = true;
