@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <errno.h>
+#include <limits.h>
 #include <sys/stat.h>
 #include "Arduino.h"
 #include "freertos/FreeRTOS.h"
@@ -228,15 +229,25 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 	g_lastChar = c;
 }
 
-int getStrWidth(const char *str) {
-	int w=0;
+// calculate bounding box enclosing all characters
+// w = width, h = height, top = vertical offset to the top edge of BB
+// drawStr("bla", 0, -top) will make chars touch the upper left side of display
+void getStrBoundingBox(const char *str, int *w, int *h, int *top) {
+	int _w=0, _top=INT_MAX, _bottom=INT_MIN;
 	while(*str) {
 		fontChar_t *charInfo = getCharInfo(g_fontInfo, *str);
-		if(charInfo)
-			w += charInfo->xadvance;
+		if (charInfo) {
+			_w += charInfo->xadvance;
+			// top edge of BB
+			_top = MIN(_top, charInfo->yoffset);
+			// bottom edge of BB
+			_bottom = MAX(_bottom, charInfo->yoffset + charInfo->height);
+		}
 		str++;
 	}
-	return w;
+	*w = _w;
+	*top = _top;
+	*h = _bottom - _top;
 }
 
 // y = distance from top of display to top of character cell
@@ -258,20 +269,19 @@ void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, ui
 }
 
 void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
-	int w, h, xOff, yOff;
+	int w=0, h=0, top=0, xOff=0, yOff=0;
 	if (g_bmpFile == NULL || g_fontInfo == NULL) return;
 
-	// get width of the whole string
-	w = getStrWidth(str);
+	// get bounding box of the whole string
+	getStrBoundingBox(str, &w, &h, &top);
+
 	// horizontally center `str` on display
 	xOff = (DISPLAY_WIDTH - w) / 2;
 
-	// get glyph height of `0`, assume all numbers are the same height
-	fontChar_t *charInfo = getCharInfo(g_fontInfo, '0');
-	h = charInfo->height;
-	// align top of `0` with top of display
-	yOff = -charInfo->yoffset;
-	// vertically center `0` on display
+	// align top of BB with top of display
+	yOff = -top;
+
+	// vertically center BB on display
 	yOff += (DISPLAY_HEIGHT - h) / 2;
 
 	startDrawing(layer);
