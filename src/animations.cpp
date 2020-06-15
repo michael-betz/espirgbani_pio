@@ -138,7 +138,7 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb, unsigned f_del)
 		cur_delay = fh.frameDur;
 	}
 	log_d(
-		"%d, %s, f: %d / %d, d: %d, seek: %d ms, draw: %d / %d ms",
+		"%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
 		_cur_hi,
 		h->name,
 		h->nStoredFrames,

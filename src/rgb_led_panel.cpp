@@ -19,7 +19,7 @@ int g_rgbLedBrightness = 1;
 //which buffer is the backbuffer, as in, which one is not active so we can write to it
 int backbuf_id = 0;
 //Internal double buffered array of bitPLanes
-uint16_t *bitplane[2][BITPLANE_CNT];
+uint16_t *bitplane[1][BITPLANE_CNT];
 //DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B
 
 // .json configurable parameters
@@ -89,7 +89,7 @@ void init_rgb()
 	// init the sub-frames
 	//--------------------------
 	for (int i=0; i<BITPLANE_CNT; i++) {
-		for (int j=0; j<2; j++) {
+		for (int j=0; j<1; j++) {
 			bitplane[j][i] = (uint16_t*)heap_caps_malloc(BITPLANE_SZ*2, MALLOC_CAP_DMA);
 			assert(bitplane[j][i] && "Can't allocate bitplane memory");
 			memset(bitplane[j][i], 0, BITPLANE_SZ*2);
@@ -107,7 +107,7 @@ void init_rgb()
 			if (times[j]<=times[ch]) ch=j;
 		}
 		//Insert the plane
-		for (int j=0; j<2; j++) {
+		for (int j=0; j<1; j++) {
 			bufdesc[j][i].memory=bitplane[j][ch];
 			bufdesc[j][i].size=BITPLANE_SZ*2;
 		}
@@ -117,7 +117,7 @@ void init_rgb()
 
 	//End markers
 	bufdesc[0][((1<<BITPLANE_CNT)-1)].memory = NULL;
-	bufdesc[1][((1<<BITPLANE_CNT)-1)].memory = NULL;
+	// bufdesc[1][((1<<BITPLANE_CNT)-1)].memory = NULL;
 
 	//Setup I2S
 	i2s_parallel_setup(&I2S1, &cfg);
@@ -168,9 +168,9 @@ void updateFrame() {
 
 	doneUpdating();
 	//Show our work (on next occasion)
-	i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
+	// i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
 	//Switch bitplane buffers
-	backbuf_id ^= 1;
+	// backbuf_id ^= 1;
 
 	g_frames++;
 }

@@ -185,11 +185,11 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 	st->desccount_a=calc_needed_dma_descs_for(cfg->bufa);
 	st->desccount_b=calc_needed_dma_descs_for(cfg->bufb);
 	st->dmadesc_a = (volatile lldesc_t *)heap_caps_malloc(st->desccount_a*sizeof(lldesc_t), MALLOC_CAP_DMA);
-	st->dmadesc_b = (volatile lldesc_t *)heap_caps_malloc(st->desccount_b*sizeof(lldesc_t), MALLOC_CAP_DMA);
+	// st->dmadesc_b = (volatile lldesc_t *)heap_caps_malloc(st->desccount_b*sizeof(lldesc_t), MALLOC_CAP_DMA);
 
 	//and fill them
 	fill_dma_desc(st->dmadesc_a, cfg->bufa);
-	fill_dma_desc(st->dmadesc_b, cfg->bufb);
+	// fill_dma_desc(st->dmadesc_b, cfg->bufb);
 
 	//Reset FIFO/DMA -> needed? Doesn't dma_reset/fifo_reset do this?
 	dev->lc_conf.in_rst=1; dev->lc_conf.out_rst=1; dev->lc_conf.ahbm_rst=1; dev->lc_conf.ahbm_fifo_rst=1;
@@ -207,16 +207,16 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 
 //Flip to a buffer: 0 for bufa, 1 for bufb
 void i2s_parallel_flip_to_buffer(i2s_dev_t *dev, int bufid) {
-	int no=i2snum(dev);
-	if (i2s_state[no]==NULL) return;
-	lldesc_t *active_dma_chain;
-	if (bufid==0) {
-		active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_a[0];
-	} else {
-		active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_b[0];
-	}
+	// int no=i2snum(dev);
+	// if (i2s_state[no]==NULL) return;
+	// lldesc_t *active_dma_chain;
+	// if (bufid==0) {
+	// 	active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_a[0];
+	// } else {
+	// 	active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_b[0];
+	// }
 
-	i2s_state[no]->dmadesc_a[i2s_state[no]->desccount_a-1].qe.stqe_next=active_dma_chain;
-	i2s_state[no]->dmadesc_b[i2s_state[no]->desccount_b-1].qe.stqe_next=active_dma_chain;
+	// i2s_state[no]->dmadesc_a[i2s_state[no]->desccount_a-1].qe.stqe_next=active_dma_chain;
+	// i2s_state[no]->dmadesc_b[i2s_state[no]->desccount_b-1].qe.stqe_next=active_dma_chain;
 }
 

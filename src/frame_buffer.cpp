@@ -239,7 +239,11 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 {
 	uint8_t frm_buff[DISPLAY_WIDTH * DISPLAY_HEIGHT / 2], *pix=frm_buff;
 	unsigned *p = g_frameBuff[layer];
-	fread(frm_buff, 1, sizeof(frm_buff), f);
+	unsigned ret = fread(frm_buff, 1, sizeof(frm_buff), f);
+	if (ret != sizeof(frm_buff)) {
+		log_e("fread error: %d vs %d", ret, sizeof(frm_buff));
+		return;
+	}
 
 	if (lock_fb)
 		startDrawing(2);
