@@ -120,13 +120,13 @@ void setup()
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	delay(1000);
-	xTaskCreate(&aniBackgroundTask, "aniBackground", 1750, NULL, 1, &t_backg);
+	xTaskCreatePinnedToCore(&aniBackgroundTask, "bck", 1750, NULL, 1, &t_backg, 1);
 
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
 	delay(1000);
-	xTaskCreate(&aniPinballTask, "aniPinball", 4000, f, 0, &t_pinb);
+	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4000, f, 0, &t_pinb, 0);
 }
 
 void loop() {
