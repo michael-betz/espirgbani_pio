@@ -13,7 +13,8 @@
     "delays": {
         "font": 3600,
         "color": 600,
-        "ani": 15
+        "ani": 15,
+        "shader": 300
     },
     "power": {
         "day": {

@@ -96,10 +96,11 @@ unsigned getBlendedPixel(unsigned x, unsigned y)
 	return (resB<<16) | (resG<<8) | resR;
 }
 
-// Set a pixel in frmaebuffer at p
+// Set a pixel in framebuffer at p
 void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color) {
-	x &= DISPLAY_WIDTH - 1;
-	y &= DISPLAY_HEIGHT - 1;
+	// screen clipping needed for aaLine
+	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT)
+		return;
 	//(a<<24) | (b<<16) | (g<<8) | r;
 	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = color;
 }
@@ -231,42 +232,27 @@ void tp_task(void *pvParameters)
 	}
 }
 
-
-// shades of the color in set_shade_*
-#define N_SHADES 16  // not changeable!
-static unsigned _shades[16];
-
-// pre-calculate a palette of 16 shades fading up from opaque black
-void set_shade_opaque(unsigned color)
+// pre-calculate a palette of N_SHADES shades fading up from opaque black
+void set_shade_opaque(unsigned color, unsigned *shades)
 {
-	for (unsigned i=0; i<16; i++)
-		_shades[i] = scale32(i * 17, color) | 0xFF000000;
+	for (unsigned i=0; i<N_SHADES; i++)
+		shades[i] = scale32(i * 17, color) | 0xFF000000;
 }
 
-// pre-calculate a palette of 16 shades fading up from transparent
-void set_shade_transparent(unsigned color)
+// pre-calculate a palette of N_SHADES shades fading up from transparent
+void set_shade_transparent(unsigned color, unsigned *shades)
 {
-	for (unsigned i=0; i<16; i++)
-		_shades[i] = scale32(i * 17, color);
-}
-
-// Set a pixel in framebuffer at p to shade of color. shade = 0 .. 15
-static void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade)
-{
-	// screen clipping needed for aaLine
-	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT)
-		return;
-	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = _shades[shade];
+	for (unsigned i=0; i<N_SHADES; i++)
+		shades[i] = scale32(i * 17, color);
 }
 
 // takes a 4 bit shade from pinball animation, returns the 32 bit RGBA pixel
-static unsigned _ani_shades[16];
-static unsigned get_pix_color(unsigned pix)
+static unsigned get_pix_color(unsigned pix, unsigned *shades)
 {
 	pix &= 0x0F;
 	if (pix == 0x0A)  // a transparent pixel
 		return 0;
-	return _ani_shades[pix];
+	return shades[pix];
 }
 
 void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
@@ -279,15 +265,15 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 		return;
 	}
 
-	for (unsigned i=0; i<16; i++)
-		_ani_shades[i] = scale32(i * 17, color) | 0xFF000000;
+	unsigned shades[N_SHADES];
+	set_shade_opaque(color, shades);
 
 	if (lock_fb)
 		startDrawing(2);
 	for (int i=0; i<DISPLAY_WIDTH * DISPLAY_HEIGHT / 2; i++) {
 		// unpack the 2 pixels per byte, put their shades in the framebuffer
-		*p++ = get_pix_color(*pix >> 4);
-		*p++ = get_pix_color(*pix);
+		*p++ = get_pix_color(*pix >> 4, shades);
+		*p++ = get_pix_color(*pix, shades);
 		pix++;
 	}
 	if (lock_fb)
@@ -296,8 +282,9 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 
 // Wu antialiased line drawer.
 // (X0,Y0),(X1,Y1) = line to draw
-// use set_shade_*() to set the 100% color
-void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
+// *shades points to an array of 16 color shades, last entry is the strongest
+// use set_shade_*() to generate shades[]
+void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 {
 	unsigned ErrorAdj, ErrorAcc;
 	unsigned ErrorAccTemp, Weighting;
@@ -311,7 +298,7 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 
 	// Draw the initial pixel, which is always exactly intersected by
 	// the line and so needs no weighting
-	setPixelShade(layer, X0, Y0, 0x0F);
+	setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
 
 	if ((DeltaX = X1 - X0) >= 0) {
 		XDir = 1;
@@ -327,7 +314,7 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 		// Horizontal line
 		while (DeltaX-- != 0) {
 			X0 += XDir;
-			setPixelShade(layer, X0, Y0, 0x0F);
+			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
 		}
 		return;
 	}
@@ -335,7 +322,7 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 		// Vertical line
 		do {
 			Y0++;
-			setPixelShade(layer, X0, Y0, 0x0F);
+			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
 		} while (--DeltaY != 0);
 		return;
 	}
@@ -344,7 +331,7 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 		do {
 			X0 += XDir;
 			Y0++;
-			setPixelShade(layer, X0, Y0, 0x0F);
+			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
 		} while (--DeltaY != 0);
 		return;
 	}
@@ -371,12 +358,12 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 			// the intensity weighting for this pixel, and the complement of
 			// the weighting for the paired pixel
 			Weighting = ErrorAcc >> 28;
-			setPixelShade(layer, X0, Y0, (Weighting ^ 0x0F));
-			setPixelShade(layer, X0 + XDir, Y0, Weighting);
+			setPixel(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
+			setPixel(layer, X0 + XDir, Y0, shades[Weighting]);
 		}
 		// Draw the final pixel, which is always exactly intersected by the
 		// line and so needs no weighting
-		setPixelShade(layer, X1, Y1, 0x0F);
+		setPixel(layer, X1, Y1, shades[N_SHADES - 1]);
 		return;
 	}
 
@@ -398,10 +385,10 @@ void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
 		// weighting for the paired pixel
 		Weighting = ErrorAcc >> 28;
 
-		setPixelShade(layer, X0, Y0, (Weighting ^ 0x0F));
-		setPixelShade(layer, X0, Y0 + 1, Weighting);
+		setPixel(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
+		setPixel(layer, X0, Y0 + 1, shades[Weighting]);
 	}
 	// Draw the final pixel, which is always exactly intersected by the
 	// line and so needs no weighting
-	setPixelShade(layer, X1, Y1, 0x0F);
+	setPixel(layer, X1, Y1, shades[N_SHADES - 1]);
 }

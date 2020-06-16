@@ -66,7 +66,8 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     "delays": {
         "font": 3600,
         "color": 600,
-        "ani": 15
+        "ani": 15,
+        "shader": 300
     },
     "power": {
         "day": {
@@ -105,9 +106,10 @@ Not all LED panels are the same. Here the timing parameters of the I2S panel dri
 controls delays between random animations, color and font changes. 
 They are all specified in [seconds]. The defaults are:
 
-  * Randomize clock font every 60 minutes
-  * Randomize outline color every 10 minutes
-  * Play a new pinball animation every 15 seconds
+  * Randomize clock font every 3600 s (60 min)
+  * Randomize outline color every 600 s (10 min)
+  * Play a new pinball animation every 15 s
+  * Randomize the background shader every 300 s (5 min). Set `shader` to <= 0 to always have a black background
 
 ### `power` section
 controls the display brightness according to current time. Brightness is specified in `p` as a number from 0 to 127.

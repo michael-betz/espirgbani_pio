@@ -33,10 +33,10 @@ static void drawXorFrame(unsigned frm) {
 	}
 }
 
-static void drawPlasmaFrame(unsigned frm) {
+static void drawBendyFrame(unsigned frm) {
 	static int i=2, j=3, k=((i<<5)-1), l=((j<<5)-1);
-	int temp1, temp2;
-	if(frm % 3000 == 0) {
+	int temp1, temp2, f=frm%3000;
+	if(f == 0) {
 		i = RAND_AB(1,8);
 		j = RAND_AB(1,8);
 		k = ((i<<5)-1);
@@ -44,8 +44,8 @@ static void drawPlasmaFrame(unsigned frm) {
 	}
 	for (int y=0; y<=31; y++) {
 		for (int x=0; x<=127; x++) {
-			temp1 = abs(((i * y + (frm * 16) / (x + 16)) % 64) - 32) * 7;
-			temp2 = abs(((j * x + (frm * 16) / (y + 16)) % 64) - 32) * 7;
+			temp1 = abs(((i * y + (f * 16) / (x + 16)) % 64) - 32) * 7;
+			temp2 = abs(((j * x + (f * 16) / (y + 16)) % 64) - 32) * 7;
 			setPixel(0, x, y, SRGBA(
 				temp1&k,
 				temp2&l,
@@ -142,6 +142,8 @@ static void drawDoomFlameFrame(unsigned frm) {
 static void drawLasers(unsigned frm) {
 	static float alpha=0.0, x=64, y=16;
 	static unsigned n_lines=8;
+	unsigned shades[N_SHADES];
+
 	if (frm % 1000 == 0) {
 		n_lines = RAND_AB(3, 18);
 		x = RAND_AB(4, DISPLAY_WIDTH - 5);
@@ -155,8 +157,8 @@ static void drawLasers(unsigned frm) {
 
 		uint8_t r, g, b;
 		fast_hsv2rgb_32bit(HSV_HUE_MAX * i / n_lines, HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
-		set_shade_opaque(SRGBA(r, g, b, 0xFF));
-		aaLine(0, x, y, x + dx, y + dy);
+		set_shade_opaque(SRGBA(r, g, b, 0xFF), shades);
+		aaLine(0, shades, x, y, x + dx, y + dy);
 	}
 
 	alpha += 0.01;
@@ -167,14 +169,19 @@ void aniBackgroundTask(void *pvParameters) {
 	unsigned _f_del = g_f_del / portTICK_PERIOD_MS;
 
 	setAll(0, 0xFF000000);
+
+	// delay between selecting a new random background shader
+	// set to <= 0 to disable background shaders
+	cJSON *jDelay = jGet(getSettings(), "delays");
+	int shader_delay = jGetI(jDelay, "shader", 300);  // [s]
+	shader_delay = shader_delay * 1000 / _f_del;  // [cycles]
+
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while(1) {
-		if ((frm % 10000) == 0) {
-			aniMode = RAND_AB(0, 7);  // make black slightly more likely
-			if(aniMode == 0 || aniMode > 5) {
-				int tempColor = 0xFF000000;// | scale32(128, rand());
-				setAll(0, tempColor);
-			}
+		if ((shader_delay > 0) && (frm % shader_delay == 0)) {
+			aniMode = RAND_AB(0, 8);  // choose black screen more often
+			if(aniMode == 0 || aniMode > 5)
+				setAll(0, 0xFF000000);
 		}
 
 		switch(aniMode) {
@@ -185,7 +192,7 @@ void aniBackgroundTask(void *pvParameters) {
 
 			case 2:
 				// slowly bending zebra curves
-				drawPlasmaFrame(frm);
+				drawBendyFrame(frm);
 				break;
 
 			case 3:

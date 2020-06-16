@@ -37,6 +37,9 @@ static inline unsigned scale32(unsigned scale, unsigned p) {
 #define GA(p)    (GC(p,3))
 #define SRGBA(r,g,b,a) (((a)<<24) | ((b)<<16) | ((g)<<8) | (r))
 
+// shades of the color in set_shade_*
+#define N_SHADES 16  // not really changeable
+
 extern unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH*DISPLAY_HEIGHT];
 
 unsigned getBlendedPixel(unsigned x, unsigned y);
@@ -47,13 +50,13 @@ void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsi
 unsigned getPixel(unsigned layer, unsigned x, unsigned y);
 
 // pre-calculate a palette of 16 shades fading up from opaque black
-void set_shade_opaque(unsigned color);
+void set_shade_opaque(unsigned color, unsigned *shades);
 
 // pre-calculate a palette of 16 shades fading up from transparent
-void set_shade_transparent(unsigned color);
+void set_shade_transparent(unsigned color, unsigned *shades);
 
 // Wu antialiased line drawer, use set_shade_* to set color
-void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1);
+void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);
