@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+  <title>Debug Console</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="ansi_up.js"></script>
+</head>
+
+<body>
+<h2>
+  <span id=host_name></span> log
+  <span id=connected_status>❌</span>
+</h2>
+<p style='text-align: center;'>
+  <a href='settings.htm'>settings</a>
+</p>
+<div class="shell-wrap">
+  <ul class="shell-body", id="output"></ul>
+</div>
+</body>
+
+<script language="javascript" type="text/javascript">
+  var wsUri = "ws://" + window.location.host + "/ws";
+  // var wsUri = "ws://192.168.43.102/ws";
+  var websocket;
+  var ansi_up = new AnsiUp;
+  var isScroll = true;
+  var reader = new FileReader();
+
+  function writeToScreen(message) {
+    if (message.length <= 0)
+      return;
+    console.log('writing: ' + message);
+    output = document.getElementById("output");
+    var pre = document.createElement("li");
+    var html = ansi_up.ansi_to_html(message);
+    pre.innerHTML = html;
+    output.appendChild(pre);
+    if (isScroll) {
+      window.scrollBy(0, 100);
+    }
+  }
+
+var dat = "";
+
+  function init() {
+    websocket = new WebSocket(wsUri);
+    websocket.binaryType = 'arraybuffer';
+
+    websocket.onopen = function(evt) {
+      writeToScreen("WS CONNECTED");
+      websocket.send('a');  // dump RTC buffer command
+      websocket.send('h');  // get heap command
+    };
+
+    websocket.onclose = function(evt) {
+      connected_status.innerHTML = "❌";
+      writeToScreen("WS DISCONNECTED");
+    };
+
+    websocket.onmessage = function(evt) {
+      console.log("dat: " + evt.data);
+
+      dat = evt.data;
+      if(typeof(dat) != "string") {
+        dec = new TextDecoder("utf-8");
+        dat = dec.decode(dat);
+      }
+
+      if (dat.startsWith('{"hello": ')) {
+        temp = JSON.parse(dat);
+        connected_status.innerHTML = "✅"
+        host_name.innerHTML = temp["hello"];
+      } else if (dat[0] == 'a') {
+        temp_str = dat.substr(1).replace(/\0/g, '').replace("\r","");
+        temp_str.split("\n").forEach(writeToScreen);
+      } else if (dat[0] == 'h') {
+        temp = JSON.parse(dat.substr(1));
+        writeToScreen(dat.substr(1));
+      }
+    };
+
+    websocket.onerror = function(evt) {
+      connected_status.innerHTML = "🔥 " + evt.data;
+      writeToScreen('ERROR: ' + evt.data);
+    };
+
+    window.onscroll = function() {
+      var d = document.documentElement;
+      isScroll = d.scrollTop + window.innerHeight === d.offsetHeight;
+    };
+  }
+
+  window.onload = init();
+</script>
+</html>

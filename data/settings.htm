@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+  <title>.json Settings</title>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+<h2>
+  <span id=host_name></span> settings.json
+  <span id=connected_status>❌</span>
+</h2>
+<p style='text-align: center;'><a href='index.htm'>console</a></p>
+<div class="shell-wrap">
+  <textarea id="myTextArea" class="shell-body" onkeyup="bnA.disabled=true; tStat.innerText='';"></textarea>
+  <br>
+  <button id="bnV" class="inline" onclick="prettyPrint();">Verify</button>
+  <button id="bnA" class="inline" onclick="writeFile();">Apply</button>
+  <button id="bnR" class="inline" onclick="websocket.send('r'); textArea.value = ''; window.location.reload(false);">Reboot</button>
+  <span id="tStat"></span>
+</div>
+</body>
+
+<script language="javascript" type="text/javascript">
+  var wsUri = "ws://" + window.location.host + "/ws";
+  // var wsUri = "ws://192.168.42.224/ws";
+  var websocket;
+  var textArea, bnA, tStat;
+  var isWriting = false;
+
+  function writeFile() {
+    bnA.disabled = true;
+    websocket.send("b" + textArea.value);
+    isWriting = true;
+    textArea.value = "";
+    tStat.innerHTML = "<font color=#444444>applying ...</font>";
+  }
+
+  function init() {
+    textArea = document.getElementById("myTextArea");
+    bnA = document.getElementById("bnA");
+    tStat = document.getElementById("tStat");
+    bnA.disabled = true;
+
+    // enable TAB input in textArea
+    textArea.onkeydown = function(e) {
+      if (e.keyCode == 9 || e.which == 9) {
+          e.preventDefault();
+          var s = this.selectionStart;
+          this.value = this.value.substring(0, this.selectionStart) + "    " + this.value.substring(this.selectionEnd);
+          this.selectionEnd = s + 4;
+      }
+    }
+
+    websocket = new WebSocket(wsUri);
+    websocket.onopen = function(evt) {
+      console.log("WS CONNECTED");
+      websocket.send('b');  // dump current settings file
+    };
+
+    websocket.onclose = function(evt) {
+      connected_status.innerHTML = "❌";
+      console.log("WS DISCONNECTED");
+    };
+
+    websocket.onmessage = function(evt) {
+      console.log("dat: " + evt.data);
+      if (evt.data.startsWith('{"hello": ')) {
+        temp = JSON.parse(evt.data);
+        connected_status.innerHTML = "✅"
+        host_name.innerHTML = temp["hello"];
+      } else if (evt.data[0] == 'b') {
+        textArea.value = evt.data.slice(1);
+        if (isWriting) {
+          tStat.innerHTML = "<font color=#44FF44>👍 applied 👍</font>";
+        }
+      }
+    };
+
+    websocket.onerror = function(evt) {
+      connected_status.innerHTML = "🔥 " + evt.data;
+      console.log('ERROR: ' + evt.data);
+    };
+  }
+
+  function prettyPrint() {
+      s = textArea.value;
+      try {
+        var obj = JSON.parse(s);
+        textArea.value = JSON.stringify(obj, undefined, 4);
+        bnA.disabled = false;
+        tStat.innerHTML = "<font color=#44FF44>verified</font>";
+      } catch(e) {
+        bnA.disabled = true;
+        var arr = e.message.match(/\d+/g);
+        var row = parseInt(arr[0]);
+        var col = parseInt(arr[1]);
+        console.log('.json error at row / col: ', row, col);
+
+        arr = textArea.value.split('\n');
+        var startChar = 0;
+        for (var i=0; i < row - 1; i++)
+          startChar += arr[i].length + 1;
+        startChar += col;
+
+        textArea.focus();
+        textArea.selectionStart = startChar;
+        textArea.selectionEnd = startChar;
+        tStat.innerHTML = "<font color=#FF4444>" + e.message + "</font>";
+      }
+  }
+
+  window.onload = function() {
+    window.setTimeout(init, 500);
+  }
+</script>
