@@ -119,7 +119,6 @@ void setup()
 	//-----------------------------------
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
-	delay(1000);
 	xTaskCreatePinnedToCore(&aniBackgroundTask, "bck", 1750, NULL, 1, &t_backg, 1);
 
 	//---------------------------------

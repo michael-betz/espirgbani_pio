@@ -2,7 +2,9 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <math.h>
 #include "Arduino.h"
+#include "ArduinoOTA.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
@@ -13,6 +15,7 @@
 #include "i2s_parallel.h"
 #include "rgb_led_panel.h"
 #include "common.h"
+#include "val2pwm.h"
 #include "frame_buffer.h"
 
 // static const char *T = "FRAME_BUFFER";
@@ -25,10 +28,10 @@ unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 void initFb()
 {
 	layersDoneDrawingFlags = xEventGroupCreate();
-	// set all layers to transparent black and unblock
+	// set all layers to transparent and unblock
 	for (int i=0; i<N_LAYERS; i++) {
 		xEventGroupSetBits(layersDoneDrawingFlags, (1 << i));
-		setAll(i, 0x00000000);
+		setAll(i, 0);
 	}
 }
 
@@ -86,6 +89,10 @@ unsigned getBlendedPixel(unsigned x, unsigned y)
 		resG = INT_PRELERP(resG, GG(p), GA(p));
 		resB = INT_PRELERP(resB, GB(p), GA(p));
 	}
+	// TODO not sure if worth it ...
+	// resR = valToPwm(resR);
+	// resG = valToPwm(resG);
+	// resB = valToPwm(resB);
 	return (resB<<16) | (resG<<8) | resR;
 }
 
@@ -192,6 +199,8 @@ void tp_task(void *pvParameters)
 		setAll(2, 0xFF000000);
 		updateFrame();
 
+		ArduinoOTA.handle();
+
 		log_d("Diagonal");
 		for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
 			for (unsigned x=0; x<DISPLAY_WIDTH; x++)
@@ -224,16 +233,17 @@ void tp_task(void *pvParameters)
 
 
 // shades of the color in set_shade_*
+#define N_SHADES 16  // not changeable!
 static unsigned _shades[16];
 
-// pre-calculate a palette of 16 shades fading to opaque black
+// pre-calculate a palette of 16 shades fading up from opaque black
 void set_shade_opaque(unsigned color)
 {
 	for (unsigned i=0; i<16; i++)
 		_shades[i] = scale32(i * 17, color) | 0xFF000000;
 }
 
-// pre-calculate a palette of 16 shades fading to transparent
+// pre-calculate a palette of 16 shades fading up from transparent
 void set_shade_transparent(unsigned color)
 {
 	for (unsigned i=0; i<16; i++)
@@ -241,20 +251,22 @@ void set_shade_transparent(unsigned color)
 }
 
 // Set a pixel in framebuffer at p to shade of color. shade = 0 .. 15
-void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade) {
-	// x &= DISPLAY_WIDTH - 1;
-	// y &= DISPLAY_HEIGHT - 1;
-	// shade &= 0x0F;
+static void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade)
+{
+	// screen clipping needed for aaLine
+	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT)
+		return;
 	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = _shades[shade];
 }
 
 // takes a 4 bit shade from pinball animation, returns the 32 bit RGBA pixel
+static unsigned _ani_shades[16];
 static unsigned get_pix_color(unsigned pix)
 {
 	pix &= 0x0F;
 	if (pix == 0x0A)  // a transparent pixel
 		return 0;
-	return _shades[pix];
+	return _ani_shades[pix];
 }
 
 void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
@@ -267,7 +279,8 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 		return;
 	}
 
-	set_shade_opaque(color);
+	for (unsigned i=0; i<16; i++)
+		_ani_shades[i] = scale32(i * 17, color) | 0xFF000000;
 
 	if (lock_fb)
 		startDrawing(2);
@@ -279,4 +292,116 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 	}
 	if (lock_fb)
 		doneDrawing(2);
+}
+
+// Wu antialiased line drawer.
+// (X0,Y0),(X1,Y1) = line to draw
+// use set_shade_*() to set the 100% color
+void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1)
+{
+	unsigned ErrorAdj, ErrorAcc;
+	unsigned ErrorAccTemp, Weighting;
+	int DeltaX, DeltaY, Temp, XDir;
+
+	// Make sure the line runs top to bottom
+	if (Y0 > Y1) {
+		Temp = Y0; Y0 = Y1; Y1 = Temp;
+		Temp = X0; X0 = X1; X1 = Temp;
+	}
+
+	// Draw the initial pixel, which is always exactly intersected by
+	// the line and so needs no weighting
+	setPixelShade(layer, X0, Y0, 0x0F);
+
+	if ((DeltaX = X1 - X0) >= 0) {
+		XDir = 1;
+	} else {
+		XDir = -1;
+		DeltaX = -DeltaX; // make DeltaX positive
+	}
+
+	// Special-case horizontal, vertical, and diagonal lines, which
+	// require no weighting because they go right through the center of
+	// every pixel
+	if ((DeltaY = Y1 - Y0) == 0) {
+		// Horizontal line
+		while (DeltaX-- != 0) {
+			X0 += XDir;
+			setPixelShade(layer, X0, Y0, 0x0F);
+		}
+		return;
+	}
+	if (DeltaX == 0) {
+		// Vertical line
+		do {
+			Y0++;
+			setPixelShade(layer, X0, Y0, 0x0F);
+		} while (--DeltaY != 0);
+		return;
+	}
+	if (DeltaX == DeltaY) {
+		// Diagonal line
+		do {
+			X0 += XDir;
+			Y0++;
+			setPixelShade(layer, X0, Y0, 0x0F);
+		} while (--DeltaY != 0);
+		return;
+	}
+
+	// line is not horizontal, diagonal, or vertical
+	ErrorAcc = 0;  // initialize the line error accumulator to 0
+
+	// Is this an X-major or Y-major line?
+	if (DeltaY > DeltaX) {
+		// Y-major line; calculate 16-bit fixed-point fractional part of a
+		// pixel that X advances each time Y advances 1 pixel, truncating the
+		// result so that we won't overrun the endpoint along the X axis
+		ErrorAdj = ((uint64_t)DeltaX << 32) / DeltaY;
+		// Draw all pixels other than the first and last
+		while (--DeltaY) {
+			ErrorAccTemp = ErrorAcc;  // remember current accumulated error
+			ErrorAcc += ErrorAdj;  // calculate error for next pixel
+			if (ErrorAcc <= ErrorAccTemp) {
+				// The error accumulator turned over, so advance the X coord
+				X0 += XDir;
+			}
+			Y0++;  // Y-major, so always advance Y
+			// The 4 most significant bits of ErrorAcc give us
+			// the intensity weighting for this pixel, and the complement of
+			// the weighting for the paired pixel
+			Weighting = ErrorAcc >> 28;
+			setPixelShade(layer, X0, Y0, (Weighting ^ 0x0F));
+			setPixelShade(layer, X0 + XDir, Y0, Weighting);
+		}
+		// Draw the final pixel, which is always exactly intersected by the
+		// line and so needs no weighting
+		setPixelShade(layer, X1, Y1, 0x0F);
+		return;
+	}
+
+	// It's an X-major line; calculate 16-bit fixed-point fractional part
+	// of a pixel that Y advances each time X advances 1 pixel, truncating
+	// the result to avoid overrunning the endpoint along the X axis
+	ErrorAdj = ((uint64_t)DeltaY << 32) / DeltaX;
+	// Draw all pixels other than the first and last
+	while (--DeltaX) {
+		ErrorAccTemp = ErrorAcc;  // remember currrent accumulated error
+		ErrorAcc += ErrorAdj;  // calculate error for next pixel
+		if (ErrorAcc <= ErrorAccTemp) {
+			// The error accumulator turned over, so advance the Y coord
+			Y0++;
+		}
+		X0 += XDir;  // X-major, so always advance X
+		// The IntensityBits most significant bits of ErrorAcc give us the
+		// intensity weighting for this pixel, and the complement of the
+		// weighting for the paired pixel
+		Weighting = ErrorAcc >> 28;
+
+		setPixelShade(layer, X0, Y0, (Weighting ^ 0x0F));
+		setPixelShade(layer, X0, Y0 + 1, Weighting);
+	}
+	// Draw the final pixel, which is always exactly intersected by the
+	// line and so needs no weighting
+	setPixelShade(layer, X1, Y1, 0x0F);
 }

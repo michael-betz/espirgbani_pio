@@ -5,6 +5,7 @@
 #include <math.h>
 #include <time.h>
 #include "Arduino.h"
+#include "fast_hsv2rgb.h"
 #include "rgb_led_panel.h"
 #include "json_settings.h"
 #include "frame_buffer.h"
@@ -15,10 +16,8 @@
 #include "shaders.h"
 
 
-static void drawXorFrame() {
-	static int frm=0;
+static void drawXorFrame(unsigned frm) {
 	static uint16_t aniZoom=0x04, boost=7;
-	startDrawing(0);
 	for (int y=0; y<=31; y++)
 		for (int x=0; x<=127; x++)
 			setPixel(0, x, y, SRGBA(
@@ -27,26 +26,22 @@ static void drawXorFrame() {
 				((x^y) & aniZoom) * boost,
 				0xFF
 			));
-	doneDrawing(0);
 	if((frm % 1024) == 0) {
 		aniZoom = rand();
 		boost = RAND_AB(1, 8);
 		log_v("aniZoom = %d,  boost = %d", aniZoom, boost);
 	}
-	frm++;
 }
 
-static void drawPlasmaFrame() {
-	static int frm=3001, i, j, k, l;
+static void drawPlasmaFrame(unsigned frm) {
+	static int i=2, j=3, k=((i<<5)-1), l=((j<<5)-1);
 	int temp1, temp2;
-	if(frm > 3000) {
-		frm = 0;
+	if(frm % 3000 == 0) {
 		i = RAND_AB(1,8);
 		j = RAND_AB(1,8);
 		k = ((i<<5)-1);
 		l = ((j<<5)-1);
 	}
-	startDrawing(0);
 	for (int y=0; y<=31; y++) {
 		for (int x=0; x<=127; x++) {
 			temp1 = abs(((i * y + (frm * 16) / (x + 16)) % 64) - 32) * 7;
@@ -59,16 +54,13 @@ static void drawPlasmaFrame() {
 			));
 		}
 	}
-	doneDrawing(0);
-	frm++;
 }
 
-static void drawAlienFlameFrame() {
+static void drawAlienFlameFrame(unsigned frm) {
 	//  *p points to last pixel of second last row (lower right)
 	// uint32_t *p = (uint32_t*)g_frameBuff[0][DISPLAY_WIDTH*(DISPLAY_HEIGHT-1)-1];
 	// uint32_t *tempP;
 	uint32_t colIndex, temp;
-	startDrawing(0);
 	colIndex = RAND_AB(0, 127);
 	temp = getPixel(0, colIndex, 31);
 	setPixel(0, colIndex, 31, 0xFF000000 | (temp+2));
@@ -85,7 +77,6 @@ static void drawAlienFlameFrame() {
 			setPixelColor(0, x, y, RAND_AB(0, 2), MIN(temp * 5 / 8, 255));
 		}
 	}
-	doneDrawing(0);
 }
 
 static uint8_t pbuff[DISPLAY_WIDTH * (DISPLAY_HEIGHT + 1)];
@@ -124,8 +115,7 @@ static void flameSpread(unsigned ind) {
 	}
 }
 
-static void drawDoomFlameFrame() {
-	static unsigned frm = 0;
+static void drawDoomFlameFrame(unsigned frm) {
 	static const uint32_t *pal = g_palettes[0];
 	// Slowly modulate flames / change palette now and then
 	if ((frm % 25) == 0) {
@@ -141,30 +131,47 @@ static void drawDoomFlameFrame() {
 			flameSpread(x + y * DISPLAY_WIDTH);
 
 	// Colorize flames and write into framebuffer
-	startDrawing(0);
 	for (unsigned y=0; y<DISPLAY_HEIGHT; y++) {
 		for (unsigned x=0; x<DISPLAY_WIDTH; x++) {
 			uint8_t pInd = pbuff[x + y * DISPLAY_WIDTH];
 			setPixel(0, x, y, pal[pInd % P_SIZE]);
 		}
 	}
+}
 
-	doneDrawing(0);
-	frm++;
+static void drawLasers(unsigned frm) {
+	static float alpha=0.0, x=64, y=16;
+	static unsigned n_lines=8;
+	if (frm % 1000 == 0) {
+		n_lines = RAND_AB(3, 18);
+		x = RAND_AB(4, DISPLAY_WIDTH - 5);
+		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
+	}
+
+	setAll(0, 0xFF000000);
+	for (unsigned i=0; i<n_lines; i++) {
+		float dx = DISPLAY_WIDTH * cos(alpha + M_PI * 2 * i / n_lines);
+		float dy = DISPLAY_WIDTH * sin(alpha + M_PI * 2 * i / n_lines);
+
+		uint8_t r, g, b;
+		fast_hsv2rgb_32bit(HSV_HUE_MAX * i / n_lines, HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
+		set_shade_opaque(SRGBA(r, g, b, 0xFF));
+		aaLine(0, x, y, x + dx, y + dy);
+	}
+
+	alpha += 0.01;
 }
 
 void aniBackgroundTask(void *pvParameters) {
-	uint32_t frameCount = 1;
-	uint8_t aniMode = 0;
-	TickType_t xLastWakeTime = xTaskGetTickCount();
-
+	unsigned frm=1, aniMode=0;
 	unsigned _f_del = g_f_del / portTICK_PERIOD_MS;
 
 	setAll(0, 0xFF000000);
+	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while(1) {
-		if ((frameCount % 10000) == 0) {
-			aniMode = RAND_AB(0, 6);
-			if(aniMode == 0 || aniMode > 4) {
+		if ((frm % 10000) == 0) {
+			aniMode = RAND_AB(0, 7);  // make black slightly more likely
+			if(aniMode == 0 || aniMode > 5) {
 				int tempColor = 0xFF000000;// | scale32(128, rand());
 				setAll(0, tempColor);
 			}
@@ -173,26 +180,33 @@ void aniBackgroundTask(void *pvParameters) {
 		switch(aniMode) {
 			case 1:
 				// cool square patterns
-				drawXorFrame();
+				drawXorFrame(frm);
 				break;
+
 			case 2:
 				// slowly bending zebra curves
-				drawPlasmaFrame();
+				drawPlasmaFrame(frm);
 				break;
+
 			case 3:
 				// RGB pixelated smoke
-				drawAlienFlameFrame();
+				drawAlienFlameFrame(frm);
 				break;
+
 			case 4:
 				// doom fire with different palettes
-				drawDoomFlameFrame();
+				drawDoomFlameFrame(frm);
+				break;
+
+			case 5:
+				// radial lasers
+				drawLasers(frm);
 				break;
 		}
 
 		// maximum global frame-rate: 1 / f_del kHz
 		vTaskDelayUntil(&xLastWakeTime, _f_del);
 		updateFrame();
-		frameCount++;
+		frm++;
 	}
-	vTaskDelete(NULL);
 }

@@ -46,9 +46,14 @@ void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color);
 void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color);
 unsigned getPixel(unsigned layer, unsigned x, unsigned y);
 
-// Set a pixel in framebuffer at p to shade of color. shade = 0 .. 15
-// used for drawing animations and anti-aliased lines
-void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade);
+// pre-calculate a palette of 16 shades fading up from opaque black
+void set_shade_opaque(unsigned color);
+
+// pre-calculate a palette of 16 shades fading up from transparent
+void set_shade_transparent(unsigned color);
+
+// Wu antialiased line drawer, use set_shade_* to set color
+void aaLine(unsigned layer, int X0, int Y0, int X1, int Y1);
 
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);

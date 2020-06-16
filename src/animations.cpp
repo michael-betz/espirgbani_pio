@@ -3,7 +3,7 @@
 #include "fast_hsv2rgb.h"
 #include "frame_buffer.h"
 #include "json_settings.h"
-#include <ArduinoOTA.h>
+#include "ArduinoOTA.h"
 #include "rom/rtc.h"
 #include "font.h"
 #include "animations.h"
