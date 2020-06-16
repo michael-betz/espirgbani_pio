@@ -15,9 +15,12 @@ extern "C" {
 }
 
 unsigned g_frames = 0; // frame counter
+unsigned g_f_del = 33; // delay between frames [ms]
 int g_rgbLedBrightness = 1;
+
+// Double buffering has been disabled to save RAM. No visual differences!
 //which buffer is the backbuffer, as in, which one is not active so we can write to it
-int backbuf_id = 0;
+int backbuf_id = 0;  // not used
 //Internal double buffered array of bitPLanes
 uint16_t *bitplane[1][BITPLANE_CNT];
 //DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B

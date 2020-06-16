@@ -22,8 +22,6 @@
 TaskHandle_t t_backg = NULL;
 TaskHandle_t t_pinb = NULL;
 
-unsigned g_f_del = 30;
-
 // Web socket RX data received callback
 static void on_ws_data(
 	AsyncWebSocket * server,

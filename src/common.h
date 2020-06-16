@@ -47,8 +47,6 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-extern unsigned g_f_del;  // global delay between frame updates [ms]
-
 // Random number within the range [a,b]
 int RAND_AB(int a, int b);
 

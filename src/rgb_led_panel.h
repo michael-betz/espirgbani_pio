@@ -38,6 +38,10 @@ extern int g_rgbLedBrightness;
 void init_rgb();
 void updateFrame();
 
+// number of updateFrame() calls since boot (frame counter)
 extern unsigned g_frames;
+
+// delay [ms] between updateFrame() calls (determines max. global frame-rate)
+extern unsigned g_f_del;
 
 #endif

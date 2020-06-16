@@ -84,7 +84,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId)
 // play a single animation, start to finish
 // lock_fb: synchronize with updateFrame (vsync), prevents artifacts, reduces frame rate
 // f_del: delay in [ms] between updateFrame calls (determines global maximum framerate)
-static void playAni(FILE *f, headerEntry_t *h, bool lock_fb, unsigned f_del)
+static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 {
 	int64_t seek_time = 0;
 	int max_seek_time = 0;
@@ -130,8 +130,8 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb, unsigned f_del)
 		}
 
 		// clip minimum delay to avoid skipping frames
-		if (cur_delay < f_del)
-			cur_delay = f_del;
+		if (cur_delay < g_f_del)
+			cur_delay = g_f_del;
 
 		// wait for N ms, measured from last call to vTaskDelayUntil()
 		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
@@ -162,7 +162,7 @@ static void run_animation(FILE *f, unsigned aniId)
 	bool lock_fb = jGetB(jPanel, "lock_frame_buffer", true);
 
 	readHeaderEntry(f, &myHeader, aniId);
-	playAni(f, &myHeader, lock_fb, g_f_del);
+	playAni(f, &myHeader, lock_fb);
 	free(myHeader.frameHeader);
 	myHeader.frameHeader = NULL;
 
@@ -177,7 +177,7 @@ static void run_animation(FILE *f, unsigned aniId)
 		startDrawing(2);
 		nTouched = fadeOut(2, 10);
 		doneDrawing(2);
-		vTaskDelayUntil(&xLastWakeTime, 30 / portTICK_PERIOD_MS);
+		vTaskDelayUntil(&xLastWakeTime, g_f_del / portTICK_PERIOD_MS);
 	}
 }
 
