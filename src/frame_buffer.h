@@ -46,6 +46,10 @@ void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color);
 void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color);
 unsigned getPixel(unsigned layer, unsigned x, unsigned y);
 
+// Set a pixel in framebuffer at p to shade of color. shade = 0 .. 15
+// used for drawing animations and anti-aliased lines
+void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade);
+
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);
 

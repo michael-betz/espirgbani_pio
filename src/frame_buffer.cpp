@@ -91,15 +91,16 @@ unsigned getBlendedPixel(unsigned x, unsigned y)
 
 // Set a pixel in frmaebuffer at p
 void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color) {
-	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT || layer >= N_LAYERS)
-		return;
+	x &= DISPLAY_WIDTH - 1;
+	y &= DISPLAY_HEIGHT - 1;
 	//(a<<24) | (b<<16) | (g<<8) | r;
 	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = color;
 }
 
+// This ones's used for the noisy shader. Not sure anymore what it does :p
 void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color) {
-	if (x>=DISPLAY_WIDTH || y>=DISPLAY_HEIGHT || layer>=N_LAYERS)
-		return;
+	x &= DISPLAY_WIDTH - 1;
+	y &= DISPLAY_HEIGHT - 1;
 	unsigned temp = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
 	temp &= 0xFFFFFF00 << (cIndex * 8);
 	temp |= color << (cIndex*8);
@@ -108,17 +109,15 @@ void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsi
 
 // Set a pixel in frmaebuffer at p
 unsigned getPixel(unsigned layer, unsigned x, unsigned y) {
-	if (layer >= N_LAYERS)
-		return 0;
-	x = MIN(x, DISPLAY_WIDTH - 1);
-	y = MIN(y, DISPLAY_HEIGHT - 1);
+	x &= DISPLAY_WIDTH - 1;
+	y &= DISPLAY_HEIGHT - 1;
 	// (a<<24) | (b<<16) | (g<<8) | r;
 	return g_frameBuff[layer][x + y * DISPLAY_WIDTH];
 }
 
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color) {
-	if (x>=DISPLAY_WIDTH || y>=DISPLAY_HEIGHT || layer>=N_LAYERS)
-		return;
+	x &= DISPLAY_WIDTH - 1;
+	y &= DISPLAY_HEIGHT - 1;
 	unsigned p = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
 	unsigned resR = INT_PRELERP(GR(p), GR(color), GA(color));
 	unsigned resG = INT_PRELERP(GG(p), GG(color), GA(color));
@@ -223,16 +222,39 @@ void tp_task(void *pvParameters)
 	}
 }
 
-// take a shade (0-15) from animation file and 24 bit RGB color. Return a RGBA color.
-#define GET_ANI_COLOR(p, c) ()
 
-// takes a 4 bit animation pixel, returns the 32 bit RGBA pixel
-static unsigned get_pix_color(unsigned pix, unsigned color)
+// shades of the color in set_shade_*
+static unsigned _shades[16];
+
+// pre-calculate a palette of 16 shades fading to opaque black
+void set_shade_opaque(unsigned color)
 {
+	for (unsigned i=0; i<16; i++)
+		_shades[i] = scale32(i * 17, color) | 0xFF000000;
+}
+
+// pre-calculate a palette of 16 shades fading to transparent
+void set_shade_transparent(unsigned color)
+{
+	for (unsigned i=0; i<16; i++)
+		_shades[i] = scale32(i * 17, color);
+}
+
+// Set a pixel in framebuffer at p to shade of color. shade = 0 .. 15
+void setPixelShade(unsigned layer, unsigned x, unsigned y, unsigned shade) {
+	// x &= DISPLAY_WIDTH - 1;
+	// y &= DISPLAY_HEIGHT - 1;
+	// shade &= 0x0F;
+	g_frameBuff[layer][x + y * DISPLAY_WIDTH] = _shades[shade];
+}
+
+// takes a 4 bit shade from pinball animation, returns the 32 bit RGBA pixel
+static unsigned get_pix_color(unsigned pix)
+{
+	pix &= 0x0F;
 	if (pix == 0x0A)  // a transparent pixel
 		return 0;
-	else
-		return scale32(pix * 17, color) | 0xFF000000;
+	return _shades[pix];
 }
 
 void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
@@ -245,13 +267,15 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 		return;
 	}
 
+	set_shade_opaque(color);
+
 	if (lock_fb)
 		startDrawing(2);
 	for (int y=0; y<DISPLAY_HEIGHT; y++) {
 		for (int x=0; x<DISPLAY_WIDTH; x+=2) {
 			// unpack the 2 pixels per byte data into 1 pixel per byte and set the framebuffer
-			*p++ = get_pix_color(*pix >> 4, color);
-			*p++ = get_pix_color(*pix & 0x0F, color);
+			*p++ = get_pix_color(*pix >> 4);
+			*p++ = get_pix_color(*pix);
 			pix++;
 		}
 	}
