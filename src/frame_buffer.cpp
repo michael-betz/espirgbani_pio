@@ -271,13 +271,11 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 
 	if (lock_fb)
 		startDrawing(2);
-	for (int y=0; y<DISPLAY_HEIGHT; y++) {
-		for (int x=0; x<DISPLAY_WIDTH; x+=2) {
-			// unpack the 2 pixels per byte data into 1 pixel per byte and set the framebuffer
-			*p++ = get_pix_color(*pix >> 4);
-			*p++ = get_pix_color(*pix);
-			pix++;
-		}
+	for (int i=0; i<DISPLAY_WIDTH * DISPLAY_HEIGHT / 2; i++) {
+		// unpack the 2 pixels per byte, put their shades in the framebuffer
+		*p++ = get_pix_color(*pix >> 4);
+		*p++ = get_pix_color(*pix);
+		pix++;
 	}
 	if (lock_fb)
 		doneDrawing(2);
