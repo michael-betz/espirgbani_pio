@@ -55,6 +55,9 @@ void set_shade_opaque(unsigned color, unsigned *shades);
 // pre-calculate a palette of 16 shades fading up from transparent
 void set_shade_transparent(unsigned color, unsigned *shades);
 
+// get opaque shades of a specific hue (0 .. HSV_HUE_MAX). Gamma corrected!
+void set_shade_h(uint16_t hue, unsigned *shades);
+
 // Wu antialiased line drawer, use set_shade_* to set color
 void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 

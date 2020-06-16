@@ -122,7 +122,6 @@ void setup()
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
-	delay(1000);
 	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4000, f, 0, &t_pinb, 0);
 }
 

@@ -14,8 +14,9 @@
 #include "esp_heap_caps.h"
 #include "i2s_parallel.h"
 #include "rgb_led_panel.h"
-#include "common.h"
+#include "fast_hsv2rgb.h"
 #include "val2pwm.h"
+#include "common.h"
 #include "frame_buffer.h"
 
 // static const char *T = "FRAME_BUFFER";
@@ -232,6 +233,21 @@ void tp_task(void *pvParameters)
 	}
 }
 
+// get opaque shades of a specific hue (0 .. HSV_HUE_MAX). Gamma corrected!
+void set_shade_h(uint16_t hue, unsigned *shades)
+{
+	uint8_t r, g, b;
+	for (unsigned i=0; i<N_SHADES; i++) {
+		fast_hsv2rgb_32bit(
+			hue,
+			HSV_SAT_MAX,
+			i * HSV_VAL_MAX / (N_SHADES - 1),
+			&r, &g, &b
+		);
+		shades[i] = SRGBA(valToPwm(r), valToPwm(g), valToPwm(b), 0xFF);
+	}
+}
+
 // pre-calculate a palette of N_SHADES shades fading up from opaque black
 void set_shade_opaque(unsigned color, unsigned *shades)
 {
@@ -269,7 +285,7 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 	set_shade_opaque(color, shades);
 
 	if (lock_fb)
-		startDrawing(2);
+		startDrawing(layer);
 	for (int i=0; i<DISPLAY_WIDTH * DISPLAY_HEIGHT / 2; i++) {
 		// unpack the 2 pixels per byte, put their shades in the framebuffer
 		*p++ = get_pix_color(*pix >> 4, shades);
@@ -277,7 +293,7 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 		pix++;
 	}
 	if (lock_fb)
-		doneDrawing(2);
+		doneDrawing(layer);
 }
 
 // Wu antialiased line drawer.

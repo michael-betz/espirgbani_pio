@@ -140,25 +140,31 @@ static void drawDoomFlameFrame(unsigned frm) {
 }
 
 static void drawLasers(unsigned frm) {
-	static float alpha=0.0, x=64, y=16;
-	static unsigned n_lines=8;
+	static float alpha=0.0, ri=0;
+	static unsigned n_lines=8, x=64, y=16;
 	unsigned shades[N_SHADES];
 
-	if (frm % 1000 == 0) {
-		n_lines = RAND_AB(3, 18);
-		x = RAND_AB(4, DISPLAY_WIDTH - 5);
+	if (frm % 2000 == 0) {
+		n_lines = RAND_AB(3, 64);  // number of lines
+		x = RAND_AB(4, DISPLAY_WIDTH - 5);  // center point
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
+		// ri = RAND_AB(0, 100) / 10.0;  // inner radius
 	}
 
 	setAll(0, 0xFF000000);
 	for (unsigned i=0; i<n_lines; i++) {
-		float dx = DISPLAY_WIDTH * cos(alpha + M_PI * 2 * i / n_lines);
-		float dy = DISPLAY_WIDTH * sin(alpha + M_PI * 2 * i / n_lines);
+		float dx = cos(alpha + M_PI * 2 * i / n_lines);
+		float dy = sin(alpha + M_PI * 2 * i / n_lines);
 
-		uint8_t r, g, b;
-		fast_hsv2rgb_32bit(HSV_HUE_MAX * i / n_lines, HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
-		set_shade_opaque(SRGBA(r, g, b, 0xFF), shades);
-		aaLine(0, shades, x, y, x + dx, y + dy);
+		set_shade_h(HSV_HUE_MAX * i / n_lines, shades);
+		aaLine(
+			0,
+			shades,
+			x + dx * ri,
+			y + dy * ri,
+			x + dx * DISPLAY_WIDTH,
+			y + dy * DISPLAY_WIDTH
+		);
 	}
 
 	alpha += 0.01;

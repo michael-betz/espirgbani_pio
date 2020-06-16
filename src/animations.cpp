@@ -82,8 +82,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId)
 }
 
 // play a single animation, start to finish
-// lock_fb: synchronize with updateFrame (vsync), prevents artifacts, reduces frame rate
-// f_del: delay in [ms] between updateFrame calls (determines global maximum framerate)
+// lock_fb: synchronize with updateFrame(), prevents artifacts, reduces frame rate (vsync)
 static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 {
 	int64_t seek_time = 0;
@@ -159,7 +158,7 @@ static void run_animation(FILE *f, unsigned aniId)
 
 	// synchronize animation frames to global update rate (vsync)
 	cJSON *jPanel = jGet(getSettings(), "panel");
-	bool lock_fb = jGetB(jPanel, "lock_frame_buffer", true);
+	bool lock_fb = jGetB(jPanel, "lock_frame_buffer", false);
 
 	readHeaderEntry(f, &myHeader, aniId);
 	playAni(f, &myHeader, lock_fb);
