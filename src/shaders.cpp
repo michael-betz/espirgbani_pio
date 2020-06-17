@@ -144,7 +144,7 @@ static void drawLasers(unsigned frm) {
 	unsigned shades[N_SHADES];
 
 	if (frm % 2000 == 0) {
-		n_lines = RAND_AB(3, 64);  // number of lines
+		n_lines = RAND_AB(3, 32);  // number of lines
 		x = RAND_AB(4, DISPLAY_WIDTH - 5);  // center point
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
 		// ri = RAND_AB(0, 100) / 10.0;  // inner radius
@@ -166,7 +166,7 @@ static void drawLasers(unsigned frm) {
 		);
 	}
 
-	alpha += 0.01;
+	alpha += 0.003;
 }
 
 void aniBackgroundTask(void *pvParameters) {
