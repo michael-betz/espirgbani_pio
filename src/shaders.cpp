@@ -29,7 +29,6 @@ static void drawXorFrame(unsigned frm) {
 	if((frm % 1024) == 0) {
 		aniZoom = rand();
 		boost = RAND_AB(1, 8);
-		log_v("aniZoom = %d,  boost = %d", aniZoom, boost);
 	}
 }
 

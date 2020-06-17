@@ -2,12 +2,10 @@
 #define RGB_LED_PANEL_H
 #include "common.h"
 
-//This is the bit depth, per RGB subpixel, of the data that is sent to the display.
-//The effective bit depth (in computer pixel terms) is less because of the PWM correction. With
-//a bitplane count of 7, you should be able to reproduce an 16-bit image more or less faithfully, though.
+// bits / color, larger values = more sub-frames and more flicker, max: 8
 #define BITPLANE_CNT 7
 
-//x*DISPLAY_HEIGHT RGB leds, 2 pixels per 16-bit value...
+// x * DISPLAY_HEIGHT RGB leds, 2 pixels per 16-bit value...
 #define BITPLANE_SZ (DISPLAY_WIDTH * DISPLAY_HEIGHT / 2)  // [16 bit words]
 
 // -------------------------------------------

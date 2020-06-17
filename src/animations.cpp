@@ -1,9 +1,10 @@
 #include <string.h>
 #include "Arduino.h"
+#include "ArduinoOTA.h"
+#include "WiFi.h"
 #include "fast_hsv2rgb.h"
 #include "frame_buffer.h"
 #include "json_settings.h"
-#include "ArduinoOTA.h"
 #include "rom/rtc.h"
 #include "font.h"
 #include "animations.h"
@@ -286,20 +287,20 @@ void aniPinballTask(void *pvParameters)
 		bool doRedrawFont = false;
 
 		// draw an animation
-		if ((cycles % ani_delay) == 0) {
+		if (cycles > 0 && cycles % ani_delay == 0) {
 			unsigned aniId = RAND_AB(0, fh.nAnimations - 1);
 			// aniId = 0x0619;
 			run_animation(f, aniId);
 		}
 
 		// change font color every delays.color minutes
-		if ((cycles % color_delay) == 0) {
+		if (cycles % color_delay == 0) {
 			color = 0xFF000000 | rand();
 			doRedrawFont = true;
 		}
 
 		// change font every delays.font minutes
-		if (nFnts > 0 && (cycles % font_delay) == 0) {
+		if (nFnts > 0 && cycles % font_delay == 0) {
 			cur_fnt = RAND_AB(0, nFnts - 1);
 			sprintf(strftime_buf, "/sd/fnt/%02d", cur_fnt);
 			// cur_fnt = (cur_fnt + 1) % nFnts;
