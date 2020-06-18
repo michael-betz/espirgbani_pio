@@ -3723,7 +3723,9 @@ FRESULT f_open (
 
 #if FF_USE_FASTSEEK
 	#pragma message "FATFS FAST_SEEK hack engaged :)"
-	if (res == FR_OK) {
+	// only allow fast-seek for read mode,
+	// as f_lseek cannot be used to expand file-size anymore
+	if (res == FR_OK && !(mode & FA_WRITE)) {
 		// Allocate buffer for FAST_SEEK
 		fp->cltbl = malloc(sizeof(DWORD) * FF_FASTSEEK_SIZE);
 		if (fp->cltbl != NULL) {
@@ -3731,7 +3733,7 @@ FRESULT f_open (
 			fp->cltbl[0] = FF_FASTSEEK_SIZE;
 			// Create CLMT for FAST_SEEK (move to end!)
 			FRESULT ret_ = f_lseek(fp, CREATE_LINKMAP);
-			log_v("FAST_SEEK: %d", ret_);
+			log_v("FAST_SEEK %s", (ret_ == 0) ? "enabled" : "failed");
 		}
 	}
 #endif
