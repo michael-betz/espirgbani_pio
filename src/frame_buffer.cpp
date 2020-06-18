@@ -15,7 +15,6 @@
 #include "i2s_parallel.h"
 #include "rgb_led_panel.h"
 #include "fast_hsv2rgb.h"
-#include "val2pwm.h"
 #include "common.h"
 #include "frame_buffer.h"
 
@@ -245,7 +244,7 @@ void set_shade_h(uint16_t hue, unsigned *shades)
 			i * HSV_VAL_MAX / (N_SHADES - 1),
 			&r, &g, &b
 		);
-		shades[i] = SRGBA(valToPwm(r), valToPwm(g), valToPwm(b), 0xFF);
+		shades[i] = SRGBA(r, g, b, 0xFF);
 	}
 }
 
