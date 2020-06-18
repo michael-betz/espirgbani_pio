@@ -21,7 +21,7 @@
 
 #include "ff.h"			/* Declarations of FatFs API */
 #include "diskio.h"		/* Declarations of device I/O functions */
-
+#include "Arduino.h"
 
 /*--------------------------------------------------------------------------
 
@@ -3717,7 +3717,26 @@ FRESULT f_open (
 
 	if (res != FR_OK) fp->obj.fs = 0;	/* Invalidate file object on error */
 
-	LEAVE_FF(fs, res);
+#if FF_FS_REENTRANT
+	unlock_fs(fs, res);
+#endif
+
+#if FF_USE_FASTSEEK
+	#pragma message "FATFS FAST_SEEK hack engaged :)"
+	if (res == FR_OK) {
+		// Allocate buffer for FAST_SEEK
+		fp->cltbl = malloc(sizeof(DWORD) * FF_FASTSEEK_SIZE);
+		if (fp->cltbl != NULL) {
+			mem_set(fp->cltbl, 0, sizeof(DWORD) * FF_FASTSEEK_SIZE);
+			fp->cltbl[0] = FF_FASTSEEK_SIZE;
+			// Create CLMT for FAST_SEEK (move to end!)
+			FRESULT ret_ = f_lseek(fp, CREATE_LINKMAP);
+			log_v("FAST_SEEK: %d", ret_);
+		}
+	}
+#endif
+
+	return res;
 }
 
 
@@ -4054,6 +4073,10 @@ FRESULT f_close (
 #endif
 		}
 	}
+#if FF_USE_FASTSEEK
+	free(fp->cltbl);
+	fp->cltbl = NULL;
+#endif
 	return res;
 }
 
