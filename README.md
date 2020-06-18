@@ -119,3 +119,15 @@ controls the display brightness according to current time. Brightness is specifi
 
 ### `timezone`
 is the local timezone in [TZ format](https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html). Look it up [here](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv).
+
+# FASTSEEK hack
+When streaming animations from a file, some frames are displayed multiple times. Hence we need to be able to seek quickly back and forward in the file. By default, seeking backwards on a file on SD card takes __hundreds of ms__ when using ChanS FAT32 library.
+
+This can be fixed by enabling the `FF_USE_FASTSEEK` option. However when using Arduino, it uses pre-compiled esp-idf libraries and there is no way to access this #define. The .a files are actually checked into git and need to be trusted blindly. What an ideal place to put a wifi back-door ...
+
+Anyhow, we rely on the linker to override the ff.c and ffconf.h files with the patched versions here, which have FASTSEEK intrinsically always enabled.
+
+This works because the linker looks into the files in src/ first and only if it cannot find a symbol there, it will look at the libraries.
+
+This should work as long as the version of fatfs does not change upstream in esp-idf.
+
