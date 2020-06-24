@@ -45,6 +45,8 @@ Format as FAT32, then copy the following files:
 ## Assets
 Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/Espirgbani/releases/tag/v1.0). Copy these to the FAT32 formated SD card.
 
+The bitmap fonts have been auto-generated from existing true-type fonts by a [bash](https://github.com/yetifrisstlama/Espirgbani/blob/master/dev/generateFonts.sh) script and [bmfont](http://www.angelcode.com/products/bmfont/).
+
 ## `settings.json`
 If this file does not exist or cannot be parsed, a new file with default settings will be created.
 
