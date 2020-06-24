@@ -43,7 +43,7 @@ Format as FAT32, then copy the following files:
   * `./fnt/{d}_0.bmp`
 
 ## Assets
-Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/Espirgbani/releases/tag/v1.0). Copy these to the FAT32 formated SD card.
+Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/espirgbani_pio/releases). Copy these to the FAT32 formated SD card.
 
 The bitmap fonts have been auto-generated from existing true-type fonts by a [bash](https://github.com/yetifrisstlama/Espirgbani/blob/master/dev/generateFonts.sh) script and [bmfont](http://www.angelcode.com/products/bmfont/).
 
