@@ -1,4 +1,4 @@
-# The ESP32 Pinball RGB Animation (espirgbani) clock
+# The ESP32 Pinball RGB Animation clock
 
 The [old firmware](https://github.com/yetifrisstlama/Espirgbani) was based on obsolete libraries and became difficult to maintain. This is a re-write based on platform.io and the Arduino framework.
 
