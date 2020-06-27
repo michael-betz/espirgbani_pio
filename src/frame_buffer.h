@@ -65,6 +65,9 @@ void set_shade_ht(uint16_t hue, unsigned *shades);
 // uses setPixelOver to mix colors, not the fastes but looks fabulous!
 void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 
+// using float, from https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
+void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1, float y1);
+
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);
 

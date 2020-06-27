@@ -139,27 +139,29 @@ static void drawDoomFlameFrame(unsigned frm) {
 }
 
 static void drawLasers(unsigned frm) {
-	static float alpha=0.0, ri=0;
+	// aaLine: ~1 ms   aaLine2: ~4 ms
+	static float alpha=0.0, ri=10;
 	static unsigned n_lines=8, x=64, y=16;
-	static bool do_clear = true;
+	static bool do_clear=true;
 	unsigned shades[N_SHADES];
 
-	if (frm % 3000 == 0) {
+	if (frm % 2000 == 0) {
 		n_lines = RAND_AB(3, 32);  // number of lines
 		x = RAND_AB(4, DISPLAY_WIDTH - 5);  // center point
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
-		// ri = RAND_AB(0, 100) / 10.0;  // inner radius
+		ri = RAND_AB(0, 200) / 10.0;  // inner radius
 		do_clear = RAND_AB(0, 1);
 	}
 
 	if (do_clear)
 		setAll(0, 0xFF000000);
+
 	for (unsigned i=0; i<n_lines; i++) {
 		float dx = cos(alpha + M_PI * 2 * i / n_lines);
 		float dy = sin(alpha + M_PI * 2 * i / n_lines);
 
 		set_shade_ht(HSV_HUE_MAX * i / n_lines, shades);
-		aaLine(
+		aaLine2(
 			0,
 			shades,
 			x + dx * ri,
@@ -169,7 +171,7 @@ static void drawLasers(unsigned frm) {
 		);
 	}
 
-	alpha += 0.003;
+	alpha += 0.002;
 }
 
 void aniBackgroundTask(void *pvParameters) {
@@ -186,6 +188,8 @@ void aniBackgroundTask(void *pvParameters) {
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while(1) {
+		uint64_t t = esp_timer_get_time();
+
 		if ((shader_delay > 0) && (frm % shader_delay == 0)) {
 			aniMode = RAND_AB(0, 8);  // choose black screen more often
 			if(aniMode == 0 || aniMode > 5)
@@ -218,6 +222,10 @@ void aniBackgroundTask(void *pvParameters) {
 				drawLasers(frm);
 				break;
 		}
+
+		unsigned dt = esp_timer_get_time() - t;
+		if (aniMode >= 1 && aniMode <= 5 && frm % 1000 == 0)
+			log_i("shader: %d, dt = %d us", aniMode, dt);
 
 		// maximum global frame-rate: 1 / f_del kHz
 		vTaskDelayUntil(&xLastWakeTime, _f_del);
