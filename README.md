@@ -1,4 +1,4 @@
-# The ESP32 Pinball RGB Animation (espirgbani) clock
+# The ESP32 Pinball RGB Animation clock
 
 The [old firmware](https://github.com/yetifrisstlama/Espirgbani) was based on obsolete libraries and became difficult to maintain. This is a re-write based on platform.io and the Arduino framework.
 
@@ -43,7 +43,9 @@ Format as FAT32, then copy the following files:
   * `./fnt/{d}_0.bmp`
 
 ## Assets
-Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/Espirgbani/releases/tag/v1.0). Copy these to the FAT32 formated SD card.
+Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/espirgbani_pio/releases). Copy these to the FAT32 formated SD card.
+
+The bitmap fonts have been auto-generated from existing true-type fonts by a [bash script](https://github.com/yetifrisstlama/Espirgbani/blob/master/dev/generateFonts.sh) and [bmfont](http://www.angelcode.com/products/bmfont/).
 
 ## `settings.json`
 If this file does not exist or cannot be parsed, a new file with default settings will be created.
