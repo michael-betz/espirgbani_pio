@@ -141,21 +141,24 @@ static void drawDoomFlameFrame(unsigned frm) {
 static void drawLasers(unsigned frm) {
 	static float alpha=0.0, ri=0;
 	static unsigned n_lines=8, x=64, y=16;
+	static bool do_clear = true;
 	unsigned shades[N_SHADES];
 
-	if (frm % 2000 == 0) {
+	if (frm % 3000 == 0) {
 		n_lines = RAND_AB(3, 32);  // number of lines
 		x = RAND_AB(4, DISPLAY_WIDTH - 5);  // center point
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
 		// ri = RAND_AB(0, 100) / 10.0;  // inner radius
+		do_clear = RAND_AB(0, 1);
 	}
 
-	setAll(0, 0xFF000000);
+	if (do_clear)
+		setAll(0, 0xFF000000);
 	for (unsigned i=0; i<n_lines; i++) {
 		float dx = cos(alpha + M_PI * 2 * i / n_lines);
 		float dy = sin(alpha + M_PI * 2 * i / n_lines);
 
-		set_shade_h(HSV_HUE_MAX * i / n_lines, shades);
+		set_shade_ht(HSV_HUE_MAX * i / n_lines, shades);
 		aaLine(
 			0,
 			shades,

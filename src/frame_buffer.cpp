@@ -248,6 +248,17 @@ void set_shade_h(uint16_t hue, unsigned *shades)
 	}
 }
 
+// get transparent shades of a specific hue (0 .. HSV_HUE_MAX)
+void set_shade_ht(uint16_t hue, unsigned *shades)
+{
+	uint8_t r, g, b;
+	fast_hsv2rgb_32bit(hue, HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
+	unsigned temp = SRGBA(r, g, b, 0xFF);
+	for (unsigned i=0; i<N_SHADES; i++) {
+		shades[i] = scale32(i * 17, temp);
+	}
+}
+
 // pre-calculate a palette of N_SHADES shades fading up from opaque black
 void set_shade_opaque(unsigned color, unsigned *shades)
 {
@@ -314,7 +325,7 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 
 	// Draw the initial pixel, which is always exactly intersected by
 	// the line and so needs no weighting
-	setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
+	setPixelOver(layer, X0, Y0, shades[N_SHADES - 1]);
 
 	if ((DeltaX = X1 - X0) >= 0) {
 		XDir = 1;
@@ -330,7 +341,7 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 		// Horizontal line
 		while (DeltaX-- != 0) {
 			X0 += XDir;
-			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
+			setPixelOver(layer, X0, Y0, shades[N_SHADES - 1]);
 		}
 		return;
 	}
@@ -338,7 +349,7 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 		// Vertical line
 		do {
 			Y0++;
-			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
+			setPixelOver(layer, X0, Y0, shades[N_SHADES - 1]);
 		} while (--DeltaY != 0);
 		return;
 	}
@@ -347,7 +358,7 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 		do {
 			X0 += XDir;
 			Y0++;
-			setPixel(layer, X0, Y0, shades[N_SHADES - 1]);
+			setPixelOver(layer, X0, Y0, shades[N_SHADES - 1]);
 		} while (--DeltaY != 0);
 		return;
 	}
@@ -374,12 +385,12 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 			// the intensity weighting for this pixel, and the complement of
 			// the weighting for the paired pixel
 			Weighting = ErrorAcc >> 28;
-			setPixel(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
-			setPixel(layer, X0 + XDir, Y0, shades[Weighting]);
+			setPixelOver(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
+			setPixelOver(layer, X0 + XDir, Y0, shades[Weighting]);
 		}
 		// Draw the final pixel, which is always exactly intersected by the
 		// line and so needs no weighting
-		setPixel(layer, X1, Y1, shades[N_SHADES - 1]);
+		setPixelOver(layer, X1, Y1, shades[N_SHADES - 1]);
 		return;
 	}
 
@@ -401,10 +412,10 @@ void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1)
 		// weighting for the paired pixel
 		Weighting = ErrorAcc >> 28;
 
-		setPixel(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
-		setPixel(layer, X0, Y0 + 1, shades[Weighting]);
+		setPixelOver(layer, X0, Y0, shades[Weighting ^ (N_SHADES - 1)]);
+		setPixelOver(layer, X0, Y0 + 1, shades[Weighting]);
 	}
 	// Draw the final pixel, which is always exactly intersected by the
 	// line and so needs no weighting
-	setPixel(layer, X1, Y1, shades[N_SHADES - 1]);
+	setPixelOver(layer, X1, Y1, shades[N_SHADES - 1]);
 }

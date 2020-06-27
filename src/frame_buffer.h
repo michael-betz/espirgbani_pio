@@ -58,7 +58,11 @@ void set_shade_transparent(unsigned color, unsigned *shades);
 // get opaque shades of a specific hue (0 .. HSV_HUE_MAX). Gamma corrected!
 void set_shade_h(uint16_t hue, unsigned *shades);
 
-// Wu antialiased line drawer, use set_shade_* to set color
+// get transparent shades of a specific hue (0 .. HSV_HUE_MAX)
+void set_shade_ht(uint16_t hue, unsigned *shades);
+
+// Xialoin Wu antialiased line drawer, use set_shade_* to set color
+// uses setPixelOver to mix colors, not the fastes but looks fabulous!
 void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
