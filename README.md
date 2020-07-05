@@ -6,7 +6,7 @@ The [old firmware](https://github.com/yetifrisstlama/Espirgbani) was based on ob
 
 [Video of how it looks like](https://www.youtube.com/watch?v=0dwTC5q5t4M)
 
-[Older writeup](http://yetifrisstlama.blogspot.com/2018/02/the-esp32-pinball-rgb-matrix-animation.html).
+[Older writeup](http://yetifrisstlama.blogspot.com/2018/02/the-esp32-pinball-rgb-matrix-animation.html)
 
 # Building
 Needs [platform.io](https://platformio.org/) installed. 
