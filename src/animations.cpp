@@ -247,6 +247,7 @@ static void stats(unsigned cur_fnt)
 void aniPinballTask(void *pvParameters)
 {
 	unsigned cycles = 0;
+	static int sec_ = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
 	// Pinball animation stuff
@@ -313,14 +314,15 @@ void aniPinballTask(void *pvParameters)
 		time(&now);
 		localtime_r(&now, &timeinfo);
 
-		// Redraw the clock
-		if (doRedrawFont || timeinfo.tm_sec == 0) {
+		// Redraw the clock when tm_sec rolls over
+		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
 			strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
 			// randomly colored outline, black filling
 			drawStrCentered(strftime_buf, 1, color, 0xFF000000);
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
 		}
+		sec_ = timeinfo.tm_sec;
 
 		ArduinoOTA.handle();
 
