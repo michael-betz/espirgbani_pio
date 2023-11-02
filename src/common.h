@@ -11,8 +11,12 @@
 // unfortunately the SD card leaves MISO = GPIO12 IDLE high.
 // ... the ESP will get stuck in a boot loop after a hard reset when the
 // SD card is present.
-// #define GPIO_SD_MISO 12
-#define GPIO_SD_MISO GPIO_NUM_35
+#define GPIO_SD_MISO 12  // REV1 of the PCB
+
+// To fix boot issue, add jumper wire from GPIO 12 to GPIO 35
+// then comment above define and un-comment the below.
+
+// #define GPIO_SD_MISO GPIO_NUM_35
 #define GPIO_SD_CS   GPIO_NUM_14
 #define GPIO_SD_MOSI GPIO_NUM_32
 #define GPIO_SD_CLK  GPIO_NUM_33

@@ -9,7 +9,7 @@ The [old firmware](https://github.com/yetifrisstlama/Espirgbani) was based on ob
 [Older writeup](http://yetifrisstlama.blogspot.com/2018/02/the-esp32-pinball-rgb-matrix-animation.html)
 
 # Building
-Needs [platform.io](https://platformio.org/) installed. 
+Needs [platform.io](https://platformio.org/) installed.
 
 WIFI credentials can optionally be set in `platform.ini`. At run-time these will be overwritten by the `wifi_ssid` and `wifi_pw` entries in `settings.json`, if they exist.
 
@@ -18,6 +18,9 @@ To install the toolchain and build the project:
 ```bash
 $ pio run
 ```
+
+__Very important__
+remove the SD card before the next steps, else flashing the ESP32 might fail
 
 Connect a FTDI 3.3V USB to serial cable, hold the flash button and upload the SPIFFS file system:
 
@@ -107,7 +110,7 @@ Not all LED panels are the same. Here the timing parameters of the I2S panel dri
   * `lock_frame_buffer`: when true, prevent tearing artifacts at the cost of choppier animation playback
 
 ### `delays` section
-controls delays between random animations, color and font changes. 
+controls delays between random animations, color and font changes.
 They are all specified in [seconds]. The defaults are:
 
   * Randomize clock font every 3600 s (60 min)
