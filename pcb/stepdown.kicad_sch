@@ -3228,15 +3228,15 @@
 				)
 			)
 		)
-		(property "Value" "YNR6045-470M"
-			(at 179.07 53.848 90)
+		(property "Value" "3u3"
+			(at 177.546 54.102 90)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:L_Taiyo-Yuden_NR-60xx"
+		(property "Footprint" "Inductor_SMD:L_Sunlord_MWSA0503S"
 			(at 177.546 64.77 90)
 			(effects
 				(font
@@ -3245,19 +3245,29 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" ""
+		(property "Datasheet" "https://www.lcsc.com/datasheet/lcsc_datasheet_2409271703_Sunltech-Tech-SLO0530H3R3MTT_C325963.pdf"
 			(at 179.07 59.69 0)
 			(effects
 				(font
 					(size 1.524 1.524)
 				)
+				(hide yes)
 			)
 		)
-		(property "Description" "10 uH, 2 A"
+		(property "Description" "3.3 uH, 5 A"
 			(at 179.07 59.69 0)
 			(effects
 				(font
 					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "JLCPN" "C325963"
+			(at 179.07 59.69 90)
+			(effects
+				(font
+					(size 1.524 1.524)
 				)
 				(hide yes)
 			)
