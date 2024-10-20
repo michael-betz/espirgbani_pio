@@ -3228,7 +3228,7 @@
 				)
 			)
 		)
-		(property "Value" "3u3"
+		(property "Value" "SMDRH104R-4R7NT"
 			(at 177.546 54.102 90)
 			(effects
 				(font
@@ -3236,7 +3236,7 @@
 				)
 			)
 		)
-		(property "Footprint" "Inductor_SMD:L_Sunlord_MWSA0503S"
+		(property "Footprint" "espirgbani:SMDRH104R-4R7NT"
 			(at 177.546 64.77 90)
 			(effects
 				(font
@@ -3254,7 +3254,7 @@
 				(hide yes)
 			)
 		)
-		(property "Description" "3.3 uH, 5 A"
+		(property "Description" " 5.4A 4.7uH Shielded inductor ±20% 7A SMD,10.4x10.3mm Power Inductors ROHS"
 			(at 179.07 59.69 0)
 			(effects
 				(font
@@ -3263,7 +3263,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPN" "C325963"
+		(property "JLCPN" "C44850"
 			(at 179.07 59.69 90)
 			(effects
 				(font
