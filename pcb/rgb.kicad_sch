@@ -4959,10 +4959,6 @@
 		(uuid "9fa02719-0fcf-4fcd-8f2e-6cc74600ba4d")
 	)
 	(no_connect
-		(at 247.65 138.43)
-		(uuid "aef2d211-b324-4797-ab7a-34b52c872a6c")
-	)
-	(no_connect
 		(at 52.07 170.18)
 		(uuid "bd1e1ac3-276f-4718-a88a-065d64dbb234")
 	)
@@ -5489,6 +5485,16 @@
 			(type default)
 		)
 		(uuid "6e3eb70c-fa29-44d2-b355-0208545315ae")
+	)
+	(wire
+		(pts
+			(xy 247.65 138.43) (xy 252.73 138.43)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "71cbe9a8-71ce-4718-93e0-af337878a011")
 	)
 	(wire
 		(pts
@@ -6501,6 +6507,17 @@
 		)
 		(uuid "1a75e56e-ef33-466e-abd0-7ab4ba244ecb")
 	)
+	(label "E"
+		(at 266.7 39.37 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right bottom)
+		)
+		(uuid "1fa0c7b3-39d7-4d3f-9244-78f90f249d53")
+	)
 	(label "C"
 		(at 242.57 44.45 0)
 		(fields_autoplaced yes)
@@ -6720,6 +6737,17 @@
 			(justify right bottom)
 		)
 		(uuid "8191a033-d849-45bf-bfb2-da63d036f6ba")
+	)
+	(label "E"
+		(at 252.73 138.43 180)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right bottom)
+		)
+		(uuid "82115c7c-debb-418c-a44f-397cd7b239f7")
 	)
 	(label "esp_rx"
 		(at 83.82 152.4 180)
@@ -7180,72 +7208,6 @@
 			(project "rgb"
 				(path "/e2cadc20-e108-4c6f-b279-00d9d28fa9da"
 					(reference "#PWR015")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:GND")
-		(at 266.7 39.37 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "00000000-0000-0000-0000-00005a20273f")
-		(property "Reference" "#PWR016"
-			(at 273.05 39.37 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Value" "GND"
-			(at 269.9512 39.243 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Footprint" ""
-			(at 266.7 39.37 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" ""
-			(at 266.7 39.37 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" ""
-			(at 266.7 39.37 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "e363a32b-f170-4648-b3c3-7ec17a3dd9ed")
-		)
-		(instances
-			(project "rgb"
-				(path "/e2cadc20-e108-4c6f-b279-00d9d28fa9da"
-					(reference "#PWR016")
 					(unit 1)
 				)
 			)
