@@ -7055,7 +7055,7 @@
 				)
 			)
 		)
-		(property "Value" "Conn_02x08_Odd_Even"
+		(property "Value" "2.54-2*8P"
 			(at 255.27 52.07 0)
 			(effects
 				(font
@@ -7429,7 +7429,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "WIFI"
+		(property "Value" "EVQQ2"
 			(at 261.62 149.86 0)
 			(effects
 				(font
@@ -8754,9 +8754,9 @@
 		(mirror y)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "47319160-eeec-49da-bc96-85589d5a0bea")
 		(property "Reference" "J7"
 			(at 142.875 85.09 0)
@@ -9841,9 +9841,9 @@
 		(mirror y)
 		(unit 1)
 		(exclude_from_sim no)
-		(in_bom yes)
+		(in_bom no)
 		(on_board yes)
-		(dnp no)
+		(dnp yes)
 		(uuid "8a324177-aae3-4f31-ad83-04f1bac3f2e0")
 		(property "Reference" "J3"
 			(at 142.875 106.68 0)
@@ -11316,7 +11316,7 @@
 				)
 			)
 		)
-		(property "Value" "57k"
+		(property "Value" "56k"
 			(at 61.976 100.584 90)
 			(effects
 				(font
