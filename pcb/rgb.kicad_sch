@@ -4923,6 +4923,10 @@
 		(uuid "1ad0137c-4de2-4fde-a133-5d11b52cd3ff")
 	)
 	(no_connect
+		(at 247.65 146.05)
+		(uuid "31fad7c9-1594-40d6-b356-e39bae27537f")
+	)
+	(no_connect
 		(at 217.17 95.25)
 		(uuid "323adc8a-63a6-4d32-b1a0-2c0d6cfa33a8")
 	)
@@ -4953,6 +4957,10 @@
 	(no_connect
 		(at 170.18 53.34)
 		(uuid "9fa02719-0fcf-4fcd-8f2e-6cc74600ba4d")
+	)
+	(no_connect
+		(at 247.65 138.43)
+		(uuid "aef2d211-b324-4797-ab7a-34b52c872a6c")
 	)
 	(no_connect
 		(at 52.07 170.18)
@@ -5704,16 +5712,6 @@
 	)
 	(wire
 		(pts
-			(xy 247.65 138.43) (xy 259.08 138.43)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "a1fa1709-5d5e-4686-81f4-66355d07e793")
-	)
-	(wire
-		(pts
 			(xy 203.2 92.71) (xy 210.82 92.71)
 		)
 		(stroke
@@ -6074,16 +6072,6 @@
 	)
 	(wire
 		(pts
-			(xy 259.08 146.05) (xy 247.65 146.05)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "d7246380-6a4e-4ea7-946e-93b7bf096665")
-	)
-	(wire
-		(pts
 			(xy 138.43 95.25) (xy 138.43 97.79)
 		)
 		(stroke
@@ -6230,15 +6218,27 @@
 		)
 		(uuid e7da0014-df85-4513-ab2d-ec22692cb533)
 	)
-	(text "IO36"
+	(text "IO36 IN only"
 		(exclude_from_sim no)
-		(at 227.584 90.678 0)
+		(at 219.71 90.932 0)
 		(effects
 			(font
 				(size 1.524 1.524)
 			)
+			(justify left)
 		)
 		(uuid "01345a8e-7d9d-4ce6-a1d3-72a98ef8461b")
+	)
+	(text "IN only"
+		(exclude_from_sim no)
+		(at 240.03 145.796 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "09e3546c-f426-45aa-97b9-b267225e7382")
 	)
 	(text "TODO for REV 2:\n* optional 5v level translation\n* corrected pinout for the IDC connector\n* enough room for the shroud of the IDC connector\n* move SD MISO pin to GPIO 35 (boot issue)\n* use a more common v-reg / SD card socket"
 		(exclude_from_sim no)
@@ -6250,6 +6250,17 @@
 			(justify left bottom)
 		)
 		(uuid "285d0588-08ef-4cf6-92c3-fd0b340d7d55")
+	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 108.204 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "2cf194a2-779e-4d15-b81e-24485c0db781")
 	)
 	(text "USB Power Delivery\nwith trigger IC"
 		(exclude_from_sim no)
@@ -6277,6 +6288,17 @@
 		)
 		(uuid "44bf5e7e-6c4d-49f4-9de6-77642ccbcee1")
 	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 92.71 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "635b8bb8-6024-43c4-a4f2-f4ae427a69fd")
+	)
 	(text "CFG1 values\n6k8	 9 V\n24k	12 V\n56k	15 V\nNC	20 V"
 		(exclude_from_sim no)
 		(at 68.326 120.142 0)
@@ -6288,13 +6310,14 @@
 		)
 		(uuid "6783b45f-edba-4d18-aacf-d63018025f24")
 	)
-	(text "IO39"
+	(text "IO39 IN only"
 		(exclude_from_sim no)
-		(at 228.092 98.044 0)
+		(at 219.964 97.536 0)
 		(effects
 			(font
 				(size 1.524 1.524)
 			)
+			(justify left)
 		)
 		(uuid "75551f59-a685-41d3-893e-da4a4734bf68")
 	)
@@ -6322,6 +6345,17 @@
 		)
 		(uuid "a85af14d-7461-4c1f-b91c-ce45c6211253")
 	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 98.044 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "ab5d8d19-949c-4401-aa2c-37cd8bcf33f9")
+	)
 	(text "Wifi connect"
 		(exclude_from_sim no)
 		(at 272.542 151.638 90)
@@ -6345,6 +6379,61 @@
 			(justify left)
 		)
 		(uuid "c4320721-d2cb-4452-8839-9d19c095ab5a")
+	)
+	(text "IN only"
+		(exclude_from_sim no)
+		(at 240.03 143.51 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "c4c7ef96-98c9-4f13-8d1c-e1699f7816ec")
+	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 100.584 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "d7e5e739-ce16-4d69-a6aa-5f0554c9a63c")
+	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 103.124 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "e9815639-ff6d-4e98-972e-9bce87c25a87")
+	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.522 110.744 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "f2341cfc-d35a-4f7f-83b5-c133dd8965a9")
+	)
+	(text "S"
+		(exclude_from_sim no)
+		(at 239.776 87.884 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right)
+		)
+		(uuid "fdc408e6-e549-4aeb-a7f4-b76cf00be2d1")
 	)
 	(label "B"
 		(at 266.7 41.91 180)
@@ -6842,7 +6931,7 @@
 		(uuid "d4b76a50-8cff-4772-87ca-714406a50893")
 	)
 	(label "pd_bad"
-		(at 276.86 119.38 180)
+		(at 259.08 140.97 180)
 		(fields_autoplaced yes)
 		(effects
 			(font

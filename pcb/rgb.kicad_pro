@@ -493,7 +493,7 @@
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",
-      "svg": "",
+      "svg": "pdf/",
       "vrml": ""
     },
     "page_layout_descr_file": ""
