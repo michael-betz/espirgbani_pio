@@ -6537,6 +6537,16 @@
 		)
 		(uuid "ab5d8d19-949c-4401-aa2c-37cd8bcf33f9")
 	)
+	(text "3.568 V"
+		(exclude_from_sim no)
+		(at 133.35 144.018 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+		)
+		(uuid "ab73f049-8ba4-4f95-9c9e-16399c003ae9")
+	)
 	(text "Wifi connect"
 		(exclude_from_sim no)
 		(at 272.542 151.638 90)
@@ -9538,7 +9548,7 @@
 				)
 			)
 		)
-		(property "Value" "22k"
+		(property "Value" "19k8"
 			(at 137.922 166.624 90)
 			(effects
 				(font
