@@ -1,7 +1,4 @@
 #include <string.h>
-#include "Arduino.h"
-#include "ArduinoOTA.h"
-#include "WiFi.h"
 #include "fast_hsv2rgb.h"
 #include "frame_buffer.h"
 #include "json_settings.h"

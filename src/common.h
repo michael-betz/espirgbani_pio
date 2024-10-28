@@ -46,13 +46,13 @@
 #define DISPLAY_WIDTH  128
 #define DISPLAY_HEIGHT  32
 
-#define ANIMATION_FILE "/sd/runDmd.img"
+#define ANIMATION_FILE "/sd/animations.img"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // Random number within the range [a,b]
-int RAND_AB(int a, int b);
+#define RAND_AB(a, b) (random() % (b + 1 - a) + a)
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
