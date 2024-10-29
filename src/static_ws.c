@@ -15,7 +15,7 @@ static const char *T = "STATIC_WS";
 static httpd_handle_t server = NULL;
 
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN)
-#define BASE_PATH "/spiffs"
+#define BASE_PATH "/"
 #define SCRATCH_BUFSIZE  4096  // Dynamically allocated
 
 #define IS_FILE_EXT(filename, ext) \
@@ -72,7 +72,7 @@ static const char* get_path_from_uri(char *dest, const char *uri, size_t destsiz
 static esp_err_t index_html_get_handler(httpd_req_t *req)
 {
 	httpd_resp_set_status(req, "307 Temporary Redirect");
-	httpd_resp_set_hdr(req, "Location", "/index.htm");
+	httpd_resp_set_hdr(req, "Location", "spiffs/index.htm");
 	httpd_resp_send(req, NULL, 0);  // Response body can be empty
 	return ESP_OK;
 }
@@ -106,8 +106,15 @@ static esp_err_t upload_post_handler(httpd_req_t *req)
     /* Filename cannot have a trailing '/' */
     if (filename[strlen(filename) - 1] == '/') {
         ESP_LOGE(T, "Invalid filename : %s", filename);
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Invalid filename");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid filename");
         return ESP_FAIL;
+    }
+
+    // Can only upload to SD card
+    if(strncmp(filepath, "/sd/", 4) != 0) {
+        ESP_LOGE(T, "Filename must start with /sd/");
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid filename");
+    	return ESP_FAIL;
     }
 
     /* File cannot be larger than a limit */
