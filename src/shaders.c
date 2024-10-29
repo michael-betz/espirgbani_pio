@@ -10,8 +10,9 @@
 #include "frame_buffer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
+#include "esp_timer.h"
 #include "palette.h"
-#include "esp_comms.h"
 #include "shaders.h"
 
 static const char *T = "SHADERS";
@@ -33,7 +34,7 @@ static void drawXorFrame(unsigned frm) {
 }
 
 static void drawBendyFrame(unsigned frm) {
-	static int i=2, j=3, k=((i<<5)-1), l=((j<<5)-1);
+	static int i=2, j=3, k=((2<<5)-1), l=((3<<5)-1);
 	int temp1, temp2, f=frm%3000;
 	if(f == 0) {
 		i = RAND_AB(1,8);

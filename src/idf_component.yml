@@ -1,0 +1,4 @@
+dependencies:
+  idf: ">=5.0"
+  espressif/mdns: ">=1.2.0"
+  espressif/qrcode: ">=0.1.0"

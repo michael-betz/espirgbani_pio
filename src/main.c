@@ -1,14 +1,16 @@
 // demonstrates the use of esp-comms
 #include <stdio.h>
-#include "SPI.h"
-#include "SD.h"
+#include <string.h>
+#include <errno.h>
 #include "rom/rtc.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-#include "esp_comms.h"
-#include "web_console.h"
+#include "esp_log.h"
+#include "esp_spiffs.h"
+
 #include "json_settings.h"
+#include "wifi.h"
 
 #include "common.h"
 #include "rgb_led_panel.h"
@@ -16,6 +18,8 @@
 #include "animations.h"
 #include "shaders.h"
 #include "font.h"
+
+static const char *T = "MAIN";
 
 TaskHandle_t t_backg = NULL;
 TaskHandle_t t_pinb = NULL;
@@ -26,11 +30,11 @@ void app_main(void)
 	// init stuff
 	//------------------------------
 	// forward serial characters to web-console
-	web_console_init();
+	// web_console_init();
 
 	// report initial status
 	ESP_LOGW(T,
-		"reset reason: %d, heap: %d, min_heap: %d",
+		"reset reason: %d, heap: %ld, min_heap: %ld",
 		rtc_get_reset_reason(0),
 		esp_get_free_heap_size(),
 		esp_get_minimum_free_heap_size()

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdlib.h>
+#include "esp_log.h"
 #include "common.h"
 #include "palette.h"
 

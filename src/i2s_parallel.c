@@ -24,9 +24,12 @@
 
 #include "soc/i2s_struct.h"
 #include "soc/i2s_reg.h"
+#include "soc/gpio_periph.h"
+#include "soc/io_mux_reg.h"
+
 #include "driver/periph_ctrl.h"
 #include "driver/gpio.h"
-#include "soc/io_mux_reg.h"
+
 #include "rom/lldesc.h"
 #include "esp_heap_caps.h"
 
@@ -76,10 +79,11 @@ static void fill_dma_desc(volatile lldesc_t *dmadesc, i2s_parallel_buffer_desc_t
 }
 
 static void gpio_setup_out(gpio_num_t gpio, int sig, bool isInverted) {
-	if (gpio==-1) return;
+	if (gpio==-1)
+		return;
 	PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
 	gpio_set_direction(gpio, GPIO_MODE_OUTPUT);
-	gpio_matrix_out(gpio, sig, isInverted, false);
+	gpio_iomux_out(gpio, sig, isInverted);
 }
 
 
@@ -203,20 +207,3 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 	dev->out_link.start=1;
 	dev->conf.tx_start=1;
 }
-
-
-//Flip to a buffer: 0 for bufa, 1 for bufb
-void i2s_parallel_flip_to_buffer(i2s_dev_t *dev, int bufid) {
-	// int no=i2snum(dev);
-	// if (i2s_state[no]==NULL) return;
-	// lldesc_t *active_dma_chain;
-	// if (bufid==0) {
-	// 	active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_a[0];
-	// } else {
-	// 	active_dma_chain=(lldesc_t*)&i2s_state[no]->dmadesc_b[0];
-	// }
-
-	// i2s_state[no]->dmadesc_a[i2s_state[no]->desccount_a-1].qe.stqe_next=active_dma_chain;
-	// i2s_state[no]->dmadesc_b[i2s_state[no]->desccount_b-1].qe.stqe_next=active_dma_chain;
-}
-

@@ -22,3 +22,4 @@ fp-info-cache
 .ipynb_checkpoints
 __pycache__/
 grb/
+sdkconfig.espirgbani
