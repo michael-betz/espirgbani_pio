@@ -1,4 +1,5 @@
-// demonstrates the use of esp-comms
+// The ESP32 Pinball Animation Clock
+
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
@@ -8,6 +9,8 @@
 
 #include "esp_log.h"
 #include "esp_spiffs.h"
+#include "esp_vfs_fat.h"
+#include "sdmmc_cmd.h"
 
 #include "json_settings.h"
 #include "wifi.h"
@@ -23,6 +26,40 @@ static const char *T = "MAIN";
 
 TaskHandle_t t_backg = NULL;
 TaskHandle_t t_pinb = NULL;
+
+
+void mount_sd_card(const char *path)
+{
+	// TODO if this fails, it really doesn't make sense to continue.
+    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+    host.max_freq_khz = 20000;  // [kHz]
+
+    spi_bus_config_t bus_cfg = {
+        .mosi_io_num = GPIO_SD_MOSI,
+        .miso_io_num = GPIO_SD_MISO,
+        .sclk_io_num = GPIO_SD_CLK,
+        .quadwp_io_num = -1,
+        .quadhd_io_num = -1,
+        .max_transfer_sz = 4000,
+    };
+    ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA));
+
+    sdmmc_card_t *card = NULL;
+
+    sdspi_device_config_t device_cfg = SDSPI_DEVICE_CONFIG_DEFAULT();
+    device_cfg.gpio_cs = GPIO_SD_CS;
+    device_cfg.host_id = host.slot;
+
+    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
+        .format_if_mount_failed = false,
+        .max_files = 5,
+        .allocation_unit_size = 32 * 1024
+    };
+    ESP_ERROR_CHECK(esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg, &mount_config, &card));
+
+    // Card has been initialized, print its properties
+    sdmmc_card_print_info(stdout, card);
+}
 
 void app_main(void)
 {
@@ -40,7 +77,7 @@ void app_main(void)
 		esp_get_minimum_free_heap_size()
 	);
 
-	// Mount spiffs for *.html and defaults.json
+	// Mount spiffs for *.html and default_settings.json
 	esp_vfs_spiffs_conf_t conf = {
 		.base_path = "/spiffs",
 		.partition_label = NULL,
@@ -50,11 +87,10 @@ void app_main(void)
 	esp_vfs_spiffs_register(&conf);
 
 	// Mount SD for animations, fonts and for settings.json
-	// SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
-	// bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 3);
-	// // Load settings.json from SD card, try to create file if it doesn't exist
-	// if (ret)
-	// 	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
+	mount_sd_card("/sd");
+
+	// Load settings.json from SD card, try to create file if it doesn't exist
+	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
 
 	// init I2S driven rgb - panel
 	init_rgb();
