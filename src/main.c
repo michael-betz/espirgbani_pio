@@ -1,7 +1,5 @@
 // demonstrates the use of esp-comms
 #include <stdio.h>
-#include "Arduino.h"
-#include "SPIFFS.h"
 #include "SPI.h"
 #include "SD.h"
 #include "rom/rtc.h"
@@ -22,38 +20,7 @@
 TaskHandle_t t_backg = NULL;
 TaskHandle_t t_pinb = NULL;
 
-// Web socket RX data received callback
-static void on_ws_data(
-	AsyncWebSocket * server,
-	AsyncWebSocketClient * client,
-	AwsEventType type,
-	void * arg,
-	uint8_t *data,
-	size_t len
-) {
-	switch (data[0]) {
-		case 'a':
-			wsDumpRtc(client);  // read rolling log buffer in RTC memory
-			break;
-
-		case 'b':
-			settings_ws_handler(client, data, len);  // read / write settings.json
-			break;
-
-		case 'r':
-			ESP.restart();
-			break;
-
-		case 'h':
-			client->printf(
-				"h{\"heap\": %d, \"min_heap\": %d}",
-				esp_get_free_heap_size(), esp_get_minimum_free_heap_size()
-			);
-			break;
-	}
-}
-
-void setup()
+void app_main(void)
 {
 	//------------------------------
 	// init stuff
@@ -62,7 +29,7 @@ void setup()
 	web_console_init();
 
 	// report initial status
-	log_w(
+	ESP_LOGW(T,
 		"reset reason: %d, heap: %d, min_heap: %d",
 		rtc_get_reset_reason(0),
 		esp_get_free_heap_size(),
@@ -70,26 +37,28 @@ void setup()
 	);
 
 	// Mount spiffs for *.html and defaults.json
-	SPIFFS.begin(true, "/spiffs", 4);
+	esp_vfs_spiffs_conf_t conf = {
+		.base_path = "/spiffs",
+		.partition_label = NULL,
+		.max_files = 4,
+		.format_if_mount_failed = true
+	};
+	esp_vfs_spiffs_register(&conf);
 
 	// Mount SD for animations, fonts and for settings.json
-	SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
-	bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 3);
-	// Load settings.json from SD card, try to create file if it doesn't exist
-	if (ret)
-		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
+	// SPI.begin(GPIO_SD_CLK, GPIO_SD_MISO, GPIO_SD_MOSI);
+	// bool ret = SD.begin(GPIO_SD_CS, SPI, 20 * 1000 * 1000, "/sd", 3);
+	// // Load settings.json from SD card, try to create file if it doesn't exist
+	// if (ret)
+	// 	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
 
 	// init I2S driven rgb - panel
 	init_rgb();
 	updateFrame();
 
 	// init web-server
-	init_comms(SPIFFS, "/", on_ws_data);
-	log_w(
-		"after COMMS, heap: %d, min_heap: %d",
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size()
-	);
+	initWifi();
+	tryJsonConnect();
 
 	//------------------------------
 	// Display test-patterns
@@ -97,7 +66,7 @@ void setup()
 	// only if enabled in json
 	cJSON *jPanel = jGet(getSettings(), "panel");
 	if (jGetB(jPanel, "test_pattern", true)) {
-		log_w("RGB test-pattern mode!!!");
+		ESP_LOGW(T, "RGB test-pattern mode!!!");
 		g_rgbLedBrightness = MAX(0, jGetI(jPanel, "tp_brightness", 10));
 		tp_task(NULL);
 	}
@@ -107,8 +76,8 @@ void setup()
 	//------------------------------
 	FILE *f = fopen(ANIMATION_FILE, "r");
 	if (!f) {
-		log_e("fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno));
-		log_e("Will not show animations!");
+		ESP_LOGE(T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno));
+		ESP_LOGE(T, "Will not show animations!");
 		vTaskDelete(NULL);  // kill current task (== return;)
 	}
 
@@ -123,8 +92,54 @@ void setup()
 	// Draw animations and clock layer
 	//---------------------------------
 	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4000, f, 0, &t_pinb, 0);
+
+	vTaskDelete(NULL);
 }
 
-void loop() {
-	vTaskDelete(NULL);
+
+void ws_callback(uint8_t *payload, unsigned len)
+{
+	char *tok = NULL;
+	unsigned args[5];
+
+	ESP_LOGI(T, "ws_callback(%d)", len);
+	if (len < 1)
+		return;
+
+	// switch (payload[0]) {
+	// case 'd':
+	// 		char *p_tmp = (char*)(&payload[2]);
+	// 		for(unsigned i = 0; i < 5; i++) {
+	// 			tok = strsep(&p_tmp, ",");
+	// 			if (tok == NULL) {
+	// 				ESP_LOGE(T, "parse error!");
+	// 				ESP_LOG_BUFFER_HEXDUMP(T, payload, len, ESP_LOG_ERROR);
+	// 				return;
+	// 			}
+	// 			args[i] = strtoul(tok, NULL, 16);
+	// 		}
+	// 		setup_dds(args[0], args[1], args[2], args[3], args[4]);
+	// 	break;
+	// }
+
+	// switch (data[0]) {
+	// 	case 'a':
+	// 		wsDumpRtc(client);  // read rolling log buffer in RTC memory
+	// 		break;
+
+	// 	case 'b':
+	// 		settings_ws_handler(client, data, len);  // read / write settings.json
+	// 		break;
+
+	// 	case 'r':
+	// 		ESP.restart();
+	// 		break;
+
+	// 	case 'h':
+	// 		client->printf(
+	// 			"h{\"heap\": %d, \"min_heap\": %d}",
+	// 			esp_get_free_heap_size(), esp_get_minimum_free_heap_size()
+	// 		);
+	// 		break;
+	// }
 }

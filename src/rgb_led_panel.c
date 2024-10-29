@@ -9,10 +9,9 @@
 #include "rgb_led_panel.h"
 #include "assert.h"
 #include "json_settings.h"
+#include "i2s_parallel.h"
 
-extern "C" {
-	#include "i2s_parallel.h"
-}
+static const char *T = "LED_PANEL";
 
 unsigned g_frames = 0; // frame counter
 unsigned g_f_del = 33; // delay between frames [ms]
@@ -68,12 +67,12 @@ void init_rgb()
 	// Swap pixel x[0] with x[1]
 	isColumnSwapped = jGetB(jPanel, "column_swap", false);
 	if (isColumnSwapped)
-		log_v("column_swap applied!");
+		ESP_LOGV(T, "column_swap applied!");
 
 	// adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
 	latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
 	latch_offset %= DISPLAY_WIDTH;
-	log_v("latch_offset = %d", latch_offset);
+	ESP_LOGV(T, "latch_offset = %d", latch_offset);
 
 	// adjust extra blanking cycles to reduce ghosting effects
 	extra_blank = jGetI(jPanel, "extra_blank", 1);
@@ -81,7 +80,7 @@ void init_rgb()
 	// set clock divider
 	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
 	if (cfg.clk_div < 1) cfg.clk_div = 1;
-	log_v("clkm_div_num = %d", cfg.clk_div);
+	ESP_LOGV(T, "clkm_div_num = %d", cfg.clk_div);
 
 	cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
 
@@ -121,7 +120,7 @@ void init_rgb()
 	//Setup I2S
 	i2s_parallel_setup(&I2S1, &cfg);
 
-	log_i("I2S setup done.");
+	ESP_LOGI(T, "I2S setup done.");
 }
 
 void updateFrame() {

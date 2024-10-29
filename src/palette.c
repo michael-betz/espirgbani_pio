@@ -1,8 +1,9 @@
 #include <stdint.h>
 #include <stdlib.h>
-#include "Arduino.h"
 #include "common.h"
 #include "palette.h"
+
+static const char *T = "PALETTE";
 
 const uint32_t g_palettes[][P_SIZE] = {
 	{   // 0: hot
@@ -83,6 +84,6 @@ const uint32_t g_palettes[][P_SIZE] = {
 const uint32_t *get_random_palette()
 {
 	unsigned val = RAND_AB(0, 7);
-	log_d("palette: %d", val);
+	ESP_LOGD(T, "palette: %d", val);
 	return g_palettes[val];
 }

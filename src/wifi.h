@@ -1,8 +1,6 @@
 #ifndef WIFI_H
 #define WIFI_H
 
-#define WIFI_HOST_NAME "esp_crt"
-
 enum e_wifi {
     WIFI_NOT_CONNECTED,
     WIFI_SCANNING,

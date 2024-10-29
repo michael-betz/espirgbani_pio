@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
-#include "Arduino.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
@@ -12,8 +11,10 @@
 #include "frame_buffer.h"
 #include "bmp.h"
 #include "json_settings.h"
+#include "esp_log.h"
 #include "font.h"
 
+static const char *T = "FONT";
 
 static FILE *g_bmpFile = NULL;
 static bitmapFileHeader_t g_bmpFileHeader;
@@ -28,13 +29,13 @@ font_t *load_font_info(char *file_name) {
 
 	FILE *f = fopen(file_name, "rb");
 	if (!f) {
-		log_e(" fopen(%s, rb) failed: %s", file_name, strerror(errno));
+		ESP_LOGE(T, " fopen(%s, rb) failed: %s", file_name, strerror(errno));
 		return NULL;
 	}
 
 	fread(temp, 4, 1, f);
 	if(strncmp((char*)temp, "BMF", 3) != 0) {
-		log_e("Wrong header");
+		ESP_LOGE(T, "Wrong header");
 		fclose(f);
 		return NULL;
 	}
@@ -45,19 +46,19 @@ font_t *load_font_info(char *file_name) {
 	while(1) {
 		blockType = 0;
 		if (fread(&blockType, 1, 1, f) < 1) {
-			log_v("No more data");
+			ESP_LOGV(T, "No more data");
 			break;
 		}
 		if (fread(&blockSize, 1, 4, f) < 4) {
-			log_e("failed reading blockSize");
+			ESP_LOGE(T, "failed reading blockSize");
 			break;
 		}
-		log_v("loading block %d of size %d", blockType, blockSize);
+		ESP_LOGV(T, "loading block %d of size %ld", blockType, blockSize);
 		switch(blockType) {
 			case 1:
 				fDat->info = (fontInfo_t*)malloc(blockSize);
 				if (!fDat->info || fread(fDat->info, 1, blockSize, f) != blockSize) {
-					log_e("failed reading fontInfo_t");
+					ESP_LOGE(T, "failed reading fontInfo_t");
 					goto lfi_error_exit;
 				}
 				break;
@@ -65,7 +66,7 @@ font_t *load_font_info(char *file_name) {
 			case 2:
 				fDat->common = (fontCommon_t*)malloc(blockSize);
 				if (!fDat->common || fread(fDat->common, 1, blockSize, f) != blockSize) {
-					log_e("failed reading fontCommon_t");
+					ESP_LOGE(T, "failed reading fontCommon_t");
 					goto lfi_error_exit;
 				}
 				break;
@@ -74,7 +75,7 @@ font_t *load_font_info(char *file_name) {
 				fDat->pageNamesLen = blockSize;
 				fDat->pageNames = (char*)malloc(blockSize);
 				if (!fDat->pageNames || fread(fDat->pageNames, 1, blockSize, f) != blockSize) {
-					log_e("failed reading pageNames");
+					ESP_LOGE(T, "failed reading pageNames");
 					goto lfi_error_exit;
 				}
 				break;
@@ -83,24 +84,24 @@ font_t *load_font_info(char *file_name) {
 				fDat->charsLen = blockSize;
 				fDat->chars = (fontChar_t*)malloc(blockSize);
 				if (!fDat->chars || fread(fDat->chars, 1, blockSize, f) != blockSize) {
-					log_e("failed reading fontChar_t");
+					ESP_LOGE(T, "failed reading fontChar_t");
 					goto lfi_error_exit;
 				}
 				break;
 
 			case 5:
-				log_w("Ignoring kerning table. Ain't nobody got heap for that!!!");
+				ESP_LOGW(T, "Ignoring kerning table. Ain't nobody got heap for that!!!");
 				fseek(f, blockSize, SEEK_CUR);
 				// fDat->kernsLen = blockSize;
 				// fDat->kerns = (fontKern_t*)malloc(blockSize);
 				// if (!fDat->kerns || fread(fDat->kerns, 1, blockSize, f) != blockSize) {
-				// 	log_e("failed reading fontKern_t");
+				// 	ESP_LOGE(T, "failed reading fontKern_t");
 				// 	goto lfi_error_exit;
 				// }
 				break;
 
 			default:
-				log_w("Unknown block type: %d\n", blockType);
+				ESP_LOGW(T, "Unknown block type: %d\n", blockType);
 				fseek(f, blockSize, SEEK_CUR);
 				continue;
 		}
@@ -131,7 +132,7 @@ void free_font_info(font_t *f)
 void print_font_info(font_t *fDat) {
 	if (fDat == NULL)
 		return;
-	log_i(
+	ESP_LOGI(T,
 		"%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
 		fDat->info->fontName,
 		fDat->pageNames,
@@ -165,10 +166,10 @@ bool initFont(const char *filePrefix) {
 	free_font_info(g_fontInfo);
 	g_fontInfo = NULL;
 
-	log_v("loading %s", tempFileName);
+	ESP_LOGV(T, "loading %s", tempFileName);
 	g_fontInfo = load_font_info(tempFileName);
 	if (g_fontInfo == NULL) {
-		log_e("Could not load %s", tempFileName);
+		ESP_LOGE(T, "Could not load %s", tempFileName);
 		return false;
 	}
 	print_font_info(g_fontInfo);
@@ -179,10 +180,10 @@ bool initFont(const char *filePrefix) {
 		fclose(g_bmpFile);
 	g_bmpFile = NULL;
 
-	log_v("Loading %s", tempFileName);
+	ESP_LOGV(T, "Loading %s", tempFileName);
 	g_bmpFile = loadBitmapFile(tempFileName, &g_bmpFileHeader, &g_bmpInfoHeader);
 	if (g_bmpFile == NULL) {
-		log_e("Could not load %s", tempFileName);
+		ESP_LOGE(T, "Could not load %s", tempFileName);
 		return false;
 	}
 
@@ -260,7 +261,7 @@ void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
 // y = distance from top of display to top of character cell
 void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
 	const char *c = str;
-	log_v("x: %d, y: %d, str: %s", x, y, str);
+	ESP_LOGV(T, "x: %d, y: %d, str: %s", x, y, str);
 	setCur(x, y);
 
 	// Render outline first (from green channel)

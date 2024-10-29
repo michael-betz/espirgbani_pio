@@ -43,7 +43,7 @@ void copyBmpToFbRect(FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp, uint
 		return;
 
 	if (chOffset >= bmInfo->biWidth / 8) {
-		ESP_LOGE(T, "There's only %d color channels dude!", bmInfo->biWidth/8);
+		ESP_LOGE(T, "There's only %ld color channels dude!", bmInfo->biWidth/8);
 		chOffset = bmInfo->biWidth/8 - 1;
 	}
 	int rowSize = ((bmInfo->biBitCount * bmInfo->biWidth + 31) / 32 * 4);  //how many bytes per row

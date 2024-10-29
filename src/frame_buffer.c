@@ -3,8 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
-#include "Arduino.h"
-#include "ArduinoOTA.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
@@ -18,7 +16,8 @@
 #include "common.h"
 #include "frame_buffer.h"
 
-// static const char *T = "FRAME_BUFFER";
+static const char *T = "FRAME_BUFFER";
+
 EventGroupHandle_t layersDoneDrawingFlags = NULL;
 
 // framebuffer with `N_LAYERS` in MSB ABGR LSB format
@@ -182,14 +181,14 @@ static void tp_stripes(unsigned width, unsigned offset, bool isY)
 static void tp_stripes_sequence(bool isY)
 {
 	for (unsigned i=0; i<8; i++) {
-		log_d("stripes %d / 8", i + 1);
+		ESP_LOGD(T, "stripes %d / 8", i + 1);
 		tp_stripes(8, i, isY);
-		delay(500);
+		vTaskDelay(500);
 	}
 	for (unsigned i=0; i<4; i++) {
-		log_d("stripes %d / 2", (i % 2) + 1);
+		ESP_LOGD(T, "stripes %d / 2", (i % 2) + 1);
 		tp_stripes(2, i % 2, isY);
-		delay(500);
+		vTaskDelay(500);
 	}
 }
 
@@ -201,35 +200,33 @@ void tp_task(void *pvParameters)
 		setAll(2, 0xFF000000);
 		updateFrame();
 
-		ArduinoOTA.handle();
-
-		log_d("Diagonal");
+		ESP_LOGD(T, "Diagonal");
 		for (unsigned y=0; y<DISPLAY_HEIGHT; y++)
 			for (unsigned x=0; x<DISPLAY_WIDTH; x++)
 				setPixel(2, x, y, (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000);
 		updateFrame();
-		delay(5000);
+		vTaskDelay(5000);
 
-		log_d("Vertical stripes ...");
+		ESP_LOGD(T, "Vertical stripes ...");
 		tp_stripes_sequence(true);
 
-		log_d("Horizontal stripes ...");
+		ESP_LOGD(T, "Horizontal stripes ...");
 		tp_stripes_sequence(false);
 
-		log_d("All red");
+		ESP_LOGD(T, "All red");
 		setAll(2, 0xFF0000FF);
 		updateFrame();
-		delay(1000);
+		vTaskDelay(1000);
 
-		log_d("All green");
+		ESP_LOGD(T, "All green");
 		setAll(2, 0xFF00FF00);
 		updateFrame();
-		delay(1000);
+		vTaskDelay(1000);
 
-		log_d("All blue");
+		ESP_LOGD(T, "All blue");
 		setAll(2, 0xFFFF0000);
 		updateFrame();
-		delay(1000);
+		vTaskDelay(1000);
 	}
 }
 
@@ -288,7 +285,7 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb)
 	unsigned *p = g_frameBuff[layer];
 	unsigned ret = fread(frm_buff, 1, sizeof(frm_buff), f);
 	if (ret != sizeof(frm_buff)) {
-		log_e("fread error: %d vs %d", ret, sizeof(frm_buff));
+		ESP_LOGE(T, "fread error: %d vs %d", ret, sizeof(frm_buff));
 		return;
 	}
 
@@ -439,7 +436,7 @@ static float rfpart(float x) { return (ceil(x) - x); }
 // using float, from https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
 void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1, float y1)
 {
-	bool steep = abs(y1 - y0) > abs(x1 - x0);
+	bool steep = fabsf(y1 - y0) > fabsf(x1 - x0);
 	if (steep) {
 		swap(&x0, &y0);
 		swap(&x1, &y1);

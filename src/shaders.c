@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "Arduino.h"
 #include "fast_hsv2rgb.h"
 #include "rgb_led_panel.h"
 #include "json_settings.h"
@@ -15,6 +14,7 @@
 #include "esp_comms.h"
 #include "shaders.h"
 
+static const char *T = "SHADERS";
 
 static void drawXorFrame(unsigned frm) {
 	static uint16_t aniZoom=0x04, boost=7;
@@ -83,7 +83,7 @@ static uint8_t pbuff[DISPLAY_WIDTH * (DISPLAY_HEIGHT + 1)];
 static void flameSeedRow() {
 	int c = 0, v = 0;
 	uint8_t *p = &pbuff[DISPLAY_HEIGHT * DISPLAY_WIDTH];
-	// log_i("flameseed");
+	// ESP_LOGI(T, "flameseed");
 	for (unsigned x=0; x<DISPLAY_WIDTH; x++) {
 		if (c <= 0) {
 			c = RAND_AB(0, 5);     // width
@@ -225,7 +225,7 @@ void aniBackgroundTask(void *pvParameters) {
 
 		unsigned dt = esp_timer_get_time() - t;
 		if (aniMode >= 1 && aniMode <= 5 && frm % 1000 == 0)
-			log_i("shader: %d, dt = %d us", aniMode, dt);
+			ESP_LOGI(T, "shader: %d, dt = %d us", aniMode, dt);
 
 		// maximum global frame-rate: 1 / f_del kHz
 		vTaskDelayUntil(&xLastWakeTime, _f_del);

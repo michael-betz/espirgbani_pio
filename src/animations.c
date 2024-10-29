@@ -1,10 +1,17 @@
+#include <stdint.h>
 #include <string.h>
+#include <time.h>
 #include "fast_hsv2rgb.h"
 #include "frame_buffer.h"
 #include "json_settings.h"
 #include "rom/rtc.h"
 #include "font.h"
 #include "animations.h"
+#include "common.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+
+static const char *T = "ANIMATIONS";
 
 // Reads the filehader and fills `fh`
 static int getFileHeader(FILE *f, fileHeader_t *fh)
@@ -17,7 +24,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 	fseek(f, 0x00000000, SEEK_SET);
 	fread(tempCh, 3, 1, f);
 	if(memcmp(tempCh,"DGD", 3) != 0) {
-		log_e("Invalid file header!");
+		ESP_LOGE(T, "Invalid file header!");
 		return -1;
 	}
 	fread(&fh->nAnimations, 2, 1, f);
@@ -25,7 +32,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 	fseek(f, 0x000001EF, SEEK_SET);
 	fread(&fh->buildStr, 8, 1, f);
 
-	log_i("nAnimations: %d, buildStr: %s", fh->nAnimations, fh->buildStr);
+	ESP_LOGI(T, "nAnimations: %d, buildStr: %s", fh->nAnimations, fh->buildStr);
 	return 0;
 }
 
@@ -49,7 +56,7 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 	// Exract frame header
 	frameHeaderEntry_t *fh = (frameHeaderEntry_t*)malloc(sizeof(frameHeaderEntry_t) * h->nFrameEntries);
 	if (fh == NULL) {
-		log_e("Memory allocation error!");
+		ESP_LOGE(T, "Memory allocation error!");
 		return -1;
 	}
 	h->frameHeader = fh;
@@ -59,7 +66,7 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 		fread(&fh->frameDur, 1, 1, f);
 		// Hack to sort out invalid headers
 		if(fh->frameDur <= 0 || fh->frameId > h->nStoredFrames) {
-			log_e("Invalid header!");
+			ESP_LOGE(T, "Invalid header!");
 			return -1;
 		}
 		fh++;
@@ -134,7 +141,7 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
 		cur_delay = fh.frameDur;
 	}
-	log_d(
+	ESP_LOGD(T,
 		"%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
 		_cur_hi,
 		h->name,
@@ -165,7 +172,7 @@ static void run_animation(FILE *f, unsigned aniId)
 
 	// Keep a single frame displayed for a bit
 	if (myHeader.nStoredFrames <= 3 || myHeader.nFrameEntries <= 3)
-		delay(3000);
+		vTaskDelay(3000);
 
 	// Fade out the frame
 	uint32_t nTouched = 1;
@@ -195,13 +202,13 @@ static void manageBrightness(struct tm *timeinfo)
 	if (iNow >= iDay && iNow < iNight) {
 		if (curMode != 1) {
 			g_rgbLedBrightness = jGetI(jDay, "p", 20);
-			log_i("Daylight mode, p: %d", g_rgbLedBrightness);
+			ESP_LOGI(T, "Daylight mode, p: %d", g_rgbLedBrightness);
 			curMode = 1;
 		}
 	} else {
 		if (curMode != 0) {
 			g_rgbLedBrightness = jGetI(jNight, "p", 2);
-			log_i("Nightdark mode, p: %d", g_rgbLedBrightness);
+			ESP_LOGI(T, "Nightdark mode, p: %d", g_rgbLedBrightness);
 			curMode = 0;
 		}
 	}
@@ -213,7 +220,7 @@ static void stats(unsigned cur_fnt)
 	static unsigned last_frames = 0;
 	static unsigned last_time = 0;
 
-	unsigned cur_time = millis();
+	unsigned cur_time = esp_timer_get_time() / 1000;
 	unsigned up_time = cur_time / 1000 / 60;
 	float fps = 1000.0 * (g_frames - last_frames) / (cur_time - last_time);
 	last_time = cur_time;
@@ -228,7 +235,7 @@ static void stats(unsigned cur_fnt)
 	if (up_time > max_uptime)
 		max_uptime = up_time;
 
-	log_d("fnt: %d, uptime: %d / %d, fps: %.1f, heap: %d / %d, ba: %d, pi: %d",
+	ESP_LOGD(T, "fnt: %d, uptime: %d / %d, fps: %.1f, heap: %ld / %ld, ba: %d, pi: %d",
 		cur_fnt,
 		up_time,
 		max_uptime,
@@ -260,9 +267,9 @@ void aniPinballTask(void *pvParameters)
 	// count font files and choose a random one
 	int nFnts = cntFntFiles("/sd/fnt");
 	if (nFnts <= 0)
-		log_e("no fonts found on SD card :( :( :(");
+		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
 	else
-		log_i("last font file: /sd/fnt/%02d.fnt", nFnts - 1);
+		ESP_LOGI(T, "last font file: /sd/fnt/%02d.fnt", nFnts - 1);
 
 
 	cJSON *jDelay = jGet(getSettings(), "delays");
@@ -320,8 +327,6 @@ void aniPinballTask(void *pvParameters)
 			stats(cur_fnt);
 		}
 		sec_ = timeinfo.tm_sec;
-
-		ArduinoOTA.handle();
 
 		cycles++;
 		vTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);
