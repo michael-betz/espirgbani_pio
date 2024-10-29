@@ -1,8 +1,8 @@
 # The ESP32 Pinball RGB Animation clock
 
-The [old firmware](https://github.com/yetifrisstlama/Espirgbani) was based on obsolete libraries and became difficult to maintain. This is a re-write based on platform.io and the Arduino framework.
+The [old firmware](https://github.com/michael-betz/Espirgbani) was based on obsolete libraries and became difficult to maintain. This is a re-write based on platform.io and the Arduino framework.
 
-![clock](https://github.com/yetifrisstlama/Espirgbani/raw/master/pcb/pdf/front.jpg)
+![clock](https://github.com/michael-betz/Espirgbani/raw/master/pcb/pdf/front.jpg)
 
 [Video of how it looks like](https://www.youtube.com/watch?v=0dwTC5q5t4M)
 
@@ -43,14 +43,14 @@ $ pio run -t upload --upload-port espirgbani.local
 # SD card instructions
 Format as FAT32, then copy the following files:
   * `./settings.json`
-  * `./runDmd.img`
+  * `./animations.img`
   * `./fnt/{d}.fnt`
   * `./fnt/{d}_0.bmp`
 
 ## Assets
-Pre-built font and animation files can be found [here](https://github.com/yetifrisstlama/espirgbani_pio/releases). Copy these to the FAT32 formated SD card.
+Pre-built font and animation files can be found [here](https://github.com/michael-betz/espirgbani_pio/releases). Copy these to the FAT32 formated SD card.
 
-The bitmap fonts have been auto-generated from existing true-type fonts by a [bash script](https://github.com/yetifrisstlama/Espirgbani/blob/master/dev/generateFonts.sh) and [bmfont](http://www.angelcode.com/products/bmfont/).
+The bitmap fonts have been auto-generated from existing true-type fonts by a [bash script](https://github.com/michael-betz/Espirgbani/blob/master/dev/generateFonts.sh) and [bmfont](http://www.angelcode.com/products/bmfont/).
 
 ## `settings.json`
 If this file does not exist or cannot be parsed, a new file with default settings will be created.
@@ -143,3 +143,12 @@ This should work as long as the version of fatfs does not change upstream in esp
 
 If the hack causes problems, it can be disabled in `platformio.ini`.
 
+# TODO
+  * remove fastseek hack (functionality should have arrived in esp-idf now)
+  * low-power mode if PD negotiation failed
+  * serial terminal mode?
+  * wifi button support
+  * light sensor support
+  * remove arduino library dependencies
+  * http API support (easy use from curl)
+  * mqtt support?
