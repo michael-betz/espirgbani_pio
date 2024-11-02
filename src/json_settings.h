@@ -2,19 +2,15 @@
 #define JSON_SETTINGS_H
 
 #include <stdbool.h>
-// #if defined(ESP_PLATFORM)
-    #include <cJSON.h>
-// #else
-//     #include <cjson/cJSON.h>
-// #endif
-
-// Reads a .json file into heap and parses it. Returns NULL on error
-cJSON *readJsonDyn(const char* file_name);
+#include <cJSON.h>
 
 // set the .json file with settings and a fall-back defaults_file
 // which will be copied over if not NULL
 // loads the settings file
 void set_settings_file(const char *f_settings, const char *f_defaults);
+
+// dump current settings file on websocket / re-write the settings file
+void settings_ws_handler(uint8_t *data, size_t len);
 
 // returns the cJSON object
 cJSON *getSettings();

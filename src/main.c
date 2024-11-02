@@ -14,6 +14,7 @@
 
 #include "json_settings.h"
 #include "wifi.h"
+#include "esp_wifi.h"
 
 #include "common.h"
 #include "rgb_led_panel.h"
@@ -139,47 +140,28 @@ void app_main(void)
 
 void ws_callback(uint8_t *payload, unsigned len)
 {
-	char *tok = NULL;
-	unsigned args[5];
+	// char *tok = NULL;
+	// unsigned args[5];
 
 	ESP_LOGI(T, "ws_callback(%d)", len);
 	if (len < 1)
 		return;
 
-	// switch (payload[0]) {
-	// case 'd':
-	// 		char *p_tmp = (char*)(&payload[2]);
-	// 		for(unsigned i = 0; i < 5; i++) {
-	// 			tok = strsep(&p_tmp, ",");
-	// 			if (tok == NULL) {
-	// 				ESP_LOGE(T, "parse error!");
-	// 				ESP_LOG_BUFFER_HEXDUMP(T, payload, len, ESP_LOG_ERROR);
-	// 				return;
-	// 			}
-	// 			args[i] = strtoul(tok, NULL, 16);
-	// 		}
-	// 		setup_dds(args[0], args[1], args[2], args[3], args[4]);
-	// 	break;
-	// }
+	switch (payload[0]) {
+		// case 'a':
+		// 	wsDumpRtc(client);  // read rolling log buffer in RTC memory
+		// 	break;
 
-	// switch (data[0]) {
-	// 	case 'a':
-	// 		wsDumpRtc(client);  // read rolling log buffer in RTC memory
-	// 		break;
+		case 'b':
+			// read / write settings.json
+			settings_ws_handler(&payload[1], len - 1);
+			break;
 
-	// 	case 'b':
-	// 		settings_ws_handler(client, data, len);  // read / write settings.json
-	// 		break;
-
-	// 	case 'r':
-	// 		ESP.restart();
-	// 		break;
-
-	// 	case 'h':
-	// 		client->printf(
-	// 			"h{\"heap\": %d, \"min_heap\": %d}",
-	// 			esp_get_free_heap_size(), esp_get_minimum_free_heap_size()
-	// 		);
-	// 		break;
-	// }
+		case 'r':
+			esp_wifi_disconnect();
+			// TODO disable panel
+			vTaskDelay(100 / portTICK_PERIOD_MS);
+			esp_restart();
+			break;
+	}
 }

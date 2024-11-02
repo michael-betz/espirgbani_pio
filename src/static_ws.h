@@ -1,6 +1,8 @@
 #ifndef STATIC_WS_H
 #define STATIC_WS_H
 
+#include "esp_err.h"
+
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 

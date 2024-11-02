@@ -15,7 +15,7 @@ static const char *T = "STATIC_WS";
 static httpd_handle_t server = NULL;
 
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN)
-#define BASE_PATH "/"
+#define BASE_PATH "/spiffs"
 #define SCRATCH_BUFSIZE  4096  // Dynamically allocated
 
 #define IS_FILE_EXT(filename, ext) \
@@ -72,7 +72,7 @@ static const char* get_path_from_uri(char *dest, const char *uri, size_t destsiz
 static esp_err_t index_html_get_handler(httpd_req_t *req)
 {
 	httpd_resp_set_status(req, "307 Temporary Redirect");
-	httpd_resp_set_hdr(req, "Location", "spiffs/index.htm");
+	httpd_resp_set_hdr(req, "Location", "index.htm");
 	httpd_resp_send(req, NULL, 0);  // Response body can be empty
 	return ESP_OK;
 }
@@ -88,111 +88,6 @@ static esp_err_t reboot_get_handler(httpd_req_t *req)
 	esp_restart();
 
 	return ESP_OK;  // LOL
-}
-
-// Handler to upload a file onto the server
-static esp_err_t upload_post_handler(httpd_req_t *req)
-{
-    char filepath[FILE_PATH_MAX];
-    FILE *fd = NULL;
-
-    const char *filename = get_path_from_uri(filepath, req->uri, sizeof(filepath));
-    if (!filename) {
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
-        return ESP_FAIL;
-    }
-
-    /* Filename cannot have a trailing '/' */
-    if (filename[strlen(filename) - 1] == '/') {
-        ESP_LOGE(T, "Invalid filename : %s", filename);
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid filename");
-        return ESP_FAIL;
-    }
-
-    // Can only upload to SD card
-    if(strncmp(filepath, "/sd/", 4) != 0) {
-        ESP_LOGE(T, "Filename must start with /sd/");
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid filename");
-    	return ESP_FAIL;
-    }
-
-    /* File cannot be larger than a limit */
-    if (req->content_len > 1024 * 100) {  // 100 kB limit for now
-        ESP_LOGE(T, "File too large : %d bytes", req->content_len);
-        /* Respond with 400 Bad Request */
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "File size must be less than 100 kB");
-        return ESP_FAIL;
-    }
-
-    fd = fopen(filepath, "w");
-    if (!fd) {
-        ESP_LOGE(T, "Failed to create file : %s", filepath);
-        /* Respond with 500 Internal Server Error */
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to create file");
-        return ESP_FAIL;
-    }
-
-    ESP_LOGI(T, "Receiving file : %s...", filename);
-
-    /* Retrieve the pointer to scratch buffer for temporary storage */
-    char *buf = malloc(SCRATCH_BUFSIZE);
-    if (!buf)
-    	return ESP_FAIL;
-    int received;
-
-    /* Content length of the request gives
-     * the size of the file being uploaded */
-    int remaining = req->content_len;
-
-    while (remaining > 0) {
-
-        ESP_LOGI(T, "Remaining size : %d", remaining);
-        /* Receive the file part by part into a buffer */
-        if ((received = httpd_req_recv(req, buf, MIN(remaining, SCRATCH_BUFSIZE))) <= 0) {
-            if (received == HTTPD_SOCK_ERR_TIMEOUT) {
-                /* Retry if timeout occurred */
-                continue;
-            }
-
-            /* In case of unrecoverable error,
-             * close and delete the unfinished file*/
-            fclose(fd);
-            unlink(filepath);
-            free(buf);
-
-            ESP_LOGE(T, "File reception failed!");
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to receive file");
-            return ESP_FAIL;
-        }
-
-        /* Write buffer content to file on storage */
-        if (received && (received != fwrite(buf, 1, received, fd))) {
-            /* Couldn't write everything to file!
-             * Storage may be full? */
-            fclose(fd);
-            unlink(filepath);
-            free(buf);
-
-            ESP_LOGE(T, "File write failed!");
-            /* Respond with 500 Internal Server Error */
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to write file to storage");
-            return ESP_FAIL;
-        }
-
-        /* Keep track of remaining size of
-         * the file left to be uploaded */
-        remaining -= received;
-    }
-
-    /* Close file upon upload completion */
-    fclose(fd);
-    free(buf);
-    ESP_LOGI(T, "File reception complete");
-    httpd_resp_set_status(req, HTTPD_200);
-	httpd_resp_send(req, NULL, 0);  // Response body can be empty
-    return ESP_OK;
 }
 
 // Handler to download a file kept on SPIFFS
@@ -341,13 +236,6 @@ void startWebServer()
 		.is_websocket = true
 	};
 	httpd_register_uri_handler(server, &ws);
-
-	httpd_uri_t settings_upload = {
-		.uri       = "/settings.json",
-		.method    = HTTP_POST,
-		.handler   = upload_post_handler
-	};
-	httpd_register_uri_handler(server, &settings_upload);
 
 	httpd_uri_t file_reboot = {
 		.uri       = "/reboot",

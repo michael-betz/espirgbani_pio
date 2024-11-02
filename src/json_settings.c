@@ -6,6 +6,7 @@
 #include <string.h>
 #include "esp_log.h"
 #include "json_settings.h"
+#include "static_ws.h"
 
 static const char *T = "JSON_S";
 
@@ -65,12 +66,43 @@ cJSON *readJsonDyn(const char* file_name) {
 	return root;
 }
 
+void settings_ws_handler(uint8_t *data, size_t len)
+{
+	// if data is given, it will overwrite the settings file
+	// then it will read the settings file and send it over the websocket
+	if (data != NULL && len > 1) {
+		data[len] = 0;
+		FILE *dest = fopen(settings_file, "wb");
+		if (dest) {
+			fputs((const char *)data, dest);
+			fclose(dest);
+			dest = NULL;
+			ESP_LOGI(T, "re-wrote %s", settings_file);
+
+			set_settings_file(settings_file, NULL);
+		} else {
+			ESP_LOGE(T, "fopen(%s, wb) failed: %s", settings_file, strerror(errno));
+		}
+	}
+
+	// Send content of currently loaded settings file over websocket
+	char *file_data = cJSON_Print(g_settings);
+	if (file_data) {
+		ws_send((uint8_t *)file_data, strlen(file_data));
+		cJSON_free(file_data);
+	}
+}
+
 void set_settings_file(const char *f_settings, const char *f_defaults)
 {
 	settings_file = f_settings;
+
+	if (g_settings != NULL)
+		cJSON_free(g_settings);
+
 	g_settings = readJsonDyn(settings_file);
 
-	if (f_defaults && getSettings() == NULL) {
+	if (f_defaults && (g_settings == NULL)) {
 		char buf[32];
 		size_t size;
 		ESP_LOGW(T, "writing default-settings to %s", settings_file);
