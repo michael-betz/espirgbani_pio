@@ -30,6 +30,9 @@
 #define GPIO_BLANK GPIO_NUM_12
 #define GPIO_CLK GPIO_NUM_13
 
+// Ambient light sensor (ALS-PDIC144-6C/L378)
+#define GPIO_LIGHT_SENSOR GPIO_NUM_36
+
 // Width and height of the chain of panels [pixels]
 // ... don't change it, things will catch fire! :p
 #define DISPLAY_WIDTH 128

@@ -7,6 +7,11 @@
 #include "frame_buffer.h"
 #include "json_settings.h"
 #include "rom/rtc.h"
+
+#include "esp_adc/adc_oneshot.h"
+#include "esp_adc/adc_cali.h"
+#include "esp_adc/adc_cali_scheme.h"
+
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
@@ -176,31 +181,77 @@ static void run_animation(FILE *f, unsigned aniId) {
 	}
 }
 
+adc_oneshot_unit_handle_t adc_handle;
+
+void init_light_sensor()
+{
+    adc_oneshot_unit_init_cfg_t init_config = {
+        .unit_id = ADC_UNIT_1,
+    };
+    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+
+    //-------------ADC1 Config---------------//
+    adc_oneshot_chan_cfg_t config = {
+        .atten = ADC_ATTEN_DB_12,  // VMAX = 2450
+        .bitwidth = ADC_BITWIDTH_12,  // 12 bit, DMAX = 4096
+    };
+    // ADC_UNIT_1, ADC_CHANNEL_0 is connected to SENSOR_VP pin
+    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_0, &config));
+}
+
+int get_light_sensor()
+{
+	//   10 lux,   3 uA, 0.03 V,
+	//  100 lux,  33 uA, 0.33 V,
+	// 1000 lux, 330 uA, 3.30 V,
+	int sum = 0;
+	// for (unsigned i = 0; i < 32; i++) {
+		int tmp = 0;
+	 	adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &tmp);
+	 	sum += tmp;
+	// }
+	return sum;
+}
+
+// Called once a minute
 static void manageBrightness(struct tm *timeinfo) {
-	static int curMode = -1;
+	static int is_daylight_state = -1;
 
 	// get json dictionaries
 	cJSON *jPow = jGet(getSettings(), "power");
+	int power_mode = jGetI(jPow, "mode", 0);
 	cJSON *jDay = jGet(jPow, "day");
-	cJSON *jNight = jGet(jPow, "night");
 
-	// convert times to minutes since 00:00
-	int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);
-	int iNight = jGetI(jNight, "h", 22) * 60 + jGetI(jNight, "m", 45);
-	int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
+	if (power_mode == 1) {
+		// use ambient light sensor
+		int raw_value = get_light_sensor();  // 0 - 4095
+		raw_value /= 41;  // 0 - 99
+		if (raw_value <= 0)
+			raw_value = 1;
+		g_rgbLedBrightness = raw_value; // 1 - 99
+	} else if (power_mode == 2) {
+		// use day and night times
+		// convert times to minutes since 00:00
+		cJSON *jNight = jGet(jPow, "night");
+		int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);
+		int iNight = jGetI(jNight, "h", 22) * 60 + jGetI(jNight, "m", 45);
+		int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
 
-	if (iNow >= iDay && iNow < iNight) {
-		if (curMode != 1) {
-			g_rgbLedBrightness = jGetI(jDay, "p", 20);
-			ESP_LOGI(T, "Daylight mode, p: %d", g_rgbLedBrightness);
-			curMode = 1;
+		if (iNow >= iDay && iNow < iNight) {
+			if (is_daylight_state != 1) {
+				g_rgbLedBrightness = jGetI(jDay, "p", 20);
+				ESP_LOGI(T, "Daylight mode, p: %d", g_rgbLedBrightness);
+				is_daylight_state = 1;
+			}
+		} else {
+			if (is_daylight_state != 0) {
+				g_rgbLedBrightness = jGetI(jNight, "p", 2);
+				ESP_LOGI(T, "Nightdark mode, p: %d", g_rgbLedBrightness);
+				is_daylight_state = 0;
+			}
 		}
-	} else {
-		if (curMode != 0) {
-			g_rgbLedBrightness = jGetI(jNight, "p", 2);
-			ESP_LOGI(T, "Nightdark mode, p: %d", g_rgbLedBrightness);
-			curMode = 0;
-		}
+	} else { // mode 0 or everything else
+		g_rgbLedBrightness = jGetI(jDay, "p", 20);
 	}
 }
 

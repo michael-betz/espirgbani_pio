@@ -17,6 +17,11 @@
         "shader": 300
     },
     "power": {
+        // mode0: constant brightness (the day value)
+        // mode1: use ambient light sensor (with sensor_gain)
+        // mode2: use fixed on / off times (with day / night)
+        "mode": 1,
+        "sensor_gain": 1.0,
         "day": {
             "h": 9,
             "m": 0,
