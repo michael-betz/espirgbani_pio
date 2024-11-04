@@ -11,7 +11,7 @@
 static const char *T = "JSON_S";
 
 static cJSON *g_settings = NULL;
-static const char *settings_file = NULL;
+static const char *g_settings_file = NULL;
 
 char *readFileDyn(const char* file_name, int *file_size) {
 	// opens the file file_name and returns it as dynamically allocated char*
@@ -72,16 +72,16 @@ void settings_ws_handler(uint8_t *data, size_t len)
 	// then it will read the settings file and send it over the websocket
 	if (data != NULL && len > 1) {
 		data[len] = 0;
-		FILE *dest = fopen(settings_file, "wb");
+		FILE *dest = fopen(g_settings_file, "wb");
 		if (dest) {
 			fputs((const char *)data, dest);
 			fclose(dest);
 			dest = NULL;
-			ESP_LOGI(T, "re-wrote %s", settings_file);
+			ESP_LOGI(T, "re-wrote %s", g_settings_file);
 
-			set_settings_file(settings_file, NULL);
+			set_settings_file(NULL, NULL);
 		} else {
-			ESP_LOGE(T, "fopen(%s, wb) failed: %s", settings_file, strerror(errno));
+			ESP_LOGE(T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno));
 		}
 	}
 
@@ -95,31 +95,35 @@ void settings_ws_handler(uint8_t *data, size_t len)
 
 void set_settings_file(const char *f_settings, const char *f_defaults)
 {
-	settings_file = f_settings;
+	if (f_settings != NULL)
+		g_settings_file = f_settings;
 
 	if (g_settings != NULL)
 		cJSON_free(g_settings);
 
-	g_settings = readJsonDyn(settings_file);
+	g_settings = readJsonDyn(g_settings_file);
 
 	if (f_defaults && (g_settings == NULL)) {
 		char buf[32];
 		size_t size;
-		ESP_LOGW(T, "writing default-settings to %s", settings_file);
+		ESP_LOGW(T, "writing default-settings to %s", g_settings_file);
 		FILE* source = fopen(f_defaults, "rb");
-		FILE* dest = fopen(settings_file, "wb");
+		FILE* dest = fopen(g_settings_file, "wb");
 		if (source && dest) {
 			while ((size = fread(buf, 1, sizeof(buf), source))) {
 				fwrite(buf, 1, size, dest);
 			}
 		} else {
-			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults, settings_file, strerror(errno));
+			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults, g_settings_file, strerror(errno));
 		}
 
-		if (source) fclose(source);
-		if (dest) fclose(dest);
+		if (source)
+			fclose(source);
 
-		g_settings = readJsonDyn(settings_file);
+		if (dest)
+			fclose(dest);
+
+		g_settings = readJsonDyn(g_settings_file);
 	}
 }
 
