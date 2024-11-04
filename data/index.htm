@@ -27,19 +27,23 @@
 </div>
 
 <div class="tab" id="settings_tab">
-  <textarea id="myTextArea" class="shell-body" onkeyup="bnA.disabled=true; tStat.innerText='';"></textarea>
+  <textarea id="myTextArea" class="shell-body" onkeyup="bnApply.disabled=true; tStatus.innerText='';"></textarea>
   <br>
-  <button id="bnV" class="inline" onclick="prettyPrint();">Verify</button>
-  <button id="bnA" class="inline" onclick="writeFile();">Apply</button>
-  <button id="bnR" class="inline" onclick="websocket.send('r'); textArea.value = ''; window.location.reload(false);">Reboot</button>
-  <span id="tStat"></span>
+  <button id="bnVerify" class="inline" onclick="prettyPrint();">Verify</button>
+  <button id="bnApply" class="inline" onclick="writeFile();">Apply</button>
+  <button id="bnReboot" class="inline" onclick="websocket.send('r'); textArea.value = ''; window.location.reload(false);">Reboot</button>
+  <span id="tStatus"></span>
 </div>
 
 </body>
 
 <script language="javascript" type="text/javascript">
-  var wsUri = "ws://" + window.location.host + "/ws";
   var websocket;
+
+  var host = "espirgbani.local";
+  if (window.location.host != "")
+    host = window.location.host;
+  var wsUri = "ws://" + host + "/ws";
 
   // --------------------------------
   //  For the console tab
@@ -51,12 +55,24 @@
   // --------------------------------
   //  For the settings tab
   // --------------------------------
-  textArea = document.getElementById("myTextArea");
-  bnA = document.getElementById("bnA");
-  tStat = document.getElementById("tStat");
-  bnA.disabled = true;
+  var textArea = document.getElementById("myTextArea");
+  // enable TAB input in textArea
+  textArea.onkeydown = function(e) {
+    if (e.keyCode == 9 || e.which == 9) {
+        e.preventDefault();
+        var s = this.selectionStart;
+        this.value = this.value.substring(0, this.selectionStart) + "    " + this.value.substring(this.selectionEnd);
+        this.selectionEnd = s + 4;
+    }
+  }
 
-  function writeToScreen(message) {
+  var bnApply = document.getElementById("bnApply");
+  var tStatus = document.getElementById("tStatus");
+  bnApply.disabled = true;
+  var isWriting = false;
+
+  // Add a line to the console window
+  function writeToConsole(message) {
     if (message.length <= 0)
       return;
     console.log('writing: ' + message);
@@ -71,30 +87,18 @@
   }
 
   function init() {
-    tab("console_tab");
-
-    // enable TAB input in textArea
-    textArea.onkeydown = function(e) {
-      if (e.keyCode == 9 || e.which == 9) {
-          e.preventDefault();
-          var s = this.selectionStart;
-          this.value = this.value.substring(0, this.selectionStart) + "    " + this.value.substring(this.selectionEnd);
-          this.selectionEnd = s + 4;
-      }
-    }
-
     websocket = new WebSocket(wsUri);
     websocket.binaryType = 'arraybuffer';
 
     websocket.onopen = function(evt) {
-      writeToScreen("WS CONNECTED");
+      writeToConsole("WS CONNECTED");
       websocket.send('a');  // dump RTC buffer command
       websocket.send('h');  // get heap command
     };
 
     websocket.onclose = function(evt) {
       connected_status.innerHTML = "❌";
-      writeToScreen("WS DISCONNECTED");
+      writeToConsole("WS DISCONNECTED");
     };
 
     websocket.onmessage = function(evt) {
@@ -113,33 +117,32 @@
         host_name.innerHTML = temp["hello"];
       } else if (dat[0] == 'a') {
         temp_str = dat.substr(1).replace(/\0/g, '').replace("\r","");
-        temp_str.split("\n").forEach(writeToScreen);
+        temp_str.split("\n").forEach(writeToConsole);
       } else if (dat[0] == 'h') {
         temp = JSON.parse(dat.substr(1));
-        writeToScreen(dat.substr(1));
+        writeToConsole(dat.substr(1));
       } else if (dat[0] == 'b') {
         textArea.value = dat.slice(1);
         if (isWriting) {
-          tStat.innerHTML = "<font color=#44FF44>👍 applied 👍</font>";
+          tStatus.innerHTML = "<font color=#44FF44>👍 applied 👍</font>";
         }
       }
     };
 
     websocket.onerror = function(evt) {
       connected_status.innerHTML = "🔥 " + evt.data;
-      writeToScreen('ERROR: ' + evt.data);
+      writeToConsole('ERROR: ' + evt.data);
     };
 
     window.onscroll = function() {
       var d = document.documentElement;
       isScroll = d.scrollTop + window.innerHeight === d.offsetHeight;
     };
+
+    tab("console_tab");
   }
 
-  // --------------------------------
-  //  For the settings tab
-  // --------------------------------
-
+  // Switch tabs to the one with name `n`
   function tab(n) {
     var x = document.getElementsByClassName("tab");
     for (i = 0; i < x.length; i++) {
@@ -152,16 +155,15 @@
       websocket.send('b');
   }
 
-  // For the settings tab
-  var textArea, bnA, tStat;
-  var isWriting = false;
-
+  // --------------------------------
+  //  For the settings tab
+  // --------------------------------
   function writeFile() {
-    bnA.disabled = true;
+    bnApply.disabled = true;
     websocket.send("b" + textArea.value);
     isWriting = true;
     textArea.value = "";
-    tStat.innerHTML = "<font color=#444444>applying ...</font>";
+    tStatus.innerHTML = "<font color=#444444>applying ...</font>";
   }
 
   function prettyPrint() {
@@ -169,10 +171,10 @@
       try {
         var obj = JSON.parse(s);
         textArea.value = JSON.stringify(obj, undefined, 4);
-        bnA.disabled = false;
-        tStat.innerHTML = "<font color=#44FF44>verified</font>";
+        bnApply.disabled = false;
+        tStatus.innerHTML = "<font color=#44FF44>verified</font>";
       } catch(e) {
-        bnA.disabled = true;
+        bnApply.disabled = true;
         var arr = e.message.match(/\d+/g);
         var row = parseInt(arr[0]);
         var col = parseInt(arr[1]);
@@ -187,14 +189,10 @@
         textArea.focus();
         textArea.selectionStart = startChar;
         textArea.selectionEnd = startChar;
-        tStat.innerHTML = "<font color=#FF4444>" + e.message + "</font>";
+        tStatus.innerHTML = "<font color=#FF4444>" + e.message + "</font>";
       }
   }
 
-  window.onload = function() {
-    window.setTimeout(init, 500);
-  }
-
-  window.onload = init();
+  window.onload = init;
 </script>
 </html>
