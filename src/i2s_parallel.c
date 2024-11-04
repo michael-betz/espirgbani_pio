@@ -131,35 +131,35 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 		periph_module_enable(PERIPH_I2S1_MODULE);
 	}
 	//Initialize I2S dev
-	dev->conf.rx_reset=1; dev->conf.rx_reset=0;
-	dev->conf.tx_reset=1; dev->conf.tx_reset=0;
+	dev->conf.rx_reset=1; dev->conf.rx_reset = 0;
+	dev->conf.tx_reset=1; dev->conf.tx_reset = 0;
 	dma_reset(dev);
 	fifo_reset(dev);
 
 	//Enable LCD mode
-	dev->conf2.val=0;
-	dev->conf2.lcd_en=1;
+	dev->conf2.val = 0;
+	dev->conf2.lcd_en = 1;
 
-	dev->sample_rate_conf.val=0;
-	dev->sample_rate_conf.rx_bits_mod=cfg->bits;
-	dev->sample_rate_conf.tx_bits_mod=cfg->bits;
-	dev->sample_rate_conf.rx_bck_div_num=4; //ToDo: Unsure about what this does...
-	dev->sample_rate_conf.tx_bck_div_num=4;
+	dev->sample_rate_conf.val = 0;
+	dev->sample_rate_conf.rx_bits_mod = cfg->bits;
+	dev->sample_rate_conf.tx_bits_mod = cfg->bits;
+	// bit-clock divider, min is 2
+	dev->sample_rate_conf.tx_bck_div_num = 2;
 
-	dev->clkm_conf.val=0;
-	dev->clkm_conf.clka_en=0;
-	dev->clkm_conf.clkm_div_a=1;
-	dev->clkm_conf.clkm_div_b=1;
-	//We ignore the possibility for fractional division here.
-	dev->clkm_conf.clkm_div_num=cfg->clk_div;
+	dev->clkm_conf.val = 0;
+	dev->clkm_conf.clk_en = 1;
+	// integral divider, min is 2
+	dev->clkm_conf.clkm_div_num = cfg->clk_div;
+	dev->clkm_conf.clkm_div_a = 1;
+	dev->clkm_conf.clkm_div_b = 0;
+	dev->clkm_conf.clka_en = 0;
 
-
-	dev->fifo_conf.val=0;
-	dev->fifo_conf.rx_fifo_mod_force_en=1;
-	dev->fifo_conf.tx_fifo_mod_force_en=1;
-	dev->fifo_conf.rx_data_num=32; //Thresholds.
-	dev->fifo_conf.tx_data_num=32;
-	dev->fifo_conf.dscr_en=1;
+	dev->fifo_conf.val = 0;
+	dev->fifo_conf.rx_fifo_mod_force_en = 1;
+	dev->fifo_conf.tx_fifo_mod_force_en = 1;
+	dev->fifo_conf.rx_data_num = 32; //Thresholds.
+	dev->fifo_conf.tx_data_num = 32;
+	dev->fifo_conf.dscr_en = 1;
 
 	dev->conf1.val=0;
 	dev->conf1.tx_stop_en=0;
