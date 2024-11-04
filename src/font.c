@@ -1,18 +1,18 @@
-#include <string.h>
-#include <stdio.h>
-#include <errno.h>
-#include <limits.h>
-#include <sys/stat.h>
+#include "font.h"
+#include "bmp.h"
+#include "esp_log.h"
+#include "frame_buffer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "frame_buffer.h"
-#include "bmp.h"
 #include "json_settings.h"
-#include "esp_log.h"
-#include "font.h"
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/stat.h>
 
 static const char *T = "FONT";
 
@@ -34,7 +34,7 @@ font_t *load_font_info(char *file_name) {
 	}
 
 	fread(temp, 4, 1, f);
-	if(strncmp((char*)temp, "BMF", 3) != 0) {
+	if (strncmp((char *)temp, "BMF", 3) != 0) {
 		ESP_LOGE(T, "Wrong header");
 		fclose(f);
 		return NULL;
@@ -43,7 +43,7 @@ font_t *load_font_info(char *file_name) {
 	fDat = (font_t *)malloc(sizeof(font_t));
 	memset(fDat, 0x00, sizeof(font_t));
 
-	while(1) {
+	while (1) {
 		blockType = 0;
 		if (fread(&blockType, 1, 1, f) < 1) {
 			ESP_LOGV(T, "No more data");
@@ -54,56 +54,61 @@ font_t *load_font_info(char *file_name) {
 			break;
 		}
 		ESP_LOGV(T, "loading block %d of size %ld", blockType, blockSize);
-		switch(blockType) {
-			case 1:
-				fDat->info = (fontInfo_t*)malloc(blockSize);
-				if (!fDat->info || fread(fDat->info, 1, blockSize, f) != blockSize) {
-					ESP_LOGE(T, "failed reading fontInfo_t");
-					goto lfi_error_exit;
-				}
-				break;
+		switch (blockType) {
+		case 1:
+			fDat->info = (fontInfo_t *)malloc(blockSize);
+			if (!fDat->info ||
+				fread(fDat->info, 1, blockSize, f) != blockSize) {
+				ESP_LOGE(T, "failed reading fontInfo_t");
+				goto lfi_error_exit;
+			}
+			break;
 
-			case 2:
-				fDat->common = (fontCommon_t*)malloc(blockSize);
-				if (!fDat->common || fread(fDat->common, 1, blockSize, f) != blockSize) {
-					ESP_LOGE(T, "failed reading fontCommon_t");
-					goto lfi_error_exit;
-				}
-				break;
+		case 2:
+			fDat->common = (fontCommon_t *)malloc(blockSize);
+			if (!fDat->common ||
+				fread(fDat->common, 1, blockSize, f) != blockSize) {
+				ESP_LOGE(T, "failed reading fontCommon_t");
+				goto lfi_error_exit;
+			}
+			break;
 
-			case 3:
-				fDat->pageNamesLen = blockSize;
-				fDat->pageNames = (char*)malloc(blockSize);
-				if (!fDat->pageNames || fread(fDat->pageNames, 1, blockSize, f) != blockSize) {
-					ESP_LOGE(T, "failed reading pageNames");
-					goto lfi_error_exit;
-				}
-				break;
+		case 3:
+			fDat->pageNamesLen = blockSize;
+			fDat->pageNames = (char *)malloc(blockSize);
+			if (!fDat->pageNames ||
+				fread(fDat->pageNames, 1, blockSize, f) != blockSize) {
+				ESP_LOGE(T, "failed reading pageNames");
+				goto lfi_error_exit;
+			}
+			break;
 
-			case 4:
-				fDat->charsLen = blockSize;
-				fDat->chars = (fontChar_t*)malloc(blockSize);
-				if (!fDat->chars || fread(fDat->chars, 1, blockSize, f) != blockSize) {
-					ESP_LOGE(T, "failed reading fontChar_t");
-					goto lfi_error_exit;
-				}
-				break;
+		case 4:
+			fDat->charsLen = blockSize;
+			fDat->chars = (fontChar_t *)malloc(blockSize);
+			if (!fDat->chars ||
+				fread(fDat->chars, 1, blockSize, f) != blockSize) {
+				ESP_LOGE(T, "failed reading fontChar_t");
+				goto lfi_error_exit;
+			}
+			break;
 
-			case 5:
-				ESP_LOGW(T, "Ignoring kerning table. Ain't nobody got heap for that!!!");
-				fseek(f, blockSize, SEEK_CUR);
-				// fDat->kernsLen = blockSize;
-				// fDat->kerns = (fontKern_t*)malloc(blockSize);
-				// if (!fDat->kerns || fread(fDat->kerns, 1, blockSize, f) != blockSize) {
-				// 	ESP_LOGE(T, "failed reading fontKern_t");
-				// 	goto lfi_error_exit;
-				// }
-				break;
+		case 5:
+			ESP_LOGW(
+				T, "Ignoring kerning table. Ain't nobody got heap for that!!!");
+			fseek(f, blockSize, SEEK_CUR);
+			// fDat->kernsLen = blockSize;
+			// fDat->kerns = (fontKern_t*)malloc(blockSize);
+			// if (!fDat->kerns || fread(fDat->kerns, 1, blockSize, f) !=
+			// blockSize) { 	ESP_LOGE(T, "failed reading fontKern_t"); 	goto
+			// lfi_error_exit;
+			// }
+			break;
 
-			default:
-				ESP_LOGW(T, "Unknown block type: %d\n", blockType);
-				fseek(f, blockSize, SEEK_CUR);
-				continue;
+		default:
+			ESP_LOGW(T, "Unknown block type: %d\n", blockType);
+			fseek(f, blockSize, SEEK_CUR);
+			continue;
 		}
 	}
 	fclose(f);
@@ -116,8 +121,7 @@ lfi_error_exit:
 }
 
 // frees up allocated memory of an font_t object
-void free_font_info(font_t *f)
-{
+void free_font_info(font_t *f) {
 	if (f == NULL)
 		return;
 	free(f->info);
@@ -132,24 +136,18 @@ void free_font_info(font_t *f)
 void print_font_info(font_t *fDat) {
 	if (fDat == NULL)
 		return;
-	ESP_LOGI(T,
-		"%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
-		fDat->info->fontName,
-		fDat->pageNames,
-		fDat->info->fontSize,
-		fDat->common->lineHeight,
-		fDat->common->base,
-		fDat->common->scaleW,
-		fDat->common->scaleH
-	);
+	ESP_LOGI(T, "%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
+			 fDat->info->fontName, fDat->pageNames, fDat->info->fontSize,
+			 fDat->common->lineHeight, fDat->common->base, fDat->common->scaleW,
+			 fDat->common->scaleH);
 }
 
 // get pointer to fontChar_t for a specific character, or NULL if not found
 fontChar_t *getCharInfo(font_t *fDat, char c) {
 	fontChar_t *tempC = fDat->chars;
-	int nChars = fDat->charsLen/(int)sizeof(fontChar_t);
-	for(int i=0; i<nChars; i++) {
-		if(tempC->id == c) {
+	int nChars = fDat->charsLen / (int)sizeof(fontChar_t);
+	for (int i = 0; i < nChars; i++) {
+		if (tempC->id == c) {
 			return tempC;
 		}
 		tempC++;
@@ -181,7 +179,8 @@ bool initFont(const char *filePrefix) {
 	g_bmpFile = NULL;
 
 	ESP_LOGV(T, "Loading %s", tempFileName);
-	g_bmpFile = loadBitmapFile(tempFileName, &g_bmpFileHeader, &g_bmpInfoHeader);
+	g_bmpFile =
+		loadBitmapFile(tempFileName, &g_bmpFileHeader, &g_bmpInfoHeader);
 	if (g_bmpFile == NULL) {
 		ESP_LOGE(T, "Could not load %s", tempFileName);
 		return false;
@@ -190,7 +189,7 @@ bool initFont(const char *filePrefix) {
 	return true;
 }
 
-int cursX=0, cursY=8;
+int cursX = 0, cursY = 8;
 char g_lastChar = 0;
 
 void setCur(int x, int y) {
@@ -209,19 +208,10 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 		fontChar_t *charInfo = getCharInfo(g_fontInfo, c);
 		// int16_t k = getKerning(g_lastChar, c);
 		if (charInfo) {
-			copyBmpToFbRect(
-				g_bmpFile,
-				&g_bmpInfoHeader,
-				charInfo->x,
-				charInfo->y,
-				charInfo->width,
-				charInfo->height,
-				cursX + charInfo->xoffset,
-				cursY + charInfo->yoffset,
-				layer,
-				color,
-				chOffset
-			);
+			copyBmpToFbRect(g_bmpFile, &g_bmpInfoHeader, charInfo->x,
+							charInfo->y, charInfo->width, charInfo->height,
+							cursX + charInfo->xoffset,
+							cursY + charInfo->yoffset, layer, color, chOffset);
 			cursX += charInfo->xadvance;
 		}
 	}
@@ -231,10 +221,11 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 // calculate bounding box enclosing all characters
 // w = width, h = height, top = vertical offset to the top edge of BB
 // left = horizontal offset to left edge of BB
-// drawStr("bla", -left, -top) will make chars touch the upper left side of display
+// drawStr("bla", -left, -top) will make chars touch the upper left side of
+// display
 void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
-	int i=0, _w=0, _top=INT_MAX, _bottom=INT_MIN;
-	while(*str) {
+	int i = 0, _w = 0, _top = INT_MAX, _bottom = INT_MIN;
+	while (*str) {
 		fontChar_t *charInfo = getCharInfo(g_fontInfo, *str);
 		if (charInfo) {
 			// left edge of BB
@@ -259,7 +250,8 @@ void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
 }
 
 // y = distance from top of display to top of character cell
-void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
+void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
+			 uint32_t cFill) {
 	const char *c = str;
 	ESP_LOGV(T, "x: %d, y: %d, str: %s", x, y, str);
 	setCur(x, y);
@@ -276,9 +268,11 @@ void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline, ui
 		drawChar(*c++, layer, cFill, 2);
 }
 
-void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill) {
-	int w=0, h=0, left=0, top=0, xOff=0, yOff=0;
-	if (g_bmpFile == NULL || g_fontInfo == NULL) return;
+void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline,
+					 uint32_t cFill) {
+	int w = 0, h = 0, left = 0, top = 0, xOff = 0, yOff = 0;
+	if (g_bmpFile == NULL || g_fontInfo == NULL)
+		return;
 
 	// get bounding box of the whole string
 	getStrBoundingBox(str, &w, &h, &left, &top);
@@ -302,13 +296,13 @@ void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline, uint32_t
 }
 
 // Returns the number of consecutive `path/0.fnt` files
-int cntFntFiles(const char* path) {
+int cntFntFiles(const char *path) {
 	int nFiles = 0;
 	char fNameBuffer[32];
-	struct stat   buffer;
-	while(1) {
+	struct stat buffer;
+	while (1) {
 		sprintf(fNameBuffer, "%s/%02d.fnt", path, nFiles);
-		if(stat(fNameBuffer, &buffer) == 0) {
+		if (stat(fNameBuffer, &buffer) == 0) {
 			nFiles++;
 		} else {
 			break;

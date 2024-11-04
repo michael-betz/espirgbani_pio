@@ -1,15 +1,15 @@
-#include <string.h>
+#include "rgb_led_panel.h"
+#include "assert.h"
+#include "common.h"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "frame_buffer.h"
+#include "i2s_parallel.h"
+#include "json_settings.h"
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
-#include "esp_log.h"
-#include "common.h"
-#include "esp_heap_caps.h"
-#include "frame_buffer.h"
-#include "rgb_led_panel.h"
-#include "assert.h"
-#include "json_settings.h"
-#include "i2s_parallel.h"
+#include <string.h>
 
 static const char *T = "LED_PANEL";
 
@@ -19,15 +19,14 @@ int g_rgbLedBrightness = 5;
 
 // Double buffering has been removed to save RAM. No visual differences!
 uint16_t *bitplane[BITPLANE_CNT];
-//DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B
+// DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B
 
 // .json configurable parameters
 static int latch_offset = 0;
 static unsigned extra_blank = 0;
 static bool isColumnSwapped = false;
 
-void init_rgb()
-{
+void init_rgb() {
 	initFb();
 
 	i2s_parallel_buffer_desc_t bufdesc[1 << BITPLANE_CNT];
@@ -51,8 +50,7 @@ void init_rgb()
 	cfg.gpio_bus[14] = (gpio_num_t)(-1);
 	cfg.gpio_bus[15] = (gpio_num_t)(-1);
 
-	cfg.bits = I2S_PARALLEL_BITS_16,
-	cfg.bufa = bufdesc;
+	cfg.bits = I2S_PARALLEL_BITS_16, cfg.bufa = bufdesc;
 	cfg.bufb = bufdesc;
 
 	//--------------------------
@@ -79,7 +77,8 @@ void init_rgb()
 
 	// set clock divider
 	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
-	if (cfg.clk_div < 1) cfg.clk_div = 1;
+	if (cfg.clk_div < 1)
+		cfg.clk_div = 1;
 	ESP_LOGV(T, "clkm_div_num = %d", cfg.clk_div);
 
 	cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
@@ -87,37 +86,40 @@ void init_rgb()
 	//--------------------------
 	// init the sub-frames
 	//--------------------------
-	for (int i=0; i<BITPLANE_CNT; i++) {
-		bitplane[i] = (uint16_t*)heap_caps_malloc(BITPLANE_SZ*2, MALLOC_CAP_DMA);
+	for (int i = 0; i < BITPLANE_CNT; i++) {
+		bitplane[i] =
+			(uint16_t *)heap_caps_malloc(BITPLANE_SZ * 2, MALLOC_CAP_DMA);
 		assert(bitplane[i] && "Can't allocate bitplane memory");
-		memset(bitplane[i], 0, BITPLANE_SZ*2);
+		memset(bitplane[i], 0, BITPLANE_SZ * 2);
 	}
 
-	//Do binary time division setup. Essentially, we need n of plane 0, 2n of plane 1, 4n of plane 2 etc, but that
-	//needs to be divided evenly over time to stop flicker from happening. This little bit of code tries to do that
-	//more-or-less elegantly.
-	int times[BITPLANE_CNT]={0};
-	for (int i=0; i<((1<<BITPLANE_CNT)-1); i++) {
-		int ch=0;
+	// Do binary time division setup. Essentially, we need n of plane 0, 2n of
+	// plane 1, 4n of plane 2 etc, but that needs to be divided evenly over time
+	// to stop flicker from happening. This little bit of code tries to do that
+	// more-or-less elegantly.
+	int times[BITPLANE_CNT] = {0};
+	for (int i = 0; i < ((1 << BITPLANE_CNT) - 1); i++) {
+		int ch = 0;
 
-		//Find plane that needs insertion the most
-		for (int j=0; j<BITPLANE_CNT; j++) {
+		// Find plane that needs insertion the most
+		for (int j = 0; j < BITPLANE_CNT; j++) {
 			if (times[j] <= times[ch])
-				ch=j;
+				ch = j;
 		}
 
-		//Insert the plane
+		// Insert the plane
 		bufdesc[i].memory = bitplane[ch];
 		bufdesc[i].size = BITPLANE_SZ * 2;
 
-		//Magic to make sure we choose this bitplane an appropriate time later next time
+		// Magic to make sure we choose this bitplane an appropriate time later
+		// next time
 		times[ch] += (1 << (BITPLANE_CNT - ch));
 	}
 
-	//End markers
+	// End markers
 	bufdesc[((1 << BITPLANE_CNT) - 1)].memory = NULL;
 
-	//Setup I2S
+	// Setup I2S
 	i2s_parallel_setup(&I2S1, &cfg);
 
 	ESP_LOGI(T, "I2S setup done.");
@@ -127,16 +129,21 @@ void updateFrame() {
 	// Wait until all the layers are done updating
 	waitDrawingDone();
 
-	for (unsigned int y=0; y<16; y++) {
-		// Precalculate line bits of the *previous* line, which is the one we're displaying now
+	for (unsigned int y = 0; y < 16; y++) {
+		// Precalculate line bits of the *previous* line, which is the one we're
+		// displaying now
 		int lbits = 0;
 
-		if ((y - 1) & 1) lbits |= BIT_A;
-		if ((y - 1) & 2) lbits |= BIT_B;
-		if ((y - 1) & 4) lbits |= BIT_C;
-		if ((y - 1) & 8) lbits |= BIT_D;
+		if ((y - 1) & 1)
+			lbits |= BIT_A;
+		if ((y - 1) & 2)
+			lbits |= BIT_B;
+		if ((y - 1) & 4)
+			lbits |= BIT_C;
+		if ((y - 1) & 8)
+			lbits |= BIT_D;
 
-		for (int fx=0; fx<DISPLAY_WIDTH; fx++) {
+		for (int fx = 0; fx < DISPLAY_WIDTH; fx++) {
 			int x = fx;
 
 			if (isColumnSwapped)
@@ -145,31 +152,39 @@ void updateFrame() {
 			int v = lbits;
 
 			// Do not show image while the line bits are changing
-			if (fx < extra_blank || fx >= g_rgbLedBrightness) v |= BIT_BLANK;
+			if (fx < extra_blank || fx >= g_rgbLedBrightness)
+				v |= BIT_BLANK;
 
 			// latch on last bit...
-			if (fx == latch_offset) v |= BIT_LAT;
+			if (fx == latch_offset)
+				v |= BIT_LAT;
 
 			// Does alpha blending of all graphical layers, a rather
 			// expensive operation and best kept out of innermost loop.
 			int c1 = getBlendedPixel(x, y);
 			int c2 = getBlendedPixel(x, y + 16);
 
-			for (int pl=0; pl<BITPLANE_CNT; pl++) {
+			for (int pl = 0; pl < BITPLANE_CNT; pl++) {
 				// reset RGB bits
 				int v_ = v;
 
 				// bitmask for pixel data in input for this bitplane
 				int mask = (1 << (8 - BITPLANE_CNT + pl));
 
-				if (c1 & (mask << 16)) v_ |= BIT_R1;
-				if (c1 & (mask <<  8)) v_ |= BIT_G1;
-				if (c1 & (mask <<  0)) v_ |= BIT_B1;
-				if (c2 & (mask << 16)) v_ |= BIT_R2;
-				if (c2 & (mask <<  8)) v_ |= BIT_G2;
-				if (c2 & (mask <<  0)) v_ |= BIT_B2;
+				if (c1 & (mask << 16))
+					v_ |= BIT_R1;
+				if (c1 & (mask << 8))
+					v_ |= BIT_G1;
+				if (c1 & (mask << 0))
+					v_ |= BIT_B1;
+				if (c2 & (mask << 16))
+					v_ |= BIT_R2;
+				if (c2 & (mask << 8))
+					v_ |= BIT_G2;
+				if (c2 & (mask << 0))
+					v_ |= BIT_B2;
 
-				//Save the calculated value to the bitplane memory
+				// Save the calculated value to the bitplane memory
 				bitplane[pl][y * DISPLAY_WIDTH + x] = v_;
 			}
 		}

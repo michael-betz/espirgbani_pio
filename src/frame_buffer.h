@@ -1,52 +1,55 @@
 #ifndef FRAME_BUFFER_H
 #define FRAME_BUFFER_H
-#include <stdio.h>
 #include "rgb_led_panel.h"
+#include <stdio.h>
 
-#define N_LAYERS	3
+#define N_LAYERS 3
 
-#define BLEND_LAYERS(t,m,b) ((t * (255 - m) + b * m) / 255)
+#define BLEND_LAYERS(t, m, b) ((t * (255 - m) + b * m) / 255)
 
 // Fast integer `scaling` a * b (255 * 255 = 255)
 // from http://stereopsis.com/doubleblend.html
-#define INT_MULT(a,b,t)        (((a) + 1) * (b) >> 8)
-#define INT_PRELERP(p, q, a)   ((p) + (q) - INT_MULT(a, p, 0))
+#define INT_MULT(a, b, t) (((a) + 1) * (b) >> 8)
+#define INT_PRELERP(p, q, a) ((p) + (q)-INT_MULT(a, p, 0))
 
-// from http://www.cs.princeton.edu/courses/archive/fall00/cs426/papers/smith95a.pdf
+// from
+// http://www.cs.princeton.edu/courses/archive/fall00/cs426/papers/smith95a.pdf
 // t = 16 bit temporary variable.
 // #define INT_MULT(a,b,t) ((t)=(a)*(b)+0x80, ((((t)>>8)+(t))>>8))
 // #define INT_PRELERP(p, q, a, t) ((p) + (q) - INT_MULT(a, p, t))
 // B over A (premultipied alpha):  C' = INT_PRELERP(A', B', beta, t)
 
-//Scales all 4 components in p with the same scaling factor scale (255*255=255)
+// Scales all 4 components in p with the same scaling factor scale (255*255=255)
 static inline unsigned scale32(unsigned scale, unsigned p) {
 	scale += 1;
-	unsigned ag = (p>>8) & 0x00FF00FF;
-	unsigned rb =  p     & 0x00FF00FF;
+	unsigned ag = (p >> 8) & 0x00FF00FF;
+	unsigned rb = p & 0x00FF00FF;
 	unsigned sag = scale * ag;
 	unsigned srb = scale * rb;
-	sag =  sag     & 0xFF00FF00;
-	srb = (srb>>8) & 0x00FF00FF;
+	sag = sag & 0xFF00FF00;
+	srb = (srb >> 8) & 0x00FF00FF;
 	return sag | srb;
 }
 
-#define GC(p,ci) (((p)>>((ci)*8))&0xFF)
-#define GR(p)    (GC(p,0))
-#define GG(p)    (GC(p,1))
-#define GB(p)    (GC(p,2))
-#define GA(p)    (GC(p,3))
-#define SRGBA(r,g,b,a) (((a)<<24) | ((b)<<16) | ((g)<<8) | (r))
+#define GC(p, ci) (((p) >> ((ci)*8)) & 0xFF)
+#define GR(p) (GC(p, 0))
+#define GG(p) (GC(p, 1))
+#define GB(p) (GC(p, 2))
+#define GA(p) (GC(p, 3))
+#define SRGBA(r, g, b, a) (((a) << 24) | ((b) << 16) | ((g) << 8) | (r))
 
 // shades of the color in set_shade_*
-#define N_SHADES 16  // not really changeable
+#define N_SHADES 16 // not really changeable
 
-extern unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH*DISPLAY_HEIGHT];
+extern unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
 unsigned getBlendedPixel(unsigned x, unsigned y);
 
-// SET / GET a single pixel on a layer to a specific RGBA color in the framebuffer
+// SET / GET a single pixel on a layer to a specific RGBA color in the
+// framebuffer
 void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color);
-void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color);
+void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex,
+				   unsigned color);
 unsigned getPixel(unsigned layer, unsigned x, unsigned y);
 
 // pre-calculate a palette of 16 shades fading up from opaque black
@@ -66,7 +69,8 @@ void set_shade_ht(uint16_t hue, unsigned *shades);
 void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 
 // using float, from https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
-void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1, float y1);
+void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1,
+			 float y1);
 
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);

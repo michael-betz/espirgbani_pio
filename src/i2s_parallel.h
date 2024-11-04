@@ -1,14 +1,14 @@
 #ifndef I2S_PARALLEL_H
 #define I2S_PARALLEL_H
 
-#include <stdint.h>
 #include "driver/gpio.h"
 #include "soc/i2s_struct.h"
+#include <stdint.h>
 
 typedef enum {
-	I2S_PARALLEL_BITS_8=8,
-	I2S_PARALLEL_BITS_16=16,
-	I2S_PARALLEL_BITS_32=32,
+	I2S_PARALLEL_BITS_8 = 8,
+	I2S_PARALLEL_BITS_16 = 16,
+	I2S_PARALLEL_BITS_32 = 32,
 } i2s_parallel_cfg_bits_t;
 
 typedef struct {

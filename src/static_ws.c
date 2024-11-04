@@ -3,12 +3,12 @@
 // https://github.com/espressif/esp-idf/blob/master/examples/protocols/http_server/file_serving/main/file_server.c
 // used for editing settings.json in the browser
 
-#include <stdio.h>
+#include "static_ws.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_vfs.h"
 #include "esp_wifi.h"
-#include "static_ws.h"
+#include <stdio.h>
 
 static const char *T = "STATIC_WS";
 
@@ -16,33 +16,45 @@ static httpd_handle_t server = NULL;
 
 #define FILE_PATH_MAX (ESP_VFS_PATH_MAX + CONFIG_SPIFFS_OBJ_NAME_LEN)
 #define BASE_PATH "/spiffs"
-#define SCRATCH_BUFSIZE  4096  // Dynamically allocated
+#define SCRATCH_BUFSIZE 4096 // Dynamically allocated
 
-#define IS_FILE_EXT(filename, ext) \
+#define IS_FILE_EXT(filename, ext)                                             \
 	(strcasecmp(&filename[strlen(filename) - sizeof(ext) + 1], ext) == 0)
 
 // Set HTTP response content type according to file extension
-static esp_err_t set_content_type_from_file(httpd_req_t *req, const char *filename)
-{
-	if (IS_FILE_EXT(filename, ".htm")) return httpd_resp_set_type(req, "text/html");
-	if (IS_FILE_EXT(filename, ".html"))return httpd_resp_set_type(req, "text/html");
-	if (IS_FILE_EXT(filename, ".css")) return httpd_resp_set_type(req, "text/css");
-	if (IS_FILE_EXT(filename, ".js"))  return httpd_resp_set_type(req, "application/javascript");
-	if (IS_FILE_EXT(filename, ".png")) return httpd_resp_set_type(req, "image/png");
-	if (IS_FILE_EXT(filename, ".gif")) return httpd_resp_set_type(req, "image/gif");
-	if (IS_FILE_EXT(filename, ".jpg")) return httpd_resp_set_type(req, "image/jpeg");
-	if (IS_FILE_EXT(filename, ".ico")) return httpd_resp_set_type(req, "image/x-icon");
-	if (IS_FILE_EXT(filename, ".xml")) return httpd_resp_set_type(req, "text/xml");
-	if (IS_FILE_EXT(filename, ".pdf")) return httpd_resp_set_type(req, "application/x-pdf");
-	if (IS_FILE_EXT(filename, ".zip")) return httpd_resp_set_type(req, "application/x-zip");
-	if (IS_FILE_EXT(filename, ".gz"))  return httpd_resp_set_type(req, "application/x-gzip");
+static esp_err_t set_content_type_from_file(httpd_req_t *req,
+											const char *filename) {
+	if (IS_FILE_EXT(filename, ".htm"))
+		return httpd_resp_set_type(req, "text/html");
+	if (IS_FILE_EXT(filename, ".html"))
+		return httpd_resp_set_type(req, "text/html");
+	if (IS_FILE_EXT(filename, ".css"))
+		return httpd_resp_set_type(req, "text/css");
+	if (IS_FILE_EXT(filename, ".js"))
+		return httpd_resp_set_type(req, "application/javascript");
+	if (IS_FILE_EXT(filename, ".png"))
+		return httpd_resp_set_type(req, "image/png");
+	if (IS_FILE_EXT(filename, ".gif"))
+		return httpd_resp_set_type(req, "image/gif");
+	if (IS_FILE_EXT(filename, ".jpg"))
+		return httpd_resp_set_type(req, "image/jpeg");
+	if (IS_FILE_EXT(filename, ".ico"))
+		return httpd_resp_set_type(req, "image/x-icon");
+	if (IS_FILE_EXT(filename, ".xml"))
+		return httpd_resp_set_type(req, "text/xml");
+	if (IS_FILE_EXT(filename, ".pdf"))
+		return httpd_resp_set_type(req, "application/x-pdf");
+	if (IS_FILE_EXT(filename, ".zip"))
+		return httpd_resp_set_type(req, "application/x-zip");
+	if (IS_FILE_EXT(filename, ".gz"))
+		return httpd_resp_set_type(req, "application/x-gzip");
 	return httpd_resp_set_type(req, "text/plain");
 }
 
 /* Copies the full path into destination buffer and returns
  * pointer to path (skipping the preceding base path) */
-static const char* get_path_from_uri(char *dest, const char *uri, size_t destsize)
-{
+static const char *get_path_from_uri(char *dest, const char *uri,
+									 size_t destsize) {
 	const size_t base_pathlen = strlen(BASE_PATH);
 	size_t pathlen = strlen(uri);
 
@@ -69,39 +81,38 @@ static const char* get_path_from_uri(char *dest, const char *uri, size_t destsiz
 }
 
 // redirect / to /index.htm
-static esp_err_t index_html_get_handler(httpd_req_t *req)
-{
+static esp_err_t index_html_get_handler(httpd_req_t *req) {
 	httpd_resp_set_status(req, "307 Temporary Redirect");
 	httpd_resp_set_hdr(req, "Location", "index.htm");
-	httpd_resp_send(req, NULL, 0);  // Response body can be empty
+	httpd_resp_send(req, NULL, 0); // Response body can be empty
 	return ESP_OK;
 }
 
 // reboot
-static esp_err_t reboot_get_handler(httpd_req_t *req)
-{
-    httpd_resp_set_status(req, HTTPD_200);
-    httpd_resp_sendstr(req, "Rebooting ...");
+static esp_err_t reboot_get_handler(httpd_req_t *req) {
+	httpd_resp_set_status(req, HTTPD_200);
+	httpd_resp_sendstr(req, "Rebooting ...");
 
 	esp_wifi_disconnect();
 	vTaskDelay(100 / portTICK_PERIOD_MS);
 	esp_restart();
 
-	return ESP_OK;  // LOL
+	return ESP_OK; // LOL
 }
 
 // Handler to download a file kept on SPIFFS
-static esp_err_t download_get_handler(httpd_req_t *req)
-{
+static esp_err_t download_get_handler(httpd_req_t *req) {
 	char filepath[FILE_PATH_MAX];
 	FILE *fd = NULL;
 	struct stat file_stat;
 
-	const char *filename = get_path_from_uri(filepath, req->uri, sizeof(filepath));
+	const char *filename =
+		get_path_from_uri(filepath, req->uri, sizeof(filepath));
 	if (!filename) {
 		ESP_LOGE(T, "Filename is too long");
 		/* Respond with 500 Internal Server Error */
-		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long");
+		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+							"Filename too long");
 		return ESP_FAIL;
 	}
 
@@ -119,14 +130,16 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 	if (!fd) {
 		ESP_LOGE(T, "Failed to read existing file : %s", filepath);
 		/* Respond with 500 Internal Server Error */
-		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file");
+		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+							"Failed to read existing file");
 		return ESP_FAIL;
 	}
 
 	// to stop firefox from bitching when testing the javascript
 	// httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-	ESP_LOGI(T, "Sending file : %s (%ld bytes)...", filename, file_stat.st_size);
+	ESP_LOGI(T, "Sending file : %s (%ld bytes)...", filename,
+			 file_stat.st_size);
 	set_content_type_from_file(req, filename);
 
 	/* Retrieve the pointer to scratch buffer for temporary storage */
@@ -147,10 +160,11 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 				/* Abort sending file */
 				httpd_resp_sendstr_chunk(req, NULL);
 				/* Respond with 500 Internal Server Error */
-				httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file");
+				httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+									"Failed to send file");
 				free(chunk);
-			   return ESP_FAIL;
-		   }
+				return ESP_FAIL;
+			}
 		}
 
 		/* Keep looping till the whole file is sent */
@@ -168,20 +182,18 @@ static esp_err_t download_get_handler(httpd_req_t *req)
 
 httpd_req_t *g_req = NULL;
 
-void __attribute__((weak)) ws_callback(uint8_t *payload, unsigned len)
-{
+void __attribute__((weak)) ws_callback(uint8_t *payload, unsigned len) {
 	ESP_LOGI(T, "ws_callback(%d)", len);
 }
 
 // This handles websocket traffic, needs ESP-IDF > 4.2.x
-static esp_err_t ws_handler(httpd_req_t *req)
-{
+static esp_err_t ws_handler(httpd_req_t *req) {
 	if (req->method == HTTP_GET) {
 		ESP_LOGI(T, "WS handshake");
-        return ESP_OK;
-    }
+		return ESP_OK;
+	}
 
-	uint8_t buf[128] = { 0 };
+	uint8_t buf[128] = {0};
 	httpd_ws_frame_t ws_pkt;
 	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
 	ws_pkt.payload = buf;
@@ -201,8 +213,7 @@ static esp_err_t ws_handler(httpd_req_t *req)
 	return ESP_OK;
 }
 
-esp_err_t ws_send(uint8_t *payload, unsigned len)
-{
+esp_err_t ws_send(uint8_t *payload, unsigned len) {
 	httpd_ws_frame_t ws_pkt;
 	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
 	ws_pkt.type = HTTPD_WS_TYPE_TEXT;
@@ -211,8 +222,7 @@ esp_err_t ws_send(uint8_t *payload, unsigned len)
 	return httpd_ws_send_frame(g_req, &ws_pkt);
 }
 
-void startWebServer()
-{
+void startWebServer() {
 	if (server)
 		return;
 
@@ -228,32 +238,25 @@ void startWebServer()
 
 	// Set URI handlers
 	ESP_LOGI(T, "Registering URI handlers");
-	httpd_uri_t ws = {
-		.uri        = "/ws",
-		.method     = HTTP_GET,
-		.handler    = ws_handler,
-		.user_ctx   = NULL,
-		.is_websocket = true
-	};
+	httpd_uri_t ws = {.uri = "/ws",
+					  .method = HTTP_GET,
+					  .handler = ws_handler,
+					  .user_ctx = NULL,
+					  .is_websocket = true};
 	httpd_register_uri_handler(server, &ws);
 
 	httpd_uri_t file_reboot = {
-		.uri       = "/reboot",
-		.method    = HTTP_GET,
-		.handler   = reboot_get_handler
-	};
+		.uri = "/reboot", .method = HTTP_GET, .handler = reboot_get_handler};
 	httpd_register_uri_handler(server, &file_reboot);
 
 	httpd_uri_t file_download = {
-		.uri       = "/*",  // Match all URIs of type /path/to/file
-		.method    = HTTP_GET,
-		.handler   = download_get_handler
-	};
+		.uri = "/*", // Match all URIs of type /path/to/file
+		.method = HTTP_GET,
+		.handler = download_get_handler};
 	httpd_register_uri_handler(server, &file_download);
 }
 
-void stopWebServer()
-{
+void stopWebServer() {
 	if (server)
 		httpd_stop(server);
 	server = NULL;

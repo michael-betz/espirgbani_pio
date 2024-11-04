@@ -1,19 +1,19 @@
+#include "json_settings.h"
+#include "esp_log.h"
+#include "static_ws.h"
+#include <assert.h>
+#include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdbool.h>
-#include <errno.h>
-#include <assert.h>
 #include <string.h>
-#include "esp_log.h"
-#include "json_settings.h"
-#include "static_ws.h"
 
 static const char *T = "JSON_S";
 
 static cJSON *g_settings = NULL;
 static const char *g_settings_file = NULL;
 
-char *readFileDyn(const char* file_name, int *file_size) {
+char *readFileDyn(const char *file_name, int *file_size) {
 	// opens the file file_name and returns it as dynamically allocated char*
 	// if file_size is not NULL, copies the number of bytes read there
 	// dont forget to call free() on the char* result
@@ -27,9 +27,9 @@ char *readFileDyn(const char* file_name, int *file_size) {
 	}
 	fseek(f, 0, SEEK_END);
 	int fsize = ftell(f);
-	fseek(f, 0, SEEK_SET);  //same as rewind(f);
+	fseek(f, 0, SEEK_SET); // same as rewind(f);
 	ESP_LOGI(T, "loading %s, fsize: %d", file_name, fsize);
-	char *string = (char*) malloc(fsize + 1);
+	char *string = (char *)malloc(fsize + 1);
 	if (!string) {
 		ESP_LOGE(T, "malloc(%d) failed: %s", fsize + 1, strerror(errno));
 		assert(false);
@@ -42,7 +42,7 @@ char *readFileDyn(const char* file_name, int *file_size) {
 	return string;
 }
 
-cJSON *readJsonDyn(const char* file_name) {
+cJSON *readJsonDyn(const char *file_name) {
 	// opens the json file `file_name` and returns it as cJSON*
 	// don't forget to call cJSON_Delete() on it
 	cJSON *root;
@@ -66,8 +66,7 @@ cJSON *readJsonDyn(const char* file_name) {
 	return root;
 }
 
-void settings_ws_handler(uint8_t *data, size_t len)
-{
+void settings_ws_handler(uint8_t *data, size_t len) {
 	// if data is given, it will overwrite the settings file
 	// then it will read the settings file and send it over the websocket
 	if (data != NULL && len > 1) {
@@ -81,7 +80,8 @@ void settings_ws_handler(uint8_t *data, size_t len)
 
 			set_settings_file(NULL, NULL);
 		} else {
-			ESP_LOGE(T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno));
+			ESP_LOGE(T, "fopen(%s, wb) failed: %s", g_settings_file,
+					 strerror(errno));
 		}
 	}
 
@@ -93,8 +93,7 @@ void settings_ws_handler(uint8_t *data, size_t len)
 	}
 }
 
-void set_settings_file(const char *f_settings, const char *f_defaults)
-{
+void set_settings_file(const char *f_settings, const char *f_defaults) {
 	if (f_settings != NULL)
 		g_settings_file = f_settings;
 
@@ -107,14 +106,15 @@ void set_settings_file(const char *f_settings, const char *f_defaults)
 		char buf[32];
 		size_t size;
 		ESP_LOGW(T, "writing default-settings to %s", g_settings_file);
-		FILE* source = fopen(f_defaults, "rb");
-		FILE* dest = fopen(g_settings_file, "wb");
+		FILE *source = fopen(f_defaults, "rb");
+		FILE *dest = fopen(g_settings_file, "wb");
 		if (source && dest) {
 			while ((size = fread(buf, 1, sizeof(buf), source))) {
 				fwrite(buf, 1, size, dest);
 			}
 		} else {
-			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults, g_settings_file, strerror(errno));
+			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults,
+					 g_settings_file, strerror(errno));
 		}
 
 		if (source)
@@ -127,15 +127,15 @@ void set_settings_file(const char *f_settings, const char *f_defaults)
 	}
 }
 
-cJSON *getSettings() {
-	return g_settings;
-}
+cJSON *getSettings() { return g_settings; }
 
 // return string from .json or default-value on error
-const char *jGetS(const cJSON *json, const char *name, const char *default_val) {
+const char *jGetS(const cJSON *json, const char *name,
+				  const char *default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
-	if(!cJSON_IsString(j)) {
-		ESP_LOGE(T, "%s is not a string, falling back to %s", name, default_val);
+	if (!cJSON_IsString(j)) {
+		ESP_LOGE(T, "%s is not a string, falling back to %s", name,
+				 default_val);
 		return default_val;
 	}
 	return j->valuestring;
@@ -145,7 +145,8 @@ const char *jGetS(const cJSON *json, const char *name, const char *default_val) 
 int jGetI(cJSON *json, const char *name, int default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGE(T, "%s is not a number, falling back to %d", name, default_val);
+		ESP_LOGE(T, "%s is not a number, falling back to %d", name,
+				 default_val);
 		return default_val;
 	}
 	return j->valueint;
@@ -155,7 +156,8 @@ int jGetI(cJSON *json, const char *name, int default_val) {
 double jGetD(cJSON *json, const char *name, double default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGE(T, "%s is not a number, falling back to %f", name, default_val);
+		ESP_LOGE(T, "%s is not a number, falling back to %f", name,
+				 default_val);
 		return default_val;
 	}
 	return j->valuedouble;
@@ -165,7 +167,8 @@ double jGetD(cJSON *json, const char *name, double default_val) {
 bool jGetB(cJSON *json, const char *name, bool default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsBool(j)) {
-		ESP_LOGE(T, "%s is not a bool, falling back to %s", name, default_val ? "true" : "false");
+		ESP_LOGE(T, "%s is not a bool, falling back to %s", name,
+				 default_val ? "true" : "false");
 		return default_val;
 	}
 	return cJSON_IsTrue(j);

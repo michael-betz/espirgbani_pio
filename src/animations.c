@@ -1,21 +1,20 @@
-#include <stdint.h>
-#include <string.h>
-#include <time.h>
-#include "fast_hsv2rgb.h"
-#include "frame_buffer.h"
-#include "json_settings.h"
-#include "rom/rtc.h"
-#include "font.h"
 #include "animations.h"
 #include "common.h"
 #include "esp_log.h"
 #include "esp_timer.h"
+#include "fast_hsv2rgb.h"
+#include "font.h"
+#include "frame_buffer.h"
+#include "json_settings.h"
+#include "rom/rtc.h"
+#include <stdint.h>
+#include <string.h>
+#include <time.h>
 
 static const char *T = "ANIMATIONS";
 
 // Reads the filehader and fills `fh`
-static int getFileHeader(FILE *f, fileHeader_t *fh)
-{
+static int getFileHeader(FILE *f, fileHeader_t *fh) {
 	char tempCh[3];
 
 	if (f == NULL || fh == NULL)
@@ -23,7 +22,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 
 	fseek(f, 0x00000000, SEEK_SET);
 	fread(tempCh, 3, 1, f);
-	if(memcmp(tempCh,"DGD", 3) != 0) {
+	if (memcmp(tempCh, "DGD", 3) != 0) {
 		ESP_LOGE(T, "Invalid file header!");
 		return -1;
 	}
@@ -39,8 +38,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh)
 // Fills the headerEntry struct with data.
 // Specify an `headerIndex` from 0 to nAnimations
 static int _cur_hi = 0;
-static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
-{
+static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex) {
 	if (f == NULL || h == NULL)
 		return -1;
 
@@ -52,20 +50,21 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 	h->name[31] = '\0';
 	h->frameHeader = NULL;
 	h->animationId = SWAP16(h->animationId);
-	h->byteOffset =  SWAP32(h->byteOffset) * HEADER_SIZE;
+	h->byteOffset = SWAP32(h->byteOffset) * HEADER_SIZE;
 	// Exract frame header
-	frameHeaderEntry_t *fh = (frameHeaderEntry_t*)malloc(sizeof(frameHeaderEntry_t) * h->nFrameEntries);
+	frameHeaderEntry_t *fh = (frameHeaderEntry_t *)malloc(
+		sizeof(frameHeaderEntry_t) * h->nFrameEntries);
 	if (fh == NULL) {
 		ESP_LOGE(T, "Memory allocation error!");
 		return -1;
 	}
 	h->frameHeader = fh;
 	fseek(f, h->byteOffset, SEEK_SET);
-	for(int i=0; i<h->nFrameEntries; i++) {
-		fread(&fh->frameId,  1, 1, f);
+	for (int i = 0; i < h->nFrameEntries; i++) {
+		fread(&fh->frameId, 1, 1, f);
 		fread(&fh->frameDur, 1, 1, f);
 		// Hack to sort out invalid headers
-		if(fh->frameDur <= 0 || fh->frameId > h->nStoredFrames) {
+		if (fh->frameDur <= 0 || fh->frameId > h->nStoredFrames) {
 			ESP_LOGE(T, "Invalid header!");
 			return -1;
 		}
@@ -75,8 +74,7 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex)
 }
 
 // seek the file f to the beginning of a specific animation frame
-static void seekToFrame(FILE *f, int byteOffset, int frameId)
-{
+static void seekToFrame(FILE *f, int byteOffset, int frameId) {
 	// without fast-seek enabled, this sometimes takes hundreds of ms,
 	// resulting in choppy animation playback
 	// http://www.elm-chan.org/fsw/ff/doc/lseek.html
@@ -87,9 +85,9 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId)
 }
 
 // play a single animation, start to finish
-// lock_fb: synchronize with updateFrame(), prevents artifacts, reduces frame rate (vsync)
-static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
-{
+// lock_fb: synchronize with updateFrame(), prevents artifacts, reduces frame
+// rate (vsync)
+static void playAni(FILE *f, headerEntry_t *h, bool lock_fb) {
 	int64_t seek_time = 0;
 	int max_seek_time = 0;
 
@@ -102,8 +100,9 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 
 	// get a random color
 	uint8_t r, g, b;
-	fast_hsv2rgb_32bit(RAND_AB(0,HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b);
-	unsigned color = SRGBA(r,g,b,0xFF);
+	fast_hsv2rgb_32bit(RAND_AB(0, HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r,
+					   &g, &b);
+	unsigned color = SRGBA(r, g, b, 0xFF);
 
 	// pre-seek the file to beginning of frame
 	frameHeaderEntry_t fh = h->frameHeader[0];
@@ -111,10 +110,10 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 	unsigned cur_delay = fh.frameDur;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	for(int i=0; i<h->nFrameEntries; i++) {
+	for (int i = 0; i < h->nFrameEntries; i++) {
 		draw_time = esp_timer_get_time();
-		if(fh.frameId <= 0)
-			setAll(2, 0xFF000000);  // invalid frame = translucent black
+		if (fh.frameId <= 0)
+			setAll(2, 0xFF000000); // invalid frame = translucent black
 		else
 			setFromFile(f, 2, color, lock_fb);
 		draw_time = esp_timer_get_time() - draw_time;
@@ -141,23 +140,15 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb)
 		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
 		cur_delay = fh.frameDur;
 	}
-	ESP_LOGD(T,
-		"%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
-		_cur_hi,
-		h->name,
-		h->nStoredFrames,
-		h->nFrameEntries,
-		h->frameHeader->frameDur,
-		max_seek_time / 1000,
-		sum_draw_time / h->nFrameEntries / 1000,
-		max_draw_time / 1000
-	);
+	ESP_LOGD(T, "%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
+			 _cur_hi, h->name, h->nStoredFrames, h->nFrameEntries,
+			 h->frameHeader->frameDur, max_seek_time / 1000,
+			 sum_draw_time / h->nFrameEntries / 1000, max_draw_time / 1000);
 }
 
 // blocks while rendering a pinball animation, with fade-out.
 // takes care of loading header data
-static void run_animation(FILE *f, unsigned aniId)
-{
+static void run_animation(FILE *f, unsigned aniId) {
 	TickType_t xLastWakeTime;
 	headerEntry_t myHeader;
 
@@ -185,8 +176,7 @@ static void run_animation(FILE *f, unsigned aniId)
 	}
 }
 
-static void manageBrightness(struct tm *timeinfo)
-{
+static void manageBrightness(struct tm *timeinfo) {
 	static int curMode = -1;
 
 	// get json dictionaries
@@ -196,7 +186,7 @@ static void manageBrightness(struct tm *timeinfo)
 
 	// convert times to minutes since 00:00
 	int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);
-	int iNight = jGetI(jNight,"h", 22) * 60 + jGetI(jNight, "m", 45);
+	int iNight = jGetI(jNight, "h", 22) * 60 + jGetI(jNight, "m", 45);
 	int iNow = timeinfo->tm_hour * 60 + timeinfo->tm_min;
 
 	if (iNow >= iDay && iNow < iNight) {
@@ -214,9 +204,8 @@ static void manageBrightness(struct tm *timeinfo)
 	}
 }
 
-static void stats(unsigned cur_fnt)
-{
-	RTC_NOINIT_ATTR static unsigned max_uptime;  // [minutes]
+static void stats(unsigned cur_fnt) {
+	RTC_NOINIT_ATTR static unsigned max_uptime; // [minutes]
 	static unsigned last_frames = 0;
 	static unsigned last_time = 0;
 
@@ -228,28 +217,24 @@ static void stats(unsigned cur_fnt)
 
 	// reset max_uptime counter on power cycle
 	if (up_time == 0)
-		if (rtc_get_reset_reason(0) == POWERON_RESET || rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
+		if (rtc_get_reset_reason(0) == POWERON_RESET ||
+			rtc_get_reset_reason(0) == RTCWDT_RTC_RESET)
 			max_uptime = 0;
 
 	// print uptime stats
 	if (up_time > max_uptime)
 		max_uptime = up_time;
 
-	ESP_LOGD(T, "fnt: %d, uptime: %d / %d, fps: %.1f, heap: %ld / %ld, ba: %d, pi: %d",
-		cur_fnt,
-		up_time,
-		max_uptime,
-		fps,
-		esp_get_free_heap_size(),
-		esp_get_minimum_free_heap_size(),
-		uxTaskGetStackHighWaterMark(t_backg),
-		uxTaskGetStackHighWaterMark(t_pinb)
-	);
+	ESP_LOGD(
+		T,
+		"fnt: %d, uptime: %d / %d, fps: %.1f, heap: %ld / %ld, ba: %d, pi: %d",
+		cur_fnt, up_time, max_uptime, fps, esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size(), uxTaskGetStackHighWaterMark(t_backg),
+		uxTaskGetStackHighWaterMark(t_pinb));
 }
 
 // takes care of drawing pinball animations (layer 2) and the clock (layer 1)
-void aniPinballTask(void *pvParameters)
-{
+void aniPinballTask(void *pvParameters) {
 	unsigned cycles = 0;
 	static int sec_ = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -270,7 +255,6 @@ void aniPinballTask(void *pvParameters)
 		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
 	else
 		ESP_LOGI(T, "last font file: /sd/fnt/%02d.fnt", nFnts - 1);
-
 
 	cJSON *jDelay = jGet(getSettings(), "delays");
 
