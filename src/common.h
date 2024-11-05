@@ -31,11 +31,21 @@
 #define GPIO_BLANK GPIO_NUM_12
 #define GPIO_CLK GPIO_NUM_13
 
+// -----------------
+//  Misc GPIOs
+// -----------------
 // USB-PD failed to negotiate
 #define GPIO_PD_BAD GPIO_NUM_35
 
 // Ambient light sensor (ALS-PDIC144-6C/L378)
 #define GPIO_LIGHT_SENSOR GPIO_NUM_36
+
+// green LED at the back
+#define GPIO_LED GPIO_NUM_33
+
+// Wifi button
+#define GPIO_WIFI GPIO_NUM_34
+
 
 // Width and height of the chain of panels [pixels]
 // ... don't change it, things will catch fire! :p

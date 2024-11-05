@@ -63,10 +63,6 @@ void set_brightness(int value)
 }
 
 void init_rgb() {
-	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
-	gpio_set_direction(GPIO_PD_BAD, GPIO_MODE_INPUT);
-	gpio_set_pull_mode(GPIO_PD_BAD, GPIO_PULLUP_ONLY);  // open drain output
-
 	initFb();
 
 	i2s_parallel_buffer_desc_t bufdesc[1 << BITPLANE_CNT];
@@ -169,9 +165,11 @@ void updateFrame() {
 	// Wait until all the layers are done updating
 	waitDrawingDone();
 
-	// Check if we need to be in low power mode
+	// Check if we need to limit led brightness due to USB PD not giving 12 V
 	int ledBrightness_ = ledBrightness;
-	if (gpio_get_level(GPIO_PD_BAD) && ledBrightness_ > 5)
+	bool is_bad = gpio_get_level(GPIO_PD_BAD);
+	gpio_set_level(GPIO_LED, !is_bad);
+	if (is_bad && ledBrightness_ > 5)
 		ledBrightness_ = 5;
 
 	for (unsigned int y = 0; y < 16; y++) {

@@ -68,6 +68,18 @@ void app_main(void) {
 	gpio_set_direction(GPIO_BLANK, GPIO_MODE_OUTPUT);
 	gpio_set_level(GPIO_BLANK, 1);
 
+	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
+	gpio_set_direction(GPIO_PD_BAD, GPIO_MODE_INPUT);
+	gpio_set_pull_mode(GPIO_PD_BAD, GPIO_PULLUP_ONLY);  // open drain output
+
+	// Power LED will be enabled by updateFrame loop if PD is not bad
+	gpio_set_direction(GPIO_LED, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_LED, 0);
+
+	// Wifi button will switch to hotspot mode
+	gpio_set_direction(GPIO_WIFI, GPIO_MODE_INPUT);
+	gpio_set_pull_mode(GPIO_WIFI, GPIO_PULLUP_ONLY);
+
 	// forward serial characters to web-console
 	// web_console_init();
 
