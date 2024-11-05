@@ -109,9 +109,8 @@ void set_settings_file(const char *f_settings, const char *f_defaults) {
 		FILE *source = fopen(f_defaults, "rb");
 		FILE *dest = fopen(g_settings_file, "wb");
 		if (source && dest) {
-			while ((size = fread(buf, 1, sizeof(buf), source))) {
+			while ((size = fread(buf, 1, sizeof(buf), source)))
 				fwrite(buf, 1, size, dest);
-			}
 		} else {
 			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults,
 					 g_settings_file, strerror(errno));
@@ -134,7 +133,7 @@ const char *jGetS(const cJSON *json, const char *name,
 				  const char *default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsString(j)) {
-		ESP_LOGE(T, "%s is not a string, falling back to %s", name,
+		ESP_LOGW(T, "%s is not a string, falling back to %s", name,
 				 default_val);
 		return default_val;
 	}
@@ -145,7 +144,7 @@ const char *jGetS(const cJSON *json, const char *name,
 int jGetI(cJSON *json, const char *name, int default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGE(T, "%s is not a number, falling back to %d", name,
+		ESP_LOGW(T, "%s is not a number, falling back to %d", name,
 				 default_val);
 		return default_val;
 	}
@@ -156,7 +155,7 @@ int jGetI(cJSON *json, const char *name, int default_val) {
 double jGetD(cJSON *json, const char *name, double default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGE(T, "%s is not a number, falling back to %f", name,
+		ESP_LOGW(T, "%s is not a number, falling back to %f", name,
 				 default_val);
 		return default_val;
 	}
@@ -167,7 +166,7 @@ double jGetD(cJSON *json, const char *name, double default_val) {
 bool jGetB(cJSON *json, const char *name, bool default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsBool(j)) {
-		ESP_LOGE(T, "%s is not a bool, falling back to %s", name,
+		ESP_LOGW(T, "%s is not a bool, falling back to %s", name,
 				 default_val ? "true" : "false");
 		return default_val;
 	}

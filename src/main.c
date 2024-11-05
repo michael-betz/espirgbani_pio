@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <dirent.h>
+#include <sys/types.h>
 
 #include "esp_log.h"
 #include "esp_spiffs.h"
@@ -50,7 +52,7 @@ void mount_sd_card(const char *path) {
 	device_cfg.host_id = host.slot;
 
 	esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-		.format_if_mount_failed = false,
+		.format_if_mount_failed = true,
 		.max_files = 5,
 		.allocation_unit_size = 32 * 1024};
 	ESP_ERROR_CHECK(esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg,
@@ -60,25 +62,54 @@ void mount_sd_card(const char *path) {
 	sdmmc_card_print_info(stdout, card);
 }
 
+void list_files(const char *path)
+{
+	ESP_LOGI(T, "Listing %s", path);
+	DIR* dir = opendir(path);
+	if (dir == NULL)
+		return;
+
+	while (true) {
+		struct dirent* de = readdir(dir);
+		if (!de)
+			break;
+		ESP_LOGI(T, "    %s", de->d_name);
+	}
+
+	closedir(dir);
+}
+
 void app_main(void) {
 	//------------------------------
 	// init hardware
 	//------------------------------
 	// avoid flickering during boot, blank the panel as soon as possible
-	gpio_set_direction(GPIO_BLANK, GPIO_MODE_OUTPUT);
-	gpio_set_level(GPIO_BLANK, 1);
-
-	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
-	gpio_set_direction(GPIO_PD_BAD, GPIO_MODE_INPUT);
-	gpio_set_pull_mode(GPIO_PD_BAD, GPIO_PULLUP_ONLY);  // open drain output
-
 	// Power LED will be enabled by updateFrame loop if PD is not bad
-	gpio_set_direction(GPIO_LED, GPIO_MODE_OUTPUT);
+	gpio_config_t cfg_o = {
+		.pin_bit_mask = (1LL << GPIO_BLANK) | (1LL << GPIO_LED),
+		.mode = GPIO_MODE_OUTPUT
+	};
+	ESP_ERROR_CHECK(gpio_config(&cfg_o));
+	gpio_set_level(GPIO_BLANK, 0);
 	gpio_set_level(GPIO_LED, 0);
 
+	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
 	// Wifi button will switch to hotspot mode
-	gpio_set_direction(GPIO_WIFI, GPIO_MODE_INPUT);
-	gpio_set_pull_mode(GPIO_WIFI, GPIO_PULLUP_ONLY);
+	gpio_config_t cfg_i = {
+		.pin_bit_mask = (1LL << GPIO_PD_BAD) | (1LL << GPIO_WIFI),
+		.mode = GPIO_MODE_INPUT,
+		.pull_up_en = GPIO_PULLUP_ENABLE,
+		.pull_down_en = GPIO_PULLDOWN_DISABLE
+	};
+	ESP_ERROR_CHECK(gpio_config(&cfg_i));
+	gpio_dump_io_configuration(stdout, (1LL << GPIO_BLANK) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) | (1LL << GPIO_WIFI));
+
+	esp_log_level_set("*", ESP_LOG_DEBUG);        // set all components to ERROR level
+	esp_log_level_set("wifi", ESP_LOG_WARN);      // enable WARN logs from WiFi stack
+	esp_log_level_set("nvs", ESP_LOG_INFO);
+	esp_log_level_set("spi_master", ESP_LOG_INFO);
+	esp_log_level_set("dhcpc", ESP_LOG_INFO);     // enable INFO logs from DHCP client
+	esp_log_level_set("esp_netif_lwip", ESP_LOG_INFO);
 
 	// forward serial characters to web-console
 	// web_console_init();
@@ -95,10 +126,12 @@ void app_main(void) {
 		.max_files = 4,
 		.format_if_mount_failed = false
 	};
-	esp_vfs_spiffs_register(&conf);
+	ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
+	list_files("/spiffs");
 
 	// Mount SD for animations, fonts and for settings.json
 	mount_sd_card("/sd");
+	list_files("/sd");
 
 	// Load settings.json from SD card, try to create file if it doesn't exist
 	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");

@@ -59,6 +59,7 @@ void set_brightness(int value)
 	if (value > 120)
 		value = 120;
 
+	ESP_LOGD(T, "set_brightness(%d)", value);
 	ledBrightness = value;
 }
 
@@ -86,7 +87,8 @@ void init_rgb() {
 	cfg.gpio_bus[14] = (gpio_num_t)(-1);
 	cfg.gpio_bus[15] = (gpio_num_t)(-1);
 
-	cfg.bits = I2S_PARALLEL_BITS_16, cfg.bufa = bufdesc;
+	cfg.bits = I2S_PARALLEL_BITS_16;
+	cfg.bufa = bufdesc;
 	cfg.bufb = bufdesc;
 
 	//--------------------------

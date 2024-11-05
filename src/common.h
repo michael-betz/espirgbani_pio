@@ -20,13 +20,13 @@
 // Lower half RGB
 #define GPIO_R2 GPIO_NUM_18
 #define GPIO_G2 GPIO_NUM_19
-#define GPIO_B2 GPIO_NUM_29
+#define GPIO_B2 GPIO_NUM_5
 // Control signals
 #define GPIO_A GPIO_NUM_16
 #define GPIO_B GPIO_NUM_17
 #define GPIO_C GPIO_NUM_2
 #define GPIO_D GPIO_NUM_4
-#define GPIO_e GPIO_NUM_32
+#define GPIO_E GPIO_NUM_32
 #define GPIO_LAT GPIO_NUM_15
 #define GPIO_BLANK GPIO_NUM_12
 #define GPIO_CLK GPIO_NUM_13

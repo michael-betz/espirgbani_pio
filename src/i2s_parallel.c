@@ -30,10 +30,13 @@
 #include "driver/gpio.h"
 #include "esp_private/periph_ctrl.h"
 
+#include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "rom/lldesc.h"
 
 #include "i2s_parallel.h"
+
+static const char *T = "I2S_P";
 
 typedef struct {
 	volatile lldesc_t *dmadesc_a, *dmadesc_b;
@@ -156,8 +159,8 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 	dev->clkm_conf.clk_en = 1;
 	// integral divider, min is 2
 	dev->clkm_conf.clkm_div_num = cfg->clk_div;
-	dev->clkm_conf.clkm_div_a = 1;
-	dev->clkm_conf.clkm_div_b = 0;
+	dev->clkm_conf.clkm_div_a = 63;
+	dev->clkm_conf.clkm_div_b = 63;
 	dev->clkm_conf.clka_en = 0;
 
 	dev->fifo_conf.val = 0;
@@ -185,8 +188,8 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 	// Invert ws to be active-low... ToDo: make this configurable
 	//  ... this doesn't invert anything :p
 	//  but inversion can be done through the GPIO matrix :)
-	dev->conf.tx_right_first = 1;
-	dev->conf.rx_right_first = 1;
+	dev->conf.tx_right_first = 0;
+	dev->conf.rx_right_first = 0;
 
 	dev->timing.val = 0;
 

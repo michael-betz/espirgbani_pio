@@ -32,9 +32,11 @@
             "p": 2
         }
     },
-    "_wifi_ssid": "",
-    "_wifi_pw": "",
+    "wifis": {
+        "INSERT_SSID": "INSERT_PASSWORD"
+    },
     "hostname": "espirgbani",
     "enable_ota": true,
-    "timezone": "PST8PDT,M3.2.0,M11.1.0"
+    "timezone": "PST8PDT,M3.2.0,M11.1.0",
+    "ntp_host": "pool.ntp.org"
 }
