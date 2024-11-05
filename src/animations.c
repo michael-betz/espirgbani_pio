@@ -193,7 +193,7 @@ void init_light_sensor()
     //-------------ADC1 Config---------------//
     adc_oneshot_chan_cfg_t config = {
         .atten = ADC_ATTEN_DB_12,  // VMAX = 2450
-        .bitwidth = ADC_BITWIDTH_12,  // 12 bit, DMAX = 4096
+        .bitwidth = ADC_BITWIDTH_12,  // 12 bit, DMAX = 4095
     };
     // ADC_UNIT_1, ADC_CHANNEL_0 is connected to SENSOR_VP pin
     ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_0, &config));
@@ -201,9 +201,10 @@ void init_light_sensor()
 
 int get_light_sensor()
 {
-	//   10 lux,   3 uA, 0.03 V,
-	//  100 lux,  33 uA, 0.33 V,
-	// 1000 lux, 330 uA, 3.30 V,
+	//   10 lux,   3 uA, 0.03 V,   50, Twilight, candle light
+	//   50 lux,         0.17 V,  284, Street light at night
+	//  100 lux,  33 uA, 0.33 V,  550, Dark museum
+	// 1000 lux, 330 uA, 3.30 V, 4095, Bright office lightning
 	int sum = 0;
 	// for (unsigned i = 0; i < 32; i++) {
 		int tmp = 0;
@@ -219,18 +220,27 @@ static void manageBrightness(struct tm *timeinfo) {
 
 	// get json dictionaries
 	cJSON *jPow = jGet(getSettings(), "power");
-	int power_mode = jGetI(jPow, "mode", 0);
+	int mode = jGetI(jPow, "mode", 0);
 	cJSON *jDay = jGet(jPow, "day");
 
-	if (power_mode == 1) {
-		// use ambient light sensor
-		int raw_value = get_light_sensor();  // 0 - 4095
-		raw_value /= 41;  // 0 - 99
+	if (mode == 1) {
+		// use ambient light sensor for brightness control
+		// < 300: minimum brightness (1)
+		// 300 - 4095: brightness from (1 - 100)
+		int raw_value = get_light_sensor();  // 0 .. 4095
+
+		int offset = jGetI(jPow, "offset", 300);
+		int divider = jGetI(jPow, "divider", 37);
+		int max_limit = jGetI(jPow, "max_limit", 100);
+		raw_value -= offset;  // -300 .. 3795
+		raw_value /= divider;  // -8 .. 102
 		if (raw_value <= 0)
 			raw_value = 1;
-		g_rgbLedBrightness = raw_value; // 1 - 99
-	} else if (power_mode == 2) {
-		// use day and night times
+		if (raw_value > max_limit)
+			raw_value = max_limit;
+		g_rgbLedBrightness = raw_value; // 1 - 100
+	} else if (mode == 2) {
+		// use day and night switching times
 		// convert times to minutes since 00:00
 		cJSON *jNight = jGet(jPow, "night");
 		int iDay = jGetI(jDay, "h", 9) * 60 + jGetI(jDay, "m", 0);

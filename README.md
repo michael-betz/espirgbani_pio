@@ -77,11 +77,17 @@ Once the clock is connected to the network, `settings.json` can be edited in the
         "shader": 300
     },
     "power": {
+        "mode": 1,
+        "offset": 300,
+        "divider": 37,
+        "max_limit": 100,
+
         "day": {
             "h": 9,
             "m": 0,
             "p": 20
         },
+
         "night": {
             "h": 22,
             "m": 45,
@@ -119,36 +125,33 @@ They are all specified in [seconds]. The defaults are:
   * Randomize the background shader every 300 s (5 min). Set `shader` to <= 0 to always have a black background
 
 ### `power` section
-controls the display brightness according to current time. Brightness is specified in `p` as a number from 0 to 127.
+controls the display brightness. Set the `mode` parameter to 0, 1 or 2 to select the control mode.
 
-  * day-mode starts at `9:00` with brightness `20`
+__mode 0: constant brightness__
+
+Brightness is always the same and specified in `day.p` as a number from 0 to 127.
+
+__mode 1: use ambient light sensor__
+
+Brightness is set according to the measured ambient light. The sensor returns a number `x` from 0 - 4095 for a measured light level of roughly 10 - 1000 lux.
+
+A linear equation is used to calculate the brightness: `p = (x - offset) / divider`.
+
+The calculated value is limited to the range of `1` to `max_limit` and applied as the LED brightness.
+
+__mode 2: time based switching__
+
+Brightness is set according to the current time. There is a `day` and `night` value, specified in `p` as a number from 0 to 127.
+
+  * In the example, day-mode starts at `9:00` with brightness `20`
   * night-mode starts at `22:45` with brightness `2`
 
 ### `timezone`
 is the local timezone in [TZ format](https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html). Look it up [here](https://github.com/nayarsystems/posix_tz_db/blob/master/zones.csv).
 
-# FASTSEEK hack
-The frames of the pinball animations are sometimes played back in a non sequential order. Hence `fseek()` is required to jump to a specific frame. Unfortunately, for files > 100 MB on a FAT32 SD card, this takes __hundreds of ms__ with the default settings.
-
-See also:
-https://github.com/espressif/arduino-esp32/issues/4097
-
-Seeking performance can be substantially improved by enabling the `FF_USE_FASTSEEK` option in `ffconf.h`. However when using Arduino, it uses pre-compiled esp-idf libraries and there is no easy way to change this macro. The .a files are actually checked into git and need to be trusted blindly. What an ideal place to put a wifi back-door btw.
-
-Anyhow, I rely on the linker to override the ff.c and ffconf.h files with the patched versions from `fseek_hack/`, which have FASTSEEK always enabled.
-
-This works because the linker looks into the files in `src/` first and only if it cannot find a symbol there, it will search the libraries.
-
-This should work as long as the version of fatfs does not change upstream in esp-idf.
-
-If the hack causes problems, it can be disabled in `platformio.ini`.
-
 # TODO
-  * remove fastseek hack (functionality should have arrived in esp-idf now)
   * low-power mode if PD negotiation failed
   * serial terminal mode?
   * wifi button support
-  * light sensor support
-  * remove arduino library dependencies
   * http API support (easy use from curl)
   * mqtt support?

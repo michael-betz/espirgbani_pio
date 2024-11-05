@@ -12,7 +12,6 @@
 *.zip
 *.xml
 *.net
-*.csv
 fp-info-cache
 *-backups
 *-PcbDoc-rescue.dcm
@@ -23,3 +22,9 @@ fp-info-cache
 __pycache__/
 grb/
 sdkconfig.espirgbani
+CMakeLists.txt
+dependencies.lock
+managed_components/
+pcb/production/
+pcb/~rgb.kicad_sch.lck
+src/CMakeLists.txt
