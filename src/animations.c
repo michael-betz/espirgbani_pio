@@ -238,7 +238,7 @@ static void manageBrightness(struct tm *timeinfo) {
 			raw_value = 1;
 		if (raw_value > max_limit)
 			raw_value = max_limit;
-		g_rgbLedBrightness = raw_value; // 1 - 100
+		set_brightness(raw_value); // 1 - 100
 	} else if (mode == 2) {
 		// use day and night switching times
 		// convert times to minutes since 00:00
@@ -249,19 +249,21 @@ static void manageBrightness(struct tm *timeinfo) {
 
 		if (iNow >= iDay && iNow < iNight) {
 			if (is_daylight_state != 1) {
-				g_rgbLedBrightness = jGetI(jDay, "p", 20);
-				ESP_LOGI(T, "Daylight mode, p: %d", g_rgbLedBrightness);
+				int tmp = jGetI(jDay, "p", 20);
+				set_brightness(tmp);
+				ESP_LOGI(T, "Daylight mode, p: %d", tmp);
 				is_daylight_state = 1;
 			}
 		} else {
 			if (is_daylight_state != 0) {
-				g_rgbLedBrightness = jGetI(jNight, "p", 2);
-				ESP_LOGI(T, "Nightdark mode, p: %d", g_rgbLedBrightness);
+				int tmp = jGetI(jNight, "p", 2);
+				set_brightness(tmp);
+				ESP_LOGI(T, "Nightdark mode, p: %d", tmp);
 				is_daylight_state = 0;
 			}
 		}
 	} else { // mode 0 or everything else
-		g_rgbLedBrightness = jGetI(jDay, "p", 20);
+		set_brightness(jGetI(jDay, "p", 20));
 	}
 }
 
@@ -365,9 +367,13 @@ void aniPinballTask(void *pvParameters) {
 
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
-			strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
-			// randomly colored outline, black filling
-			drawStrCentered(strftime_buf, 1, color, 0xFF000000);
+			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
+				drawStrCentered("Low power", 1, color, 0xFF000000);
+			} else {
+				strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
+				// randomly colored outline, black filling
+				drawStrCentered(strftime_buf, 1, color, 0xFF000000);
+			}
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
 		}

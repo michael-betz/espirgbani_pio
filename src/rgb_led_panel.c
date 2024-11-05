@@ -40,7 +40,6 @@ static const char *T = "LED_PANEL";
 
 unsigned g_frames = 0; // frame counter
 unsigned g_f_del = 33; // delay between frames [ms]
-int g_rgbLedBrightness = 5;
 
 // Double buffering has been removed to save RAM. No visual differences!
 uint16_t *bitplane[BITPLANE_CNT];
@@ -50,8 +49,24 @@ uint16_t *bitplane[BITPLANE_CNT];
 static int latch_offset = 0;
 static unsigned extra_blank = 0;
 static bool isColumnSwapped = false;
+static int ledBrightness = 5;
+
+void set_brightness(int value)
+{
+	if (value < 0)
+		value = 0;
+
+	if (value > 120)
+		value = 120;
+
+	ledBrightness = value;
+}
 
 void init_rgb() {
+	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
+	gpio_set_direction(GPIO_PD_BAD, GPIO_MODE_INPUT);
+	gpio_set_pull_mode(GPIO_PD_BAD, GPIO_PULLUP_ONLY);  // open drain output
+
 	initFb();
 
 	i2s_parallel_buffer_desc_t bufdesc[1 << BITPLANE_CNT];
@@ -154,6 +169,11 @@ void updateFrame() {
 	// Wait until all the layers are done updating
 	waitDrawingDone();
 
+	// Check if we need to be in low power mode
+	int ledBrightness_ = ledBrightness;
+	if (gpio_get_level(GPIO_PD_BAD) && ledBrightness_ > 5)
+		ledBrightness_ = 5;
+
 	for (unsigned int y = 0; y < 16; y++) {
 		// Precalculate line bits of the *previous* line, which is the one we're
 		// displaying now
@@ -177,7 +197,7 @@ void updateFrame() {
 			int v = lbits;
 
 			// Do not show image while the line bits are changing
-			if (fx < extra_blank || fx >= g_rgbLedBrightness)
+			if (fx < extra_blank || fx >= ledBrightness_)
 				v |= BIT_BLANK;
 
 			// latch on last bit...

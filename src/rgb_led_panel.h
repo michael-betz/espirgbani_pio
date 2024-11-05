@@ -2,12 +2,11 @@
 #define RGB_LED_PANEL_H
 #include "common.h"
 
-// Change to set the global brightness of the display, range 0 ...
-// (DISPLAY_WIDTH-8)
-extern int g_rgbLedBrightness;
-
 void init_rgb();
 void updateFrame();
+
+// Set the global brightness of the display, range 0 .. 120
+void set_brightness(int value);
 
 // number of updateFrame() calls since boot (frame counter)
 extern unsigned g_frames;

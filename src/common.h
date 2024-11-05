@@ -1,5 +1,6 @@
 #ifndef COMMON_H
 #define COMMON_H
+#include "driver/gpio.h"
 
 // ---------------
 //  SD card GPIOs
@@ -29,6 +30,9 @@
 #define GPIO_LAT GPIO_NUM_15
 #define GPIO_BLANK GPIO_NUM_12
 #define GPIO_CLK GPIO_NUM_13
+
+// USB-PD failed to negotiate
+#define GPIO_PD_BAD GPIO_NUM_35
 
 // Ambient light sensor (ALS-PDIC144-6C/L378)
 #define GPIO_LIGHT_SENSOR GPIO_NUM_36

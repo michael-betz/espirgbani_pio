@@ -62,8 +62,12 @@ void mount_sd_card(const char *path) {
 
 void app_main(void) {
 	//------------------------------
-	// init stuff
+	// init hardware
 	//------------------------------
+	// avoid flickering during boot, blank the panel as soon as possible
+	gpio_set_direction(GPIO_BLANK, GPIO_MODE_OUTPUT);
+	gpio_set_level(GPIO_BLANK, 1);
+
 	// forward serial characters to web-console
 	// web_console_init();
 
@@ -73,10 +77,12 @@ void app_main(void) {
 			 esp_get_minimum_free_heap_size());
 
 	// Mount spiffs for *.html and default_settings.json
-	esp_vfs_spiffs_conf_t conf = {.base_path = "/spiffs",
-								  .partition_label = NULL,
-								  .max_files = 4,
-								  .format_if_mount_failed = true};
+	esp_vfs_spiffs_conf_t conf = {
+		.base_path = "/spiffs",
+		.partition_label = "filesys",
+		.max_files = 4,
+		.format_if_mount_failed = false
+	};
 	esp_vfs_spiffs_register(&conf);
 
 	// Mount SD for animations, fonts and for settings.json
@@ -100,7 +106,7 @@ void app_main(void) {
 	cJSON *jPanel = jGet(getSettings(), "panel");
 	if (jGetB(jPanel, "test_pattern", true)) {
 		ESP_LOGW(T, "RGB test-pattern mode!!!");
-		g_rgbLedBrightness = MAX(0, jGetI(jPanel, "tp_brightness", 10));
+		set_brightness(MAX(0, jGetI(jPanel, "tp_brightness", 10)));
 		tp_task(NULL);
 	}
 
