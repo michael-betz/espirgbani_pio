@@ -28,7 +28,7 @@
 #include "soc/io_mux_reg.h"
 
 #include "driver/gpio.h"
-#include "driver/periph_ctrl.h"
+#include "esp_private/periph_ctrl.h"
 
 #include "esp_heap_caps.h"
 #include "rom/lldesc.h"
