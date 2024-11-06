@@ -83,13 +83,12 @@ void app_main(void) {
 	//------------------------------
 	// init hardware
 	//------------------------------
-	// avoid flickering during boot, blank the panel as soon as possible
 	// Power LED will be enabled by updateFrame loop if PD is not bad
 	gpio_config_t cfg_o = {
-		.pin_bit_mask = (1LL << GPIO_OE) | (1LL << GPIO_LED),
-		.mode = GPIO_MODE_OUTPUT};
+		.pin_bit_mask = (1LL << GPIO_LED),
+		.mode = GPIO_MODE_OUTPUT
+	};
 	ESP_ERROR_CHECK(gpio_config(&cfg_o));
-	gpio_set_level(GPIO_OE, 0);
 	gpio_set_level(GPIO_LED, 0);
 
 	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
@@ -101,7 +100,7 @@ void app_main(void) {
 		.pull_down_en = GPIO_PULLDOWN_DISABLE};
 	ESP_ERROR_CHECK(gpio_config(&cfg_i));
 	gpio_dump_io_configuration(
-		stdout, (1LL << GPIO_OE) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) |
+		stdout, (1LL << GPIO_OE_N) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) |
 					(1LL << GPIO_WIFI)
 	);
 

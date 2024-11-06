@@ -29,7 +29,7 @@
 #define GPIO_E GPIO_NUM_32
 // Control signals
 #define GPIO_LAT GPIO_NUM_15
-#define GPIO_OE GPIO_NUM_12
+#define GPIO_OE_N GPIO_NUM_33
 #define GPIO_CLK GPIO_NUM_13
 
 // -----------------
@@ -42,7 +42,7 @@
 #define GPIO_LIGHT_SENSOR GPIO_NUM_36
 
 // green LED at the back
-#define GPIO_LED GPIO_NUM_33
+#define GPIO_LED GPIO_NUM_12
 
 // Wifi button
 #define GPIO_WIFI GPIO_NUM_34

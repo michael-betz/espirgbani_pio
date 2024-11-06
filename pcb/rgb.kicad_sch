@@ -6421,9 +6421,9 @@
 		)
 		(uuid "09e3546c-f426-45aa-97b9-b267225e7382")
 	)
-	(text "TODO for REV 2:\n* optional 5v level translation\n* corrected pinout for the IDC connector\n* enough room for the shroud of the IDC connector\n* move SD MISO pin to GPIO 35 (boot issue)\n* use a more common v-reg / SD card socket"
+	(text "TODO for REV 3:\n* OE_N pin has a pull-up of 4k7 to +5V on the panel\n* OE_N pin cannot be driven by IO12, as the ESP doesn't boot when this pin is high\n* easiest to swap IO12 and 33\n* pd_bad and wifi btn need pullups (IO34 / 35 do not have internal ones)\n"
 		(exclude_from_sim no)
-		(at 183.134 180.848 0)
+		(at 179.07 179.832 0)
 		(effects
 			(font
 				(size 1.524 1.524)

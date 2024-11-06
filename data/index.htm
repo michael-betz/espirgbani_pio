@@ -121,7 +121,7 @@
       } else if (dat[0] == 'h') {
         temp = JSON.parse(dat.substr(1));
         writeToConsole(dat.substr(1));
-      } else if (dat[0] == 'b') {
+      } else if (dat[0] == '{') {
         textArea.value = dat.slice(1);
         if (isWriting) {
           tStatus.innerHTML = "<font color=#44FF44>👍 applied 👍</font>";

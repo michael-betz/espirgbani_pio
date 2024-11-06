@@ -36,7 +36,7 @@
 #define BIT_E (1 << 10)
 // Control
 #define BIT_LAT (1 << 11)
-#define BIT_OE (1 << 12)
+#define BIT_OE_N (1 << 12)
 // -1 = don't care
 
 static const char *T = "LED_PANEL";
@@ -84,7 +84,7 @@ void init_rgb() {
 	cfg.gpio_bus[9] = GPIO_D;
 	cfg.gpio_bus[10] = GPIO_E;
 	cfg.gpio_bus[11] = GPIO_LAT;
-	cfg.gpio_bus[12] = GPIO_OE;
+	cfg.gpio_bus[12] = GPIO_OE_N;
 	cfg.gpio_bus[13] = (gpio_num_t)(-1);
 	cfg.gpio_bus[14] = (gpio_num_t)(-1);
 	cfg.gpio_bus[15] = (gpio_num_t)(-1);
@@ -202,7 +202,7 @@ void updateFrame() {
 
 			// Do not show image while the line bits are changing
 			if (fx < extra_blank || fx >= ledBrightness_)
-				v |= BIT_OE;
+				v |= BIT_OE_N;
 
 			// latch on last bit...
 			if (fx == latch_offset)
