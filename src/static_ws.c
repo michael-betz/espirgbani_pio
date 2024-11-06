@@ -22,8 +22,8 @@ static httpd_handle_t server = NULL;
 	(strcasecmp(&filename[strlen(filename) - sizeof(ext) + 1], ext) == 0)
 
 // Set HTTP response content type according to file extension
-static esp_err_t set_content_type_from_file(httpd_req_t *req,
-											const char *filename) {
+static esp_err_t
+set_content_type_from_file(httpd_req_t *req, const char *filename) {
 	if (IS_FILE_EXT(filename, ".htm"))
 		return httpd_resp_set_type(req, "text/html");
 	if (IS_FILE_EXT(filename, ".html"))
@@ -53,8 +53,8 @@ static esp_err_t set_content_type_from_file(httpd_req_t *req,
 
 /* Copies the full path into destination buffer and returns
  * pointer to path (skipping the preceding base path) */
-static const char *get_path_from_uri(char *dest, const char *uri,
-									 size_t destsize) {
+static const char *
+get_path_from_uri(char *dest, const char *uri, size_t destsize) {
 	const size_t base_pathlen = strlen(BASE_PATH);
 	size_t pathlen = strlen(uri);
 
@@ -111,8 +111,9 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 	if (!filename) {
 		ESP_LOGE(T, "Filename is too long");
 		/* Respond with 500 Internal Server Error */
-		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-							"Filename too long");
+		httpd_resp_send_err(
+			req, HTTPD_500_INTERNAL_SERVER_ERROR, "Filename too long"
+		);
 		return ESP_FAIL;
 	}
 
@@ -130,16 +131,18 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 	if (!fd) {
 		ESP_LOGE(T, "Failed to read existing file : %s", filepath);
 		/* Respond with 500 Internal Server Error */
-		httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-							"Failed to read existing file");
+		httpd_resp_send_err(
+			req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read existing file"
+		);
 		return ESP_FAIL;
 	}
 
 	// to stop firefox from bitching when testing the javascript
 	// httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
 
-	ESP_LOGI(T, "Sending file : %s (%ld bytes)...", filename,
-			 file_stat.st_size);
+	ESP_LOGI(
+		T, "Sending file : %s (%ld bytes)...", filename, file_stat.st_size
+	);
 	set_content_type_from_file(req, filename);
 
 	/* Retrieve the pointer to scratch buffer for temporary storage */
@@ -160,8 +163,9 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 				/* Abort sending file */
 				httpd_resp_sendstr_chunk(req, NULL);
 				/* Respond with 500 Internal Server Error */
-				httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
-									"Failed to send file");
+				httpd_resp_send_err(
+					req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to send file"
+				);
 				free(chunk);
 				return ESP_FAIL;
 			}
@@ -238,11 +242,12 @@ void startWebServer() {
 
 	// Set URI handlers
 	ESP_LOGI(T, "Registering URI handlers");
-	httpd_uri_t ws = {.uri = "/ws",
-					  .method = HTTP_GET,
-					  .handler = ws_handler,
-					  .user_ctx = NULL,
-					  .is_websocket = true};
+	httpd_uri_t ws = {
+		.uri = "/ws",
+		.method = HTTP_GET,
+		.handler = ws_handler,
+		.user_ctx = NULL,
+		.is_websocket = true};
 	httpd_register_uri_handler(server, &ws);
 
 	httpd_uri_t file_reboot = {

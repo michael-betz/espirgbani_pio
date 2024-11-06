@@ -21,10 +21,14 @@ static void drawXorFrame(unsigned frm) {
 	static uint16_t aniZoom = 0x04, boost = 7;
 	for (int y = 0; y <= 31; y++)
 		for (int x = 0; x <= 127; x++)
-			setPixel(0, x, y,
-					 SRGBA(((x + y + frm) & aniZoom) * boost,
-						   ((x - y - frm) & aniZoom) * boost,
-						   ((x ^ y) & aniZoom) * boost, 0xFF));
+			setPixel(
+				0, x, y,
+				SRGBA(
+					((x + y + frm) & aniZoom) * boost,
+					((x - y - frm) & aniZoom) * boost,
+					((x ^ y) & aniZoom) * boost, 0xFF
+				)
+			);
 	if ((frm % 1024) == 0) {
 		aniZoom = rand();
 		boost = RAND_AB(1, 8);
@@ -44,8 +48,10 @@ static void drawBendyFrame(unsigned frm) {
 		for (int x = 0; x <= 127; x++) {
 			temp1 = abs(((i * y + (f * 16) / (x + 16)) % 64) - 32) * 7;
 			temp2 = abs(((j * x + (f * 16) / (y + 16)) % 64) - 32) * 7;
-			setPixel(0, x, y,
-					 SRGBA(temp1 & k, temp2 & l, (temp1 ^ temp2) & 0x88, 0xFF));
+			setPixel(
+				0, x, y,
+				SRGBA(temp1 & k, temp2 & l, (temp1 ^ temp2) & 0x88, 0xFF)
+			);
 		}
 	}
 }
@@ -159,8 +165,10 @@ static void drawLasers(unsigned frm) {
 		float dy = sin(alpha + M_PI * 2 * i / n_lines);
 
 		set_shade_ht(HSV_HUE_MAX * i / n_lines, shades);
-		aaLine2(0, shades, x + dx * ri, y + dy * ri, x + dx * DISPLAY_WIDTH,
-				y + dy * DISPLAY_WIDTH);
+		aaLine2(
+			0, shades, x + dx * ri, y + dy * ri, x + dx * DISPLAY_WIDTH,
+			y + dy * DISPLAY_WIDTH
+		);
 	}
 
 	alpha += 0.002;

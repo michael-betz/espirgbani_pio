@@ -80,8 +80,9 @@ void settings_ws_handler(uint8_t *data, size_t len) {
 
 			set_settings_file(NULL, NULL);
 		} else {
-			ESP_LOGE(T, "fopen(%s, wb) failed: %s", g_settings_file,
-					 strerror(errno));
+			ESP_LOGE(
+				T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno)
+			);
 		}
 	}
 
@@ -112,8 +113,10 @@ void set_settings_file(const char *f_settings, const char *f_defaults) {
 			while ((size = fread(buf, 1, sizeof(buf), source)))
 				fwrite(buf, 1, size, dest);
 		} else {
-			ESP_LOGE(T, "could not copy %s to %s: %s", f_defaults,
-					 g_settings_file, strerror(errno));
+			ESP_LOGE(
+				T, "could not copy %s to %s: %s", f_defaults, g_settings_file,
+				strerror(errno)
+			);
 		}
 
 		if (source)
@@ -129,12 +132,13 @@ void set_settings_file(const char *f_settings, const char *f_defaults) {
 cJSON *getSettings() { return g_settings; }
 
 // return string from .json or default-value on error
-const char *jGetS(const cJSON *json, const char *name,
-				  const char *default_val) {
+const char *
+jGetS(const cJSON *json, const char *name, const char *default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsString(j)) {
-		ESP_LOGW(T, "%s is not a string, falling back to %s", name,
-				 default_val);
+		ESP_LOGW(
+			T, "%s is not a string, falling back to %s", name, default_val
+		);
 		return default_val;
 	}
 	return j->valuestring;
@@ -144,8 +148,9 @@ const char *jGetS(const cJSON *json, const char *name,
 int jGetI(cJSON *json, const char *name, int default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGW(T, "%s is not a number, falling back to %d", name,
-				 default_val);
+		ESP_LOGW(
+			T, "%s is not a number, falling back to %d", name, default_val
+		);
 		return default_val;
 	}
 	return j->valueint;
@@ -155,8 +160,9 @@ int jGetI(cJSON *json, const char *name, int default_val) {
 double jGetD(cJSON *json, const char *name, double default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsNumber(j)) {
-		ESP_LOGW(T, "%s is not a number, falling back to %f", name,
-				 default_val);
+		ESP_LOGW(
+			T, "%s is not a number, falling back to %f", name, default_val
+		);
 		return default_val;
 	}
 	return j->valuedouble;
@@ -166,8 +172,10 @@ double jGetD(cJSON *json, const char *name, double default_val) {
 bool jGetB(cJSON *json, const char *name, bool default_val) {
 	const cJSON *j = cJSON_GetObjectItemCaseSensitive(json, name);
 	if (!cJSON_IsBool(j)) {
-		ESP_LOGW(T, "%s is not a bool, falling back to %s", name,
-				 default_val ? "true" : "false");
+		ESP_LOGW(
+			T, "%s is not a bool, falling back to %s", name,
+			default_val ? "true" : "false"
+		);
 		return default_val;
 	}
 	return cJSON_IsTrue(j);

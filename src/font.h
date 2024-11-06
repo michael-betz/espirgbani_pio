@@ -79,16 +79,19 @@ void setCur(int x, int y);
 
 // draws a zero terminated string into `layer` at x,y with colors cOutline and
 // cFill
-void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
-			 uint32_t cFill);
+void drawStr(
+	const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
+	uint32_t cFill
+);
 
 // returns expected width of the string rectangle
 int getStrWidth(const char *str);
 
 // draws a zero terminated string into `layer` centered on the screen with
 // colors cOutline and cFill
-void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline,
-					 uint32_t cFill);
+void drawStrCentered(
+	const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill
+);
 
 // Returns the number of consecutive `path/0.fnt` files
 int cntFntFiles(const char *path);

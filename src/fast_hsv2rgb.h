@@ -44,10 +44,12 @@
 extern "C" {
 #endif
 
-void fast_hsv2rgb_8bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g,
-					   uint8_t *b);
-void fast_hsv2rgb_32bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r,
-						uint8_t *g, uint8_t *b);
+void fast_hsv2rgb_8bit(
+	uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b
+);
+void fast_hsv2rgb_32bit(
+	uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b
+);
 
 #ifdef __cplusplus
 }

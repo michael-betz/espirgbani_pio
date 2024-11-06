@@ -41,8 +41,10 @@ static int udpDebugPrintf(const char *format, va_list arg) {
 	if (charLen <= 0)
 		return 0;
 
-	int ret = sendto(dbgSock, charBuffer, charLen, 0,
-					 (struct sockaddr *)&g_servaddr, sizeof(g_servaddr));
+	int ret = sendto(
+		dbgSock, charBuffer, charLen, 0, (struct sockaddr *)&g_servaddr,
+		sizeof(g_servaddr)
+	);
 
 	if (ret < 0)
 		return 0;
@@ -62,8 +64,10 @@ static void udp_debug_init() {
 	g_servaddr.sin_port = htons(jGetI(s, "log_port", 1234));
 	g_servaddr.sin_addr.s_addr =
 		inet_addr(jGetS(s, "log_ip", "255.255.255.255"));
-	ESP_LOGI(T, "UDP log --> %s:%d", inet_ntoa(g_servaddr.sin_addr),
-			 ntohs(g_servaddr.sin_port));
+	ESP_LOGI(
+		T, "UDP log --> %s:%d", inet_ntoa(g_servaddr.sin_addr),
+		ntohs(g_servaddr.sin_port)
+	);
 
 	if ((dbgSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		ESP_LOGE(T, "Failed to create UDP socket: %s", strerror(errno));
@@ -84,8 +88,9 @@ static void udp_debug_init() {
 // go through wifi scan results and look for the first known wifi
 // if the wifi is known, meaning it is configured in the .json, connect to it
 // if no known wifi is found, start the AP
-static void scan_done(void *arg, esp_event_base_t event_base, int32_t event_id,
-					  void *event_data) {
+static void scan_done(
+	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
+) {
 	uint16_t n = 24;
 	static wifi_ap_record_t ap_info[24];
 
@@ -105,8 +110,10 @@ static void scan_done(void *arg, esp_event_base_t event_base, int32_t event_id,
 	// Go through all found APs, use ssid as key and try to get item from json
 	ESP_LOGI(T, "Wifis I can see:");
 	for (unsigned i = 0; i < n; i++) {
-		ESP_LOGI(T, "    %s (%d, %d dBm)", ap_info[i].ssid, ap_info[i].primary,
-				 ap_info[i].rssi);
+		ESP_LOGI(
+			T, "    %s (%d, %d dBm)", ap_info[i].ssid, ap_info[i].primary,
+			ap_info[i].rssi
+		);
 	}
 
 	for (unsigned i = 0; i < n; i++) {
@@ -139,8 +146,9 @@ static void scan_done(void *arg, esp_event_base_t event_base, int32_t event_id,
 	wifi_state = WIFI_NOT_CONNECTED;
 }
 
-static void got_ip(void *arg, esp_event_base_t event_base, int32_t event_id,
-				   void *event_data) {
+static void got_ip(
+	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
+) {
 	udp_debug_init();
 
 	ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
@@ -155,8 +163,9 @@ static void got_ip(void *arg, esp_event_base_t event_base, int32_t event_id,
 	wifi_state = WIFI_CONNECTED;
 }
 
-static void got_discon(void *arg, esp_event_base_t event_base, int32_t event_id,
-					   void *event_data) {
+static void got_discon(
+	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
+) {
 	dbgSock = -1;
 
 	ESP_LOGW(T, "got disconnected :(");
@@ -187,8 +196,10 @@ static void dpp_enrollee_event_cb(esp_supp_dpp_event_t event, void *data) {
 		retries = 8;
 		wifi_config_t s_dpp_wifi_config;
 		memcpy(&s_dpp_wifi_config, data, sizeof(s_dpp_wifi_config));
-		ESP_LOGI(T, "DPP Authentication successful, ssid: %s",
-				 s_dpp_wifi_config.sta.ssid);
+		ESP_LOGI(
+			T, "DPP Authentication successful, ssid: %s",
+			s_dpp_wifi_config.sta.ssid
+		);
 		// TODO store ssid and pw in .json config, then call tryJsonConnect()
 		break;
 
@@ -232,13 +243,16 @@ void initWifi() {
 	E(esp_event_loop_create_default());
 
 	// register some async callbacks
-	E(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_SCAN_DONE, &scan_done,
-								 NULL));
+	E(esp_event_handler_register(
+		WIFI_EVENT, WIFI_EVENT_SCAN_DONE, &scan_done, NULL
+	));
 	E(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &got_ip, NULL));
-	E(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED,
-								 &got_discon, NULL));
-	E(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_STA_STOP, &got_discon,
-								 NULL));
+	E(esp_event_handler_register(
+		WIFI_EVENT, WIFI_EVENT_STA_DISCONNECTED, &got_discon, NULL
+	));
+	E(esp_event_handler_register(
+		WIFI_EVENT, WIFI_EVENT_STA_STOP, &got_discon, NULL
+	));
 
 	wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
 	E(esp_wifi_init(&cfg));
@@ -297,7 +311,7 @@ void tryEasyConnect() {
 		DPP_BOOTSTRAP_QR_CODE,
 		NULL, // Private key string for DPP Bootstrapping in PEM format.
 		NULL  // Additional ancillary information to be included in QR Code.
-		));
+	));
 
 	E(esp_supp_dpp_start_listen());
 	ESP_LOGI(T, "Started listening for DPP Authentication");

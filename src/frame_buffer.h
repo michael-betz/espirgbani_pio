@@ -48,8 +48,9 @@ unsigned getBlendedPixel(unsigned x, unsigned y);
 // SET / GET a single pixel on a layer to a specific RGBA color in the
 // framebuffer
 void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color);
-void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex,
-				   unsigned color);
+void setPixelColor(
+	unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color
+);
 unsigned getPixel(unsigned layer, unsigned x, unsigned y);
 
 // pre-calculate a palette of 16 shades fading up from opaque black
@@ -69,8 +70,9 @@ void set_shade_ht(uint16_t hue, unsigned *shades);
 void aaLine(unsigned layer, unsigned *shades, int X0, int Y0, int X1, int Y1);
 
 // using float, from https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
-void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1,
-			 float y1);
+void aaLine2(
+	unsigned layer, unsigned *shades, float x0, float y0, float x1, float y1
+);
 
 // Draw over a pixel in frmaebuffer at p, color must be premultiplied alpha
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);

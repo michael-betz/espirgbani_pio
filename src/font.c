@@ -95,7 +95,8 @@ font_t *load_font_info(char *file_name) {
 
 		case 5:
 			ESP_LOGW(
-				T, "Ignoring kerning table. Ain't nobody got heap for that!!!");
+				T, "Ignoring kerning table. Ain't nobody got heap for that!!!"
+			);
 			fseek(f, blockSize, SEEK_CUR);
 			// fDat->kernsLen = blockSize;
 			// fDat->kerns = (fontKern_t*)malloc(blockSize);
@@ -136,10 +137,12 @@ void free_font_info(font_t *f) {
 void print_font_info(font_t *fDat) {
 	if (fDat == NULL)
 		return;
-	ESP_LOGI(T, "%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
-			 fDat->info->fontName, fDat->pageNames, fDat->info->fontSize,
-			 fDat->common->lineHeight, fDat->common->base, fDat->common->scaleW,
-			 fDat->common->scaleH);
+	ESP_LOGI(
+		T, "%s, %s, s: %d, lH: %d, base: %d, sW: %d, sH: %d",
+		fDat->info->fontName, fDat->pageNames, fDat->info->fontSize,
+		fDat->common->lineHeight, fDat->common->base, fDat->common->scaleW,
+		fDat->common->scaleH
+	);
 }
 
 // get pointer to fontChar_t for a specific character, or NULL if not found
@@ -208,10 +211,11 @@ void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset) {
 		fontChar_t *charInfo = getCharInfo(g_fontInfo, c);
 		// int16_t k = getKerning(g_lastChar, c);
 		if (charInfo) {
-			copyBmpToFbRect(g_bmpFile, &g_bmpInfoHeader, charInfo->x,
-							charInfo->y, charInfo->width, charInfo->height,
-							cursX + charInfo->xoffset,
-							cursY + charInfo->yoffset, layer, color, chOffset);
+			copyBmpToFbRect(
+				g_bmpFile, &g_bmpInfoHeader, charInfo->x, charInfo->y,
+				charInfo->width, charInfo->height, cursX + charInfo->xoffset,
+				cursY + charInfo->yoffset, layer, color, chOffset
+			);
 			cursX += charInfo->xadvance;
 		}
 	}
@@ -250,8 +254,10 @@ void getStrBoundingBox(const char *str, int *w, int *h, int *left, int *top) {
 }
 
 // y = distance from top of display to top of character cell
-void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
-			 uint32_t cFill) {
+void drawStr(
+	const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
+	uint32_t cFill
+) {
 	const char *c = str;
 	ESP_LOGV(T, "x: %d, y: %d, str: %s", x, y, str);
 	setCur(x, y);
@@ -268,8 +274,9 @@ void drawStr(const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
 		drawChar(*c++, layer, cFill, 2);
 }
 
-void drawStrCentered(const char *str, uint8_t layer, uint32_t cOutline,
-					 uint32_t cFill) {
+void drawStrCentered(
+	const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill
+) {
 	int w = 0, h = 0, left = 0, top = 0, xOff = 0, yOff = 0;
 	if (g_bmpFile == NULL || g_fontInfo == NULL)
 		return;

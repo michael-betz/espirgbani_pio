@@ -28,8 +28,9 @@
 #undef HSV_USE_ASSEMBLY
 #endif
 
-void fast_hsv2rgb_32bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r,
-						uint8_t *g, uint8_t *b) {
+void fast_hsv2rgb_32bit(
+	uint16_t h, uint8_t s, uint8_t v, uint8_t *r, uint8_t *g, uint8_t *b
+) {
 #ifndef HSV_USE_ASSEMBLY
 	HSV_MONOCHROMATIC_TEST(s, v, r, g, b); // Exit with grayscale if s == 0
 
@@ -37,8 +38,10 @@ void fast_hsv2rgb_32bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r,
 
 	HSV_SEXTANT_TEST(sextant); // Optional: Limit hue sextants to defined space
 
-	HSV_POINTER_SWAP(sextant, r, g,
-					 b); // Swap pointers depending which sextant we are in
+	HSV_POINTER_SWAP(
+		sextant, r, g,
+		b
+	); // Swap pointers depending which sextant we are in
 
 	*g = v; // Top level
 
@@ -108,88 +111,89 @@ void fast_hsv2rgb_32bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r,
 		"rjmp	.Lsextno1%=\n\t" MOVW("r19", "r18", "r27", "r26")
 			MOVW("r27", "r26", "r31", "r30") MOVW(
 				"r31", "r30", "r19",
-				"r18") "\n"
-					   ".Lsextno1%=:\n\t"
+				"r18"
+			) "\n"
+			  ".Lsextno1%=:\n\t"
 
-					   "sbrs	r25, 2\n\t" // if(sextant & 4) swapptr(g, b);
-					   "rjmp	.Lsextno2%=\n\t" MOVW("r19", "r18", "r29",
-													  "r28")
-						   MOVW("r29", "r28", "r31", "r30") MOVW(
-							   "r31", "r30", "r19",
-							   "r18") "\n"
-									  ".Lsextno2%=:\n\t"
+			  "sbrs	r25, 2\n\t" // if(sextant & 4) swapptr(g, b);
+			  "rjmp	.Lsextno2%=\n\t" MOVW("r19", "r18", "r29", "r28")
+				  MOVW("r29", "r28", "r31", "r30") MOVW(
+					  "r31", "r30", "r19",
+					  "r18"
+				  ) "\n"
+					".Lsextno2%=:\n\t"
 
-									  "ldi	r18, lo8(6)\n\t"
-									  "and	r18, r25\n\t" // if(!(sextant & 6))
-									  "brne	.Lsext2345%=\n\t"
+					"ldi	r18, lo8(6)\n\t"
+					"and	r18, r25\n\t" // if(!(sextant & 6))
+					"brne	.Lsext2345%=\n\t"
 
-									  "sbrc	r25, 0\n\t" // if(!(sextant & 6) &&
-														// !(sextant & 1)) -->
-														// doswasp
-									  "rjmp	.Ldoneswap%=\n"
-									  ".Lsext0%=:\n\t" MOVW("r19", "r18", "r27",
-															"r26")
-										  MOVW("r27", "r26", "r29", "r28") MOVW(
-											  "r29", "r28", "r19",
-											  "r18") "rjmp	.Ldoneswap%=\n"
+					"sbrc	r25, 0\n\t" // if(!(sextant & 6) &&
+										// !(sextant & 1)) -->
+										// doswasp
+					"rjmp	.Ldoneswap%=\n"
+					".Lsext0%=:\n\t" MOVW("r19", "r18", "r27", "r26")
+						MOVW("r27", "r26", "r29", "r28") MOVW(
+							"r29", "r28", "r19",
+							"r18"
+						) "rjmp	.Ldoneswap%=\n"
 
-													 ".Lsext2345%=:\n\t"
-													 "sbrc	r25, 0\n\t" // if((sextant
-																		// & 6)
-																		// &&
-																		// (sextant
-																		// & 1))
-																		// -->
-																		// doswap
-													 "rjmp	.Lsext0%=\n"
-													 ".Ldoneswap%=:\n\t"
+						  ".Lsext2345%=:\n\t"
+						  "sbrc	r25, 0\n\t" // if((sextant
+											// & 6)
+											// &&
+											// (sextant
+											// & 1))
+											// -->
+											// doswap
+						  "rjmp	.Lsext0%=\n"
+						  ".Ldoneswap%=:\n\t"
 
-													 /* Top level assignment
-														first to free up Y
-														register (r29:r28) */
-													 "st	Y, r20\n\t" // *g =
-																		// v
+						  /* Top level assignment
+							 first to free up Y
+							 register (r29:r28) */
+						  "st	Y, r20\n\t" // *g =
+											// v
 
-													 "ldi	r18, 0\n\t" // Temporary
-																		// zero
-																		// reg
-																		// (r1
-																		// is
-																		// used
-																		// by
-																		// mul)
-													 "ldi	r19, 1\n\t" // Temporary
-																		// one
-																		// reg
+						  "ldi	r18, 0\n\t" // Temporary
+											// zero
+											// reg
+											// (r1
+											// is
+											// used
+											// by
+											// mul)
+						  "ldi	r19, 1\n\t" // Temporary
+											// one
+											// reg
 
-													 /*
-													  * Do bottom level next so
-													  *we may use Z register
-													  *(r31:r30).
-													  *
-													  *	Bottom level: v * (1.0 -
-													  *s)
-													  *	--> (v * (255 - s) +
-													  *error_corr + 1) / 256 1
-													  *bb = ~s; 2 ww = v * bb;
-													  *	3 ww += 1;
-													  *	4 ww += ww >> 8;	//
-													  *error_corr for division
-													  *1/256 instead of 1/255 5
-													  **b = ww >> 8;
-													  */
-													 "mov	r23, r22\n\t" // 1
-																		  // use
-																		  // copy
-																		  // of
-																		  // s
-													 "com	r23\n\t" // 1
-		MUL("r23", "r20", "a") // 2 r1:r0 = v *  ~s
-		"add	r0, r19\n\t"   // 3 r1:r0 += 1
-		"adc	r1, r18\n\t"   // 3
-		"add	r0, r1\n\t"	   // 4 r1:r0 += r1:r0 >> 8
-		"adc	r1, r18\n\t"   // 4
-		"st	Z, r1\n\t"		   // 5 *b = r1:r0 >> 8
+						  /*
+						   * Do bottom level next so
+						   *we may use Z register
+						   *(r31:r30).
+						   *
+						   *	Bottom level: v * (1.0 -
+						   *s)
+						   *	--> (v * (255 - s) +
+						   *error_corr + 1) / 256 1
+						   *bb = ~s; 2 ww = v * bb;
+						   *	3 ww += 1;
+						   *	4 ww += ww >> 8;	//
+						   *error_corr for division
+						   *1/256 instead of 1/255 5
+						   **b = ww >> 8;
+						   */
+						  "mov	r23, r22\n\t" // 1
+											  // use
+											  // copy
+											  // of
+											  // s
+						  "com	r23\n\t"	  // 1
+		MUL("r23", "r20", "a")				  // 2 r1:r0 = v *  ~s
+		"add	r0, r19\n\t"				  // 3 r1:r0 += 1
+		"adc	r1, r18\n\t"				  // 3
+		"add	r0, r1\n\t"					  // 4 r1:r0 += r1:r0 >> 8
+		"adc	r1, r18\n\t"				  // 4
+		"st	Z, r1\n\t"						  // 5 *b = r1:r0 >> 8
 
 		/* All that is left are the slopes */
 
@@ -204,11 +208,13 @@ void fast_hsv2rgb_32bit(uint16_t h, uint8_t s, uint8_t v, uint8_t *r,
 		 */
 		"ldi	r28, 0\n\t"	  // 0 r19:r28 = 256 (0x100)
 		"sub	r28, r24\n\t" // 0 256 - h_fraction
-		"sbc	r19, r18\n\t" MUL("r22", "r28",
-								  "b") // r1:r0 = s * lo8(256 - h_fraction)
-		"sbrc	r19, 0\n\t"			   // if(256 - h_fraction == 0x100)
-		"add	r1, r22\n\t"		   //   r1:r0 += s << 8
-		"rjmp	.Lslopecommon%=\n\t"   // r1:r0 holds inner multiplication
+		"sbc	r19, r18\n\t" MUL(
+			"r22", "r28",
+			"b"
+		)							 // r1:r0 = s * lo8(256 - h_fraction)
+		"sbrc	r19, 0\n\t"			 // if(256 - h_fraction == 0x100)
+		"add	r1, r22\n\t"		 //   r1:r0 += s << 8
+		"rjmp	.Lslopecommon%=\n\t" // r1:r0 holds inner multiplication
 
 		/*
 		 * Slope down:

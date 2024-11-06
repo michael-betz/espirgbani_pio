@@ -28,12 +28,15 @@
 #define BIT_R2 (1 << 3)
 #define BIT_G2 (1 << 4)
 #define BIT_B2 (1 << 5)
+// Row address
 #define BIT_A (1 << 6)
 #define BIT_B (1 << 7)
 #define BIT_C (1 << 8)
 #define BIT_D (1 << 9)
-#define BIT_LAT (1 << 10)
-#define BIT_BLANK (1 << 11)
+#define BIT_E (1 << 10)
+// Control
+#define BIT_LAT (1 << 11)
+#define BIT_OE (1 << 12)
 // -1 = don't care
 
 static const char *T = "LED_PANEL";
@@ -51,8 +54,7 @@ static unsigned extra_blank = 0;
 static bool isColumnSwapped = false;
 static int ledBrightness = 5;
 
-void set_brightness(int value)
-{
+void set_brightness(int value) {
 	if (value < 0)
 		value = 0;
 
@@ -80,9 +82,9 @@ void init_rgb() {
 	cfg.gpio_bus[7] = GPIO_B;
 	cfg.gpio_bus[8] = GPIO_C;
 	cfg.gpio_bus[9] = GPIO_D;
-	cfg.gpio_bus[10] = GPIO_LAT;
-	cfg.gpio_bus[11] = GPIO_BLANK;
-	cfg.gpio_bus[12] = (gpio_num_t)(-1);
+	cfg.gpio_bus[10] = GPIO_E;
+	cfg.gpio_bus[11] = GPIO_LAT;
+	cfg.gpio_bus[12] = GPIO_OE;
 	cfg.gpio_bus[13] = (gpio_num_t)(-1);
 	cfg.gpio_bus[14] = (gpio_num_t)(-1);
 	cfg.gpio_bus[15] = (gpio_num_t)(-1);
@@ -187,6 +189,8 @@ void updateFrame() {
 			lbits |= BIT_C;
 		if ((y - 1) & 8)
 			lbits |= BIT_D;
+		if ((y - 1) & 16)
+			lbits |= BIT_E;
 
 		for (int fx = 0; fx < DISPLAY_WIDTH; fx++) {
 			int x = fx;
@@ -198,7 +202,7 @@ void updateFrame() {
 
 			// Do not show image while the line bits are changing
 			if (fx < extra_blank || fx >= ledBrightness_)
-				v |= BIT_BLANK;
+				v |= BIT_OE;
 
 			// latch on last bit...
 			if (fx == latch_offset)

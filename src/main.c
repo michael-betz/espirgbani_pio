@@ -3,10 +3,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "rom/rtc.h"
+#include <dirent.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <dirent.h>
 #include <sys/types.h>
 
 #include "esp_log.h"
@@ -55,22 +55,22 @@ void mount_sd_card(const char *path) {
 		.format_if_mount_failed = true,
 		.max_files = 5,
 		.allocation_unit_size = 32 * 1024};
-	ESP_ERROR_CHECK(esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg,
-											&mount_config, &card));
+	ESP_ERROR_CHECK(
+		esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg, &mount_config, &card)
+	);
 
 	// Card has been initialized, print its properties
 	sdmmc_card_print_info(stdout, card);
 }
 
-void list_files(const char *path)
-{
+void list_files(const char *path) {
 	ESP_LOGI(T, "Listing %s", path);
-	DIR* dir = opendir(path);
+	DIR *dir = opendir(path);
 	if (dir == NULL)
 		return;
 
 	while (true) {
-		struct dirent* de = readdir(dir);
+		struct dirent *de = readdir(dir);
 		if (!de)
 			break;
 		ESP_LOGI(T, "    %s", de->d_name);
@@ -86,11 +86,10 @@ void app_main(void) {
 	// avoid flickering during boot, blank the panel as soon as possible
 	// Power LED will be enabled by updateFrame loop if PD is not bad
 	gpio_config_t cfg_o = {
-		.pin_bit_mask = (1LL << GPIO_BLANK) | (1LL << GPIO_LED),
-		.mode = GPIO_MODE_OUTPUT
-	};
+		.pin_bit_mask = (1LL << GPIO_OE) | (1LL << GPIO_LED),
+		.mode = GPIO_MODE_OUTPUT};
 	ESP_ERROR_CHECK(gpio_config(&cfg_o));
-	gpio_set_level(GPIO_BLANK, 0);
+	gpio_set_level(GPIO_OE, 0);
 	gpio_set_level(GPIO_LED, 0);
 
 	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
@@ -99,33 +98,39 @@ void app_main(void) {
 		.pin_bit_mask = (1LL << GPIO_PD_BAD) | (1LL << GPIO_WIFI),
 		.mode = GPIO_MODE_INPUT,
 		.pull_up_en = GPIO_PULLUP_ENABLE,
-		.pull_down_en = GPIO_PULLDOWN_DISABLE
-	};
+		.pull_down_en = GPIO_PULLDOWN_DISABLE};
 	ESP_ERROR_CHECK(gpio_config(&cfg_i));
-	gpio_dump_io_configuration(stdout, (1LL << GPIO_BLANK) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) | (1LL << GPIO_WIFI));
+	gpio_dump_io_configuration(
+		stdout, (1LL << GPIO_OE) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) |
+					(1LL << GPIO_WIFI)
+	);
 
-	esp_log_level_set("*", ESP_LOG_DEBUG);        // set all components to ERROR level
-	esp_log_level_set("wifi", ESP_LOG_WARN);      // enable WARN logs from WiFi stack
+	esp_log_level_set("*", ESP_LOG_DEBUG); // set all components to ERROR level
+	esp_log_level_set("wifi", ESP_LOG_WARN); // enable WARN logs from WiFi stack
 	esp_log_level_set("nvs", ESP_LOG_INFO);
 	esp_log_level_set("spi_master", ESP_LOG_INFO);
-	esp_log_level_set("dhcpc", ESP_LOG_INFO);     // enable INFO logs from DHCP client
+	esp_log_level_set(
+		"dhcpc",
+		ESP_LOG_INFO
+	); // enable INFO logs from DHCP client
 	esp_log_level_set("esp_netif_lwip", ESP_LOG_INFO);
 
 	// forward serial characters to web-console
 	// web_console_init();
 
 	// report initial status
-	ESP_LOGW(T, "reset reason: %d, heap: %ld, min_heap: %ld",
-			 rtc_get_reset_reason(0), esp_get_free_heap_size(),
-			 esp_get_minimum_free_heap_size());
+	ESP_LOGW(
+		T, "reset reason: %d, heap: %ld, min_heap: %ld",
+		rtc_get_reset_reason(0), esp_get_free_heap_size(),
+		esp_get_minimum_free_heap_size()
+	);
 
 	// Mount spiffs for *.html and default_settings.json
 	esp_vfs_spiffs_conf_t conf = {
 		.base_path = "/spiffs",
 		.partition_label = "filesys",
 		.max_files = 4,
-		.format_if_mount_failed = false
-	};
+		.format_if_mount_failed = false};
 	ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 	list_files("/spiffs");
 
@@ -160,8 +165,9 @@ void app_main(void) {
 	//------------------------------
 	FILE *f = fopen(ANIMATION_FILE, "r");
 	if (!f) {
-		ESP_LOGE(T, "fopen(%s, rb) failed: %s", ANIMATION_FILE,
-				 strerror(errno));
+		ESP_LOGE(
+			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
+		);
 		ESP_LOGE(T, "Will not show animations!");
 		vTaskDelete(NULL); // kill current task (== return;)
 	}
@@ -171,8 +177,9 @@ void app_main(void) {
 	//-----------------------------------
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
-	xTaskCreatePinnedToCore(&aniBackgroundTask, "bck", 1750, NULL, 1, &t_backg,
-							1);
+	xTaskCreatePinnedToCore(
+		&aniBackgroundTask, "bck", 1750, NULL, 1, &t_backg, 1
+	);
 
 	//---------------------------------
 	// Draw animations and clock layer

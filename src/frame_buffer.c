@@ -37,8 +37,10 @@ void initFb() {
 // blocks until compositing cycle is complete
 void startDrawing(unsigned layer) {
 	// waits on doneUpdating()
-	xEventGroupWaitBits(layersDoneDrawingFlags, (1 << layer), pdTRUE, pdTRUE,
-						500 / portTICK_PERIOD_MS);
+	xEventGroupWaitBits(
+		layersDoneDrawingFlags, (1 << layer), pdTRUE, pdTRUE,
+		500 / portTICK_PERIOD_MS
+	);
 }
 
 // called by layer drawing functions when done with drawing a frame
@@ -49,9 +51,11 @@ void doneDrawing(unsigned layer) {
 // called before compositing
 void waitDrawingDone() {
 	// waits on doneDrawing() for all layers
-	xEventGroupWaitBits(layersDoneDrawingFlags,
-						(1 << N_LAYERS) - 1, // N_LAYERS = 3, bits = 1b111
-						pdTRUE, pdTRUE, 500 / portTICK_PERIOD_MS);
+	xEventGroupWaitBits(
+		layersDoneDrawingFlags,
+		(1 << N_LAYERS) - 1, // N_LAYERS = 3, bits = 1b111
+		pdTRUE, pdTRUE, 500 / portTICK_PERIOD_MS
+	);
 	// All bits cleared: Blocks startDrawing() for all layers
 }
 
@@ -91,8 +95,9 @@ void setPixel(unsigned layer, unsigned x, unsigned y, unsigned color) {
 }
 
 // This ones's used for the noisy shader. Not sure anymore what it does :p
-void setPixelColor(unsigned layer, unsigned x, unsigned y, unsigned cIndex,
-				   unsigned color) {
+void setPixelColor(
+	unsigned layer, unsigned x, unsigned y, unsigned cIndex, unsigned color
+) {
 	x &= DISPLAY_WIDTH - 1;
 	y &= DISPLAY_HEIGHT - 1;
 	unsigned temp = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
@@ -188,9 +193,10 @@ void tp_task(void *pvParameters) {
 		ESP_LOGD(T, "Diagonal");
 		for (unsigned y = 0; y < DISPLAY_HEIGHT; y++)
 			for (unsigned x = 0; x < DISPLAY_WIDTH; x++)
-				setPixel(2, x, y,
-						 (x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF
-													   : 0xFF000000);
+				setPixel(
+					2, x, y,
+					(x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000
+				);
 		updateFrame();
 		vTaskDelay(5000);
 
@@ -221,8 +227,9 @@ void tp_task(void *pvParameters) {
 void set_shade_h(uint16_t hue, unsigned *shades) {
 	uint8_t r, g, b;
 	for (unsigned i = 0; i < N_SHADES; i++) {
-		fast_hsv2rgb_32bit(hue, HSV_SAT_MAX, i * HSV_VAL_MAX / (N_SHADES - 1),
-						   &r, &g, &b);
+		fast_hsv2rgb_32bit(
+			hue, HSV_SAT_MAX, i * HSV_VAL_MAX / (N_SHADES - 1), &r, &g, &b
+		);
 		shades[i] = SRGBA(r, g, b, 0xFF);
 	}
 }
@@ -413,8 +420,9 @@ static float rfpart(float x) { return (ceil(x) - x); }
 // #define plot(x, y, c) printf("%3d, %3d, %.3f\n", x, y, c)
 
 // using float, from https://en.wikipedia.org/wiki/Xiaolin_Wu's_line_algorithm
-void aaLine2(unsigned layer, unsigned *shades, float x0, float y0, float x1,
-			 float y1) {
+void aaLine2(
+	unsigned layer, unsigned *shades, float x0, float y0, float x1, float y1
+) {
 	bool steep = fabsf(y1 - y0) > fabsf(x1 - x0);
 	if (steep) {
 		swap(&x0, &y0);

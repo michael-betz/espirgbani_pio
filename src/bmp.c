@@ -9,8 +9,10 @@
 static const char *T = "BMP";
 
 // Returns a filepointer seeked to the beginngin of the bitmap data
-FILE *loadBitmapFile(char *file_name, bitmapFileHeader_t *bitmapFileHeader,
-					 bitmapInfoHeader_t *bitmapInfoHeader) {
+FILE *loadBitmapFile(
+	char *file_name, bitmapFileHeader_t *bitmapFileHeader,
+	bitmapInfoHeader_t *bitmapInfoHeader
+) {
 	if (bitmapFileHeader == NULL || bitmapInfoHeader == NULL)
 		return NULL;
 
@@ -38,19 +40,23 @@ FILE *loadBitmapFile(char *file_name, bitmapFileHeader_t *bitmapFileHeader,
 }
 
 // copys a rectangular area from a font bitmap to the frambuffer layer
-void copyBmpToFbRect(FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp,
-					 uint16_t yBmp, uint16_t w, uint16_t h, int xFb, int yFb,
-					 uint8_t layerFb, uint32_t color, uint8_t chOffset) {
+void copyBmpToFbRect(
+	FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp, uint16_t yBmp,
+	uint16_t w, uint16_t h, int xFb, int yFb, uint8_t layerFb, uint32_t color,
+	uint8_t chOffset
+) {
 	if (bmpF == NULL || bmInfo == NULL)
 		return;
 
 	if (chOffset >= bmInfo->biWidth / 8) {
-		ESP_LOGE(T, "There's only %ld color channels dude!",
-				 bmInfo->biWidth / 8);
+		ESP_LOGE(
+			T, "There's only %ld color channels dude!", bmInfo->biWidth / 8
+		);
 		chOffset = bmInfo->biWidth / 8 - 1;
 	}
-	int rowSize = ((bmInfo->biBitCount * bmInfo->biWidth + 31) / 32 *
-				   4); // how many bytes per row
+	int rowSize =
+		((bmInfo->biBitCount * bmInfo->biWidth + 31) / 32 * 4
+		); // how many bytes per row
 	uint8_t *rowBuffer =
 		(uint8_t *)malloc(rowSize); // allocate buffer for one input row
 	if (rowBuffer == NULL) {
@@ -84,8 +90,9 @@ void copyBmpToFbRect(FILE *bmpF, bitmapInfoHeader_t *bmInfo, uint16_t xBmp,
 			int yPixel = h - rowId - 1 + yFb;
 			if (xPixel < 0 || yPixel < 0)
 				continue;
-			setPixelOver(layerFb, xPixel, yPixel,
-						 (shade << 24) | scale32(shade, color));
+			setPixelOver(
+				layerFb, xPixel, yPixel, (shade << 24) | scale32(shade, color)
+			);
 		}
 	}
 	fseek(bmpF, startPos, SEEK_SET);

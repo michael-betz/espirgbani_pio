@@ -30,8 +30,9 @@
 #include "driver/gpio.h"
 #include "esp_private/periph_ctrl.h"
 
-#include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "rom/gpio.h"
 #include "rom/lldesc.h"
 
 #include "i2s_parallel.h"
@@ -56,8 +57,8 @@ static int calc_needed_dma_descs_for(i2s_parallel_buffer_desc_t *desc) {
 	return ret;
 }
 
-static void fill_dma_desc(volatile lldesc_t *dmadesc,
-						  i2s_parallel_buffer_desc_t *bufdesc) {
+static void
+fill_dma_desc(volatile lldesc_t *dmadesc, i2s_parallel_buffer_desc_t *bufdesc) {
 	int n = 0;
 	for (int i = 0; bufdesc[i].memory != NULL; i++) {
 		int len = bufdesc[i].size;
@@ -87,8 +88,8 @@ static void gpio_setup_out(gpio_num_t gpio, int sig, bool isInverted) {
 	if (gpio == -1)
 		return;
 	PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
-	gpio_set_direction(gpio, GPIO_MODE_OUTPUT);
-	gpio_iomux_out(gpio, sig, isInverted);
+	gpio_set_direction(gpio, GPIO_MODE_DEF_OUTPUT);
+	gpio_matrix_out(gpio, sig, isInverted, false);
 }
 
 static void dma_reset(i2s_dev_t *dev) {
@@ -200,7 +201,8 @@ void i2s_parallel_setup(i2s_dev_t *dev, const i2s_parallel_config_t *cfg) {
 	st->desccount_a = calc_needed_dma_descs_for(cfg->bufa);
 	st->desccount_b = calc_needed_dma_descs_for(cfg->bufb);
 	st->dmadesc_a = (volatile lldesc_t *)heap_caps_malloc(
-		st->desccount_a * sizeof(lldesc_t), MALLOC_CAP_DMA);
+		st->desccount_a * sizeof(lldesc_t), MALLOC_CAP_DMA
+	);
 	// st->dmadesc_b = (volatile lldesc_t
 	// *)heap_caps_malloc(st->desccount_b*sizeof(lldesc_t), MALLOC_CAP_DMA);
 

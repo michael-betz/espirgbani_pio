@@ -8,9 +8,9 @@
 #include "json_settings.h"
 #include "rom/rtc.h"
 
-#include "esp_adc/adc_oneshot.h"
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
+#include "esp_adc/adc_oneshot.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -58,7 +58,8 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex) {
 	h->byteOffset = SWAP32(h->byteOffset) * HEADER_SIZE;
 	// Exract frame header
 	frameHeaderEntry_t *fh = (frameHeaderEntry_t *)malloc(
-		sizeof(frameHeaderEntry_t) * h->nFrameEntries);
+		sizeof(frameHeaderEntry_t) * h->nFrameEntries
+	);
 	if (fh == NULL) {
 		ESP_LOGE(T, "Memory allocation error!");
 		return -1;
@@ -105,8 +106,9 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb) {
 
 	// get a random color
 	uint8_t r, g, b;
-	fast_hsv2rgb_32bit(RAND_AB(0, HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r,
-					   &g, &b);
+	fast_hsv2rgb_32bit(
+		RAND_AB(0, HSV_HUE_MAX), HSV_SAT_MAX, HSV_VAL_MAX, &r, &g, &b
+	);
 	unsigned color = SRGBA(r, g, b, 0xFF);
 
 	// pre-seek the file to beginning of frame
@@ -145,10 +147,12 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb) {
 		vTaskDelayUntil(&xLastWakeTime, cur_delay / portTICK_PERIOD_MS);
 		cur_delay = fh.frameDur;
 	}
-	ESP_LOGD(T, "%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
-			 _cur_hi, h->name, h->nStoredFrames, h->nFrameEntries,
-			 h->frameHeader->frameDur, max_seek_time / 1000,
-			 sum_draw_time / h->nFrameEntries / 1000, max_draw_time / 1000);
+	ESP_LOGD(
+		T, "%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
+		_cur_hi, h->name, h->nStoredFrames, h->nFrameEntries,
+		h->frameHeader->frameDur, max_seek_time / 1000,
+		sum_draw_time / h->nFrameEntries / 1000, max_draw_time / 1000
+	);
 }
 
 // blocks while rendering a pinball animation, with fade-out.
@@ -183,33 +187,33 @@ static void run_animation(FILE *f, unsigned aniId) {
 
 adc_oneshot_unit_handle_t adc_handle;
 
-void init_light_sensor()
-{
-    adc_oneshot_unit_init_cfg_t init_config = {
-        .unit_id = ADC_UNIT_1,
-    };
-    ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
+void init_light_sensor() {
+	adc_oneshot_unit_init_cfg_t init_config = {
+		.unit_id = ADC_UNIT_1,
+	};
+	ESP_ERROR_CHECK(adc_oneshot_new_unit(&init_config, &adc_handle));
 
-    //-------------ADC1 Config---------------//
-    adc_oneshot_chan_cfg_t config = {
-        .atten = ADC_ATTEN_DB_12,  // VMAX = 2450
-        .bitwidth = ADC_BITWIDTH_12,  // 12 bit, DMAX = 4095
-    };
-    // ADC_UNIT_1, ADC_CHANNEL_0 is connected to SENSOR_VP pin
-    ESP_ERROR_CHECK(adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_0, &config));
+	//-------------ADC1 Config---------------//
+	adc_oneshot_chan_cfg_t config = {
+		.atten = ADC_ATTEN_DB_12,	 // VMAX = 2450
+		.bitwidth = ADC_BITWIDTH_12, // 12 bit, DMAX = 4095
+	};
+	// ADC_UNIT_1, ADC_CHANNEL_0 is connected to SENSOR_VP pin
+	ESP_ERROR_CHECK(
+		adc_oneshot_config_channel(adc_handle, ADC_CHANNEL_0, &config)
+	);
 }
 
-int get_light_sensor()
-{
+int get_light_sensor() {
 	//   10 lux,   3 uA, 0.03 V,   50, Twilight, candle light
 	//   50 lux,         0.17 V,  284, Street light at night
 	//  100 lux,  33 uA, 0.33 V,  550, Dark museum
 	// 1000 lux, 330 uA, 3.30 V, 4095, Bright office lightning
 	int sum = 0;
 	// for (unsigned i = 0; i < 32; i++) {
-		int tmp = 0;
-	 	adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &tmp);
-	 	sum += tmp;
+	int tmp = 0;
+	adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &tmp);
+	sum += tmp;
 	// }
 	return sum;
 }
@@ -227,13 +231,13 @@ static void manageBrightness(struct tm *timeinfo) {
 		// use ambient light sensor for brightness control
 		// < 300: minimum brightness (1)
 		// 300 - 4095: brightness from (1 - 100)
-		int raw_value = get_light_sensor();  // 0 .. 4095
+		int raw_value = get_light_sensor(); // 0 .. 4095
 
 		int offset = jGetI(jPow, "offset", 300);
 		int divider = jGetI(jPow, "divider", 37);
 		int max_limit = jGetI(jPow, "max_limit", 100);
 		raw_value -= offset;  // -300 .. 3795
-		raw_value /= divider;  // -8 .. 102
+		raw_value /= divider; // -8 .. 102
 		if (raw_value <= 0)
 			raw_value = 1;
 		if (raw_value > max_limit)
@@ -293,7 +297,8 @@ static void stats(unsigned cur_fnt) {
 		"fnt: %d, uptime: %d / %d, fps: %.1f, heap: %ld / %ld, ba: %d, pi: %d",
 		cur_fnt, up_time, max_uptime, fps, esp_get_free_heap_size(),
 		esp_get_minimum_free_heap_size(), uxTaskGetStackHighWaterMark(t_backg),
-		uxTaskGetStackHighWaterMark(t_pinb));
+		uxTaskGetStackHighWaterMark(t_pinb)
+	);
 }
 
 // takes care of drawing pinball animations (layer 2) and the clock (layer 1)
@@ -370,7 +375,9 @@ void aniPinballTask(void *pvParameters) {
 			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
 				drawStrCentered("Low power", 1, color, 0xFF000000);
 			} else {
-				strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
+				strftime(
+					strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
+				);
 				// randomly colored outline, black filling
 				drawStrCentered(strftime_buf, 1, color, 0xFF000000);
 			}
