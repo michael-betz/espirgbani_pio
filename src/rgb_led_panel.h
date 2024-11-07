@@ -3,6 +3,7 @@
 #include "common.h"
 
 void init_rgb();
+void reload_rgb_config();
 void updateFrame();
 
 // Set the global brightness of the display, range 0 .. 120

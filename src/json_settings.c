@@ -66,7 +66,7 @@ cJSON *readJsonDyn(const char *file_name) {
 	return root;
 }
 
-void settings_ws_handler(uint8_t *data, size_t len) {
+void settings_ws_handler(httpd_req_t *req, uint8_t *data, size_t len) {
 	// if data is given, it will overwrite the settings file
 	// then it will read the settings file and send it over the websocket
 	if (data != NULL && len > 1) {
@@ -84,12 +84,18 @@ void settings_ws_handler(uint8_t *data, size_t len) {
 				T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno)
 			);
 		}
+		return;
 	}
 
 	// Send content of currently loaded settings file over websocket
 	char *file_data = cJSON_Print(g_settings);
 	if (file_data) {
-		ws_send((uint8_t *)file_data, strlen(file_data));
+		httpd_ws_frame_t wsf = {0};
+		wsf.type = HTTPD_WS_TYPE_TEXT;
+		wsf.payload = (uint8_t *)file_data;
+		wsf.len = strlen(file_data);
+		httpd_ws_send_frame(req, &wsf);
+
 		cJSON_free(file_data);
 	}
 }

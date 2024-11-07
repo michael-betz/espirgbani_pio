@@ -6,6 +6,7 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
+#include "rom/rtc.h"
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
 #include "mdns.h"
@@ -22,68 +23,109 @@ static const char *T = "WIFI";
 
 int wifi_state = WIFI_NOT_CONNECTED;
 
-// for sending the log output over UDP
-// receive it on the target machine with: netcat -lukp 1234
-static int dbgSock = -1;
-static struct sockaddr_in g_servaddr;
-vprintf_like_t log_original = NULL;
 
-static int udpDebugPrintf(const char *format, va_list arg) {
-	static char charBuffer[255];
+// -----------------------------------------------
+//  Websocket logger
+// -----------------------------------------------
+// Rolling buffer size in RTC mem for log entries in bytes
+#define LOG_FILE_SIZE 3576
 
-	if (log_original)
-		log_original(format, arg);
+// put the buffer and write pointer in RTC memory,
+// such that it survives sleep mode
+RTC_NOINIT_ATTR static char rtcLogBuffer[LOG_FILE_SIZE];
+RTC_NOINIT_ATTR static char *rtcLogWritePtr = rtcLogBuffer;
 
-	if (dbgSock < 0)
-		return 0;
+static const char *logBuffEnd = rtcLogBuffer + LOG_FILE_SIZE - 1;
 
-	int charLen = vsnprintf(charBuffer, sizeof(charBuffer), format, arg);
-	if (charLen <= 0)
-		return 0;
+// Push log data to this socket
+static httpd_req_t *current_request = NULL;
 
-	int ret = sendto(
-		dbgSock, charBuffer, charLen, 0, (struct sockaddr *)&g_servaddr,
-		sizeof(g_servaddr)
-	);
-
-	if (ret < 0)
-		return 0;
-
-	return ret;
+void wsDisableLog()
+{
+	current_request = NULL;
 }
 
-static void udp_debug_init() {
-	cJSON *s = getSettings();
-
-	if (dbgSock >= 0 || jGetB(s, "log_disable", true))
-		return;
-
-	// put the host's address / port into the server address structure
-	memset(&g_servaddr, 0, sizeof(g_servaddr));
-	g_servaddr.sin_family = AF_INET;
-	g_servaddr.sin_port = htons(jGetI(s, "log_port", 1234));
-	g_servaddr.sin_addr.s_addr =
-		inet_addr(jGetS(s, "log_ip", "255.255.255.255"));
-	ESP_LOGI(
-		T, "UDP log --> %s:%d", inet_ntoa(g_servaddr.sin_addr),
-		ntohs(g_servaddr.sin_port)
-	);
-
-	if ((dbgSock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		ESP_LOGE(T, "Failed to create UDP socket: %s", strerror(errno));
-		return;
+// add one character to the RTC log buffer.
+// Once a full line is accumulated, push it to the WS.
+// to forward all UART data, register it during init with:
+// ets_install_putc2(wsDebugPutc);
+static void wsDebugPutc(char c)
+{
+	// ring-buffer in RTC memory for persistence in sleep mode
+	*rtcLogWritePtr = c;
+	if (rtcLogWritePtr >= logBuffEnd) {
+		rtcLogWritePtr = rtcLogBuffer;
+	} else {
+		rtcLogWritePtr++;
 	}
 
-	ESP_LOGI(T, "Enabling UDP broadcast option");
-	int enabled = 1;
-	setsockopt(dbgSock, SOL_SOCKET, SO_BROADCAST, &enabled, sizeof(enabled));
+	// line buffer for websocket output
+	static char line_buff[128] = {'a'};
+	static unsigned line_len = 1;
+	static char *cur_char = &line_buff[1];
 
-	if (!log_original) {
-		ESP_LOGW(T, "Installed UDP logger");
-		vprintf_like_t tmp = esp_log_set_vprintf(udpDebugPrintf);
-		log_original = tmp;
+	*cur_char++ = c;
+	line_len++;
+
+	if (c == '\n' || line_len >= sizeof(line_buff) - 1) {
+		line_buff[sizeof(line_buff) - 1] = '\0';
+		if (current_request) {
+			httpd_ws_frame_t wsf = {0};
+			wsf.type = HTTPD_WS_TYPE_TEXT;
+			wsf.payload = (uint8_t *)line_buff;
+			wsf.len = line_len;
+			httpd_ws_send_frame(current_request, &wsf);
+		}
+		cur_char = &line_buff[1];
+		line_len = 1;
 	}
 }
+
+void web_console_init()
+{
+	current_request = NULL;
+	if (rtc_get_reset_reason(0) == POWERON_RESET) {
+		memset(rtcLogBuffer, 0, LOG_FILE_SIZE - 1);
+		rtcLogWritePtr = rtcLogBuffer;
+	} else {
+		if (rtcLogWritePtr < rtcLogBuffer || rtcLogWritePtr > logBuffEnd)
+			rtcLogWritePtr = rtcLogBuffer;
+	}
+	ets_install_putc2(wsDebugPutc);
+}
+
+void wsDumpRtc(httpd_req_t *req)
+{
+	char *buffer = malloc(LOG_FILE_SIZE + 1);
+	if (!buffer)
+		return;
+
+	char *p = buffer;
+	*p++ = 'a';
+
+	const char *w_ptr = rtcLogWritePtr;
+
+	// dump rtc_buffer[w_ptr:] (oldest part)
+	unsigned l0 = logBuffEnd - w_ptr + 1;
+	memcpy(p, w_ptr, l0);
+	p += l0;
+
+	// dump rtc_buffer[:w_ptr] (newest part)
+	unsigned l1 = w_ptr - rtcLogBuffer;
+	memcpy(p, rtcLogBuffer, l1);
+	p += l1;
+
+	httpd_ws_frame_t wsf = {0};
+	wsf.type = HTTPD_WS_TYPE_TEXT;
+	wsf.payload = (uint8_t *)buffer;
+	wsf.len = p - buffer;
+	httpd_ws_send_frame(req, &wsf);
+
+	current_request = req;
+
+	free(buffer);
+}
+
 
 // go through wifi scan results and look for the first known wifi
 // if the wifi is known, meaning it is configured in the .json, connect to it
@@ -149,8 +191,6 @@ static void scan_done(
 static void got_ip(
 	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
 ) {
-	udp_debug_init();
-
 	ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
 	ESP_LOGI(T, "Got ip " IPSTR, IP2STR(&event->ip_info.ip));
 
@@ -166,8 +206,6 @@ static void got_ip(
 static void got_discon(
 	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
 ) {
-	dbgSock = -1;
-
 	ESP_LOGW(T, "got disconnected :(");
 	if (event_data) {
 		wifi_event_sta_disconnected_t *ed =
@@ -283,8 +321,6 @@ void initWifi() {
 	memcpy(wifi_ap_config.ap.ssid, hostname, l);
 
 	E(esp_wifi_start());
-
-	startWebServer();
 }
 
 void tryJsonConnect() {

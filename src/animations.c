@@ -338,6 +338,8 @@ void aniPinballTask(void *pvParameters) {
 	unsigned color_delay = jGetI(jDelay, "color", 600);
 	color_delay = MAX(1, color_delay);
 
+	init_light_sensor();
+
 	unsigned cur_fnt = 0;
 
 	while (1) {

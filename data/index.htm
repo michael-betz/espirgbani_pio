@@ -40,7 +40,7 @@
 <script language="javascript" type="text/javascript">
   var websocket;
 
-  var host = "espirgbani.local";
+  var host = "espirgbani2.local";
   if (window.location.host != "")
     host = window.location.host;
   var wsUri = "ws://" + host + "/ws";
@@ -122,7 +122,7 @@
         temp = JSON.parse(dat.substr(1));
         writeToConsole(dat.substr(1));
       } else if (dat[0] == '{') {
-        textArea.value = dat.slice(1);
+        textArea.value = dat;
         if (isWriting) {
           tStatus.innerHTML = "<font color=#44FF44>👍 applied 👍</font>";
         }
@@ -159,8 +159,10 @@
   //  For the settings tab
   // --------------------------------
   function writeFile() {
-    bnApply.disabled = true;
-    websocket.send("b" + textArea.value);
+    // bnApply.disabled = true;
+    var tmp = "b" + textArea.value;
+    console.log("Sending", tmp);
+    websocket.send(tmp);
     isWriting = true;
     textArea.value = "";
     tStatus.innerHTML = "<font color=#444444>applying ...</font>";

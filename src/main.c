@@ -10,6 +10,7 @@
 #include <sys/types.h>
 
 #include "esp_log.h"
+#include "esp_http_server.h"
 #include "esp_spiffs.h"
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
@@ -17,6 +18,7 @@
 #include "esp_wifi.h"
 #include "json_settings.h"
 #include "wifi.h"
+#include "static_ws.h"
 
 #include "animations.h"
 #include "common.h"
@@ -41,7 +43,7 @@ void mount_sd_card(const char *path) {
 		.sclk_io_num = GPIO_SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 4000,
+		.max_transfer_sz = 2048,
 	};
 	ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA));
 
@@ -53,8 +55,8 @@ void mount_sd_card(const char *path) {
 
 	esp_vfs_fat_sdmmc_mount_config_t mount_config = {
 		.format_if_mount_failed = true,
-		.max_files = 5,
-		.allocation_unit_size = 32 * 1024};
+		.max_files = 4,
+		.allocation_unit_size = 16 * 1024};
 	ESP_ERROR_CHECK(
 		esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg, &mount_config, &card)
 	);
@@ -79,6 +81,60 @@ void list_files(const char *path) {
 	closedir(dir);
 }
 
+
+// This handles websocket traffic, needs ESP-IDF > 4.2.x
+static esp_err_t ws_handler(httpd_req_t *req) {
+	if (req->method == HTTP_GET) {
+		ESP_LOGI(T, "WS handshake");
+		return ESP_OK;
+	}
+
+	// Copy the received payload into local buffer
+	httpd_ws_frame_t wsf = {0};
+	esp_err_t ret = httpd_ws_recv_frame(req, &wsf, 0);
+	if (ret != ESP_OK)
+		return ret;
+
+	wsf.payload = malloc(wsf.len);
+	if (!wsf.payload)
+		return ESP_ERR_NO_MEM;
+
+	ret = httpd_ws_recv_frame(req, &wsf, wsf.len);
+	if (ret != ESP_OK) {
+		free(wsf.payload);
+		return ret;
+	}
+
+	// Process the payload
+	if (wsf.type == HTTPD_WS_TYPE_TEXT && wsf.len > 0) {
+		ESP_LOGI(T, "ws_callback(%c, %d)", wsf.payload[0], wsf.len);
+		switch (wsf.payload[0]) {
+		case 'a':
+			// wsDumpRtc(req);  // read rolling log buffer in RTC memory
+			break;
+
+		case 'b':
+			// read / write settings.json
+			settings_ws_handler(req, &wsf.payload[1], wsf.len - 1);
+
+			if (wsf.len > 2)
+				reload_rgb_config();
+			break;
+
+		case 'r':
+			esp_wifi_disconnect();
+			set_brightness(0);
+			vTaskDelay(100 / portTICK_PERIOD_MS);
+			esp_restart();
+			break;
+		}
+	}
+
+	free(wsf.payload);
+	return ESP_OK;
+}
+
+
 void app_main(void) {
 	//------------------------------
 	// init hardware
@@ -99,23 +155,8 @@ void app_main(void) {
 		.pull_up_en = GPIO_PULLUP_ENABLE,
 		.pull_down_en = GPIO_PULLDOWN_DISABLE};
 	ESP_ERROR_CHECK(gpio_config(&cfg_i));
-	gpio_dump_io_configuration(
-		stdout, (1LL << GPIO_OE_N) | (1LL << GPIO_LED) | (1LL << GPIO_PD_BAD) |
-					(1LL << GPIO_WIFI)
-	);
 
-	esp_log_level_set("*", ESP_LOG_DEBUG); // set all components to ERROR level
-	esp_log_level_set("wifi", ESP_LOG_WARN); // enable WARN logs from WiFi stack
-	esp_log_level_set("nvs", ESP_LOG_INFO);
-	esp_log_level_set("spi_master", ESP_LOG_INFO);
-	esp_log_level_set(
-		"dhcpc",
-		ESP_LOG_INFO
-	); // enable INFO logs from DHCP client
-	esp_log_level_set("esp_netif_lwip", ESP_LOG_INFO);
-
-	// forward serial characters to web-console
-	// web_console_init();
+	esp_log_level_set("*", ESP_LOG_INFO); // set all components to INFO level
 
 	// report initial status
 	ESP_LOGW(
@@ -142,11 +183,14 @@ void app_main(void) {
 
 	// init I2S driven rgb - panel
 	init_rgb();
-	updateFrame();
 
 	// init web-server
 	initWifi();
 	tryJsonConnect();
+	startWebServer(ws_handler);
+
+	// forward serial characters to web-console
+	web_console_init();
 
 	//------------------------------
 	// Display test-patterns
@@ -183,34 +227,7 @@ void app_main(void) {
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
-	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4000, f, 0, &t_pinb, 0);
+	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 5000, f, 0, &t_pinb, 0);
 
 	vTaskDelete(NULL);
-}
-
-void ws_callback(uint8_t *payload, unsigned len) {
-	// char *tok = NULL;
-	// unsigned args[5];
-
-	ESP_LOGI(T, "ws_callback(%d)", len);
-	if (len < 1)
-		return;
-
-	switch (payload[0]) {
-		// case 'a':
-		// 	wsDumpRtc(client);  // read rolling log buffer in RTC memory
-		// 	break;
-
-	case 'b':
-		// read / write settings.json
-		settings_ws_handler(&payload[1], len - 1);
-		break;
-
-	case 'r':
-		esp_wifi_disconnect();
-		// TODO disable panel
-		vTaskDelay(100 / portTICK_PERIOD_MS);
-		esp_restart();
-		break;
-	}
 }

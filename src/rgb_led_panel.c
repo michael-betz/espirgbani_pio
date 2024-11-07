@@ -6,6 +6,15 @@
 #include "frame_buffer.h"
 #include "i2s_parallel.h"
 #include "json_settings.h"
+
+#include "rom/gpio.h"
+#include "rom/lldesc.h"
+#include "esp_private/periph_ctrl.h"
+#include "soc/gpio_periph.h"
+#include "soc/i2s_reg.h"
+#include "soc/i2s_struct.h"
+#include "soc/io_mux_reg.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -45,14 +54,16 @@ unsigned g_frames = 0; // frame counter
 unsigned g_f_del = 33; // delay between frames [ms]
 
 // Double buffering has been removed to save RAM. No visual differences!
-uint16_t *bitplane[BITPLANE_CNT];
+uint16_t *bitplane[BITPLANE_CNT] = {0};
 // DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B
 
 // .json configurable parameters
 static int latch_offset = 0;
 static unsigned extra_blank = 0;
 static bool isColumnSwapped = false;
-static int ledBrightness = 5;
+static int ledBrightness = 0;
+static int clk_div = 4;
+static bool is_clk_inverted = true;
 
 void set_brightness(int value) {
 	if (value < 0)
@@ -65,7 +76,45 @@ void set_brightness(int value) {
 	ledBrightness = value;
 }
 
+void reload_rgb_config()
+{
+	//--------------------------
+	// .json configuration
+	//--------------------------
+	// get `panel` dictionary
+	cJSON *jPanel = jGet(getSettings(), "panel");
+
+	// delay between updateFrame calls [ms]
+	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
+
+	// Swap pixel x[0] with x[1]
+	isColumnSwapped = jGetB(jPanel, "column_swap", false);
+	if (isColumnSwapped)
+		ESP_LOGV(T, "column_swap applied!");
+
+	// adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
+	latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
+	latch_offset %= DISPLAY_WIDTH;
+	ESP_LOGV(T, "latch_offset = %d", latch_offset);
+
+	// adjust extra blanking cycles to reduce ghosting effects
+	extra_blank = jGetI(jPanel, "extra_blank", 1);
+
+	// set clock divider
+	clk_div = jGetI(jPanel, "clkm_div_num", 4);
+	if (clk_div < 1)
+		clk_div = 1;
+
+	is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
+
+	// a bit rude
+	I2S1.clkm_conf.clkm_div_num = clk_div;
+	gpio_matrix_out(GPIO_CLK, I2S1O_WS_OUT_IDX, is_clk_inverted, false);
+}
+
 void init_rgb() {
+	set_brightness(0);
+
 	initFb();
 
 	i2s_parallel_buffer_desc_t bufdesc[1 << BITPLANE_CNT];
@@ -93,43 +142,19 @@ void init_rgb() {
 	cfg.bufa = bufdesc;
 	cfg.bufb = bufdesc;
 
-	//--------------------------
-	// .json configuration
-	//--------------------------
-	// get `panel` dictionary
-	cJSON *jPanel = jGet(getSettings(), "panel");
+	reload_rgb_config();
 
-	// delay between updateFrame calls [ms]
-	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
-
-	// Swap pixel x[0] with x[1]
-	isColumnSwapped = jGetB(jPanel, "column_swap", false);
-	if (isColumnSwapped)
-		ESP_LOGV(T, "column_swap applied!");
-
-	// adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
-	latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
-	latch_offset %= DISPLAY_WIDTH;
-	ESP_LOGV(T, "latch_offset = %d", latch_offset);
-
-	// adjust extra blanking cycles to reduce ghosting effects
-	extra_blank = jGetI(jPanel, "extra_blank", 1);
-
-	// set clock divider
-	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
-	if (cfg.clk_div < 1)
-		cfg.clk_div = 1;
-	ESP_LOGV(T, "clkm_div_num = %d", cfg.clk_div);
-
-	cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
+	cfg.clk_div = clk_div;
+	cfg.is_clk_inverted = is_clk_inverted;
 
 	//--------------------------
 	// init the sub-frames
 	//--------------------------
 	for (int i = 0; i < BITPLANE_CNT; i++) {
-		bitplane[i] =
-			(uint16_t *)heap_caps_malloc(BITPLANE_SZ * 2, MALLOC_CAP_DMA);
-		assert(bitplane[i] && "Can't allocate bitplane memory");
+		if (bitplane[i] == NULL) {
+			bitplane[i] = (uint16_t *)heap_caps_malloc(BITPLANE_SZ * 2, MALLOC_CAP_DMA);
+			assert(bitplane[i] && "Can't allocate bitplane memory");
+		}
 		memset(bitplane[i], 0, BITPLANE_SZ * 2);
 	}
 
@@ -158,6 +183,9 @@ void init_rgb() {
 
 	// End markers
 	bufdesc[((1 << BITPLANE_CNT) - 1)].memory = NULL;
+
+	set_brightness(0);
+	updateFrame();
 
 	// Setup I2S
 	i2s_parallel_setup(&I2S1, &cfg);

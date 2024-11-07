@@ -4,6 +4,7 @@
 // used for editing settings.json in the browser
 
 #include "static_ws.h"
+#include "common.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "esp_vfs.h"
@@ -184,49 +185,7 @@ static esp_err_t download_get_handler(httpd_req_t *req) {
 	return ESP_OK;
 }
 
-httpd_req_t *g_req = NULL;
-
-void __attribute__((weak)) ws_callback(uint8_t *payload, unsigned len) {
-	ESP_LOGI(T, "ws_callback(%d)", len);
-}
-
-// This handles websocket traffic, needs ESP-IDF > 4.2.x
-static esp_err_t ws_handler(httpd_req_t *req) {
-	if (req->method == HTTP_GET) {
-		ESP_LOGI(T, "WS handshake");
-		return ESP_OK;
-	}
-
-	uint8_t buf[128] = {0};
-	httpd_ws_frame_t ws_pkt;
-	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-	ws_pkt.payload = buf;
-	ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-	esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 128);
-	if (ret != ESP_OK) {
-		ESP_LOGE(T, "httpd_ws_recv_frame failed with %d", ret);
-		return ret;
-	}
-
-	// ESP_LOGI(T, "Got packet with message: %s", ws_pkt.payload);
-	// ESP_LOGI(T, "Packet type: %d", ws_pkt.type);
-	if (ws_pkt.type == HTTPD_WS_TYPE_TEXT) {
-		g_req = req;
-		ws_callback(ws_pkt.payload, ws_pkt.len);
-	}
-	return ESP_OK;
-}
-
-esp_err_t ws_send(uint8_t *payload, unsigned len) {
-	httpd_ws_frame_t ws_pkt;
-	memset(&ws_pkt, 0, sizeof(httpd_ws_frame_t));
-	ws_pkt.type = HTTPD_WS_TYPE_TEXT;
-	ws_pkt.payload = payload;
-	ws_pkt.len = len;
-	return httpd_ws_send_frame(g_req, &ws_pkt);
-}
-
-void startWebServer() {
+void startWebServer(void *ws_handler) {
 	if (server)
 		return;
 
@@ -242,13 +201,16 @@ void startWebServer() {
 
 	// Set URI handlers
 	ESP_LOGI(T, "Registering URI handlers");
-	httpd_uri_t ws = {
-		.uri = "/ws",
-		.method = HTTP_GET,
-		.handler = ws_handler,
-		.user_ctx = NULL,
-		.is_websocket = true};
-	httpd_register_uri_handler(server, &ws);
+
+	if (ws_handler) {
+		httpd_uri_t ws = {
+			.uri = "/ws",
+			.method = HTTP_GET,
+			.handler = ws_handler,
+			.user_ctx = NULL,
+			.is_websocket = true};
+		httpd_register_uri_handler(server, &ws);
+	}
 
 	httpd_uri_t file_reboot = {
 		.uri = "/reboot", .method = HTTP_GET, .handler = reboot_get_handler};

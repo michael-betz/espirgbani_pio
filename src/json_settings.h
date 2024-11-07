@@ -4,6 +4,7 @@
 #include <cJSON.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_http_server.h"
 
 // set the .json file with settings and a fall-back defaults_file
 // which will be copied over if not NULL
@@ -11,7 +12,7 @@
 void set_settings_file(const char *f_settings, const char *f_defaults);
 
 // dump current settings file on websocket / re-write the settings file
-void settings_ws_handler(uint8_t *data, size_t len);
+void settings_ws_handler(httpd_req_t *req, uint8_t *data, size_t len);
 
 // returns the cJSON object
 cJSON *getSettings();
