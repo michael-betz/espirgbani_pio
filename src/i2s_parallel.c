@@ -87,7 +87,6 @@ fill_dma_desc(volatile lldesc_t *dmadesc, i2s_parallel_buffer_desc_t *bufdesc) {
 static void gpio_setup_out(gpio_num_t gpio, int sig, bool isInverted) {
     if (gpio == -1)
         return;
-    // PIN_FUNC_SELECT(GPIO_PIN_MUX_REG[gpio], PIN_FUNC_GPIO);
     gpio_pad_select_gpio(gpio);
     gpio_set_direction(gpio, GPIO_MODE_DEF_OUTPUT);
     gpio_set_drive_capability(gpio, (gpio_drive_cap_t)3);

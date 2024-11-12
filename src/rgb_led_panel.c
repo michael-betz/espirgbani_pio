@@ -199,21 +199,20 @@ void init_rgb() {
 
 void updateFrame() {
 	// Check if we need to limit led brightness due to USB PD not giving 12 V
-	int ledBrightness_ = ledBrightness;
+	int br = ledBrightness;
 	bool is_bad = gpio_get_level(GPIO_PD_BAD);
 	gpio_set_level(GPIO_LED, !is_bad);
-	if (is_bad && ledBrightness_ > 20)
-		ledBrightness_ = 20;
+	if (is_bad && br > 20)
+		br = 20;
 
     // center the output enable between 2 strobes
-    int oe_start = (DISPLAY_WIDTH - ledBrightness_) / 2;
-    int oe_stop = (DISPLAY_WIDTH + ledBrightness_) / 2;
+    int oe_start = (DISPLAY_WIDTH - br) / 2;
+    int oe_stop = (DISPLAY_WIDTH + br) / 2;
 
 	// Wait until all the layers are done updating
 	waitDrawingDone();
 
 	for (unsigned int y = 0; y < DISPLAY_HEIGHT / 2; y++) {
-		unsigned y = 0;
 		// Precalculate line bits of the *previous* line, which is the one we're
 		// displaying now
 		unsigned lbits = 0;

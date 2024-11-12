@@ -15,12 +15,12 @@
 // -----------------
 // Upper half RGB
 #define GPIO_R1 GPIO_NUM_22
-#define GPIO_G1 GPIO_NUM_23
-#define GPIO_B1 GPIO_NUM_21
+#define GPIO_G1 GPIO_NUM_21
+#define GPIO_B1 GPIO_NUM_23
 // Lower half RGB
 #define GPIO_R2 GPIO_NUM_18
-#define GPIO_G2 GPIO_NUM_19
-#define GPIO_B2 GPIO_NUM_5
+#define GPIO_G2 GPIO_NUM_5
+#define GPIO_B2 GPIO_NUM_19
 // Row address
 #define GPIO_A GPIO_NUM_16
 #define GPIO_B GPIO_NUM_17
