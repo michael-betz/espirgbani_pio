@@ -48,6 +48,10 @@
 #define BIT_OE_N (1 << 12)
 // -1 = don't care
 
+// 16 bit parallel mode - Save the calculated value to the bitplane memory
+// in reverse order to account for I2S Tx FIFO mode1 ordering
+#define ESP32_TX_FIFO_POSITION_ADJUST(x) (((x) & 1U) ? (x - 1) : (x + 1))
+
 static const char *T = "LED_PANEL";
 
 unsigned g_frames = 0; // frame counter
@@ -69,8 +73,8 @@ void set_brightness(int value) {
 	if (value < 0)
 		value = 0;
 
-	if (value > 120)
-		value = 120;
+	if (value > DISPLAY_WIDTH - 2)
+		value = DISPLAY_WIDTH - 2;
 
 	ESP_LOGD(T, "set_brightness(%d)", value);
 	ledBrightness = value;
@@ -140,7 +144,7 @@ void init_rgb() {
 
 	cfg.bits = I2S_PARALLEL_BITS_16;
 	cfg.bufa = bufdesc;
-	cfg.bufb = bufdesc;
+	cfg.bufb = NULL;
 
 	reload_rgb_config();
 
@@ -194,20 +198,25 @@ void init_rgb() {
 }
 
 void updateFrame() {
-	// Wait until all the layers are done updating
-	waitDrawingDone();
-
 	// Check if we need to limit led brightness due to USB PD not giving 12 V
 	int ledBrightness_ = ledBrightness;
 	bool is_bad = gpio_get_level(GPIO_PD_BAD);
 	gpio_set_level(GPIO_LED, !is_bad);
-	if (is_bad && ledBrightness_ > 5)
-		ledBrightness_ = 5;
+	if (is_bad && ledBrightness_ > 20)
+		ledBrightness_ = 20;
 
-	for (unsigned int y = 0; y < 16; y++) {
+    // center the output enable between 2 strobes
+    int oe_start = (DISPLAY_WIDTH - ledBrightness_) / 2;
+    int oe_stop = (DISPLAY_WIDTH + ledBrightness_) / 2;
+
+	// Wait until all the layers are done updating
+	waitDrawingDone();
+
+	for (unsigned int y = 0; y < DISPLAY_HEIGHT / 2; y++) {
+		unsigned y = 0;
 		// Precalculate line bits of the *previous* line, which is the one we're
 		// displaying now
-		int lbits = 0;
+		unsigned lbits = 0;
 
 		if ((y - 1) & 1)
 			lbits |= BIT_A;
@@ -220,33 +229,29 @@ void updateFrame() {
 		if ((y - 1) & 16)
 			lbits |= BIT_E;
 
-		for (int fx = 0; fx < DISPLAY_WIDTH; fx++) {
-			int x = fx;
+		for (int x = 0; x < DISPLAY_WIDTH; x++) {
+            int x_ = ESP32_TX_FIFO_POSITION_ADJUST(x);
+			unsigned v = lbits;
 
-			if (isColumnSwapped)
-				x ^= 1;
+            // Do not show image while the line bits are changing
+            if (!(x_ >= oe_start && x_ < oe_stop))
+                v |= BIT_OE_N;
 
-			int v = lbits;
-
-			// Do not show image while the line bits are changing
-			if (fx < extra_blank || fx >= ledBrightness_)
-				v |= BIT_OE_N;
-
-			// latch on last bit...
-			if (fx == latch_offset)
-				v |= BIT_LAT;
+            // latch pulse at the end of shifting in row - data
+            if (x_ == (DISPLAY_WIDTH - 1))
+                v |= BIT_LAT;
 
 			// Does alpha blending of all graphical layers, a rather
 			// expensive operation and best kept out of innermost loop.
-			int c1 = getBlendedPixel(x, y);
-			int c2 = getBlendedPixel(x, y + 16);
+			unsigned c1 = getBlendedPixel(x_, y);
+			unsigned c2 = getBlendedPixel(x_, y + 16);
 
 			for (int pl = 0; pl < BITPLANE_CNT; pl++) {
 				// reset RGB bits
-				int v_ = v;
+				unsigned v_ = v;
 
 				// bitmask for pixel data in input for this bitplane
-				int mask = (1 << (8 - BITPLANE_CNT + pl));
+				unsigned mask = (1 << (8 - BITPLANE_CNT + pl));
 
 				if (c1 & (mask << 16))
 					v_ |= BIT_R1;

@@ -78,7 +78,7 @@ void settings_ws_handler(httpd_req_t *req, uint8_t *data, size_t len) {
 			dest = NULL;
 			ESP_LOGI(T, "re-wrote %s", g_settings_file);
 
-			set_settings_file(NULL, NULL);
+			// set_settings_file(NULL, NULL);
 		} else {
 			ESP_LOGE(
 				T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno)
