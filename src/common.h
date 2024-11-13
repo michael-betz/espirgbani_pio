@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 #include "driver/gpio.h"
+#include "esp_random.h"
 
 // ---------------
 //  SD card GPIOs
@@ -58,7 +59,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // Random number within the range [a,b]
-#define RAND_AB(a, b) (random() % (b + 1 - a) + a)
+#define RAND_AB(a, b) (esp_random() % (b + 1 - a) + a)
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"

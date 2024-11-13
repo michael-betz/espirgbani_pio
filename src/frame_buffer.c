@@ -174,12 +174,12 @@ static void tp_stripes_sequence(bool isY) {
 	for (unsigned i = 0; i < 8; i++) {
 		ESP_LOGD(T, "stripes %d / 8", i + 1);
 		tp_stripes(8, i, isY);
-		vTaskDelay(500);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
 	}
 	for (unsigned i = 0; i < 4; i++) {
 		ESP_LOGD(T, "stripes %d / 2", (i % 2) + 1);
 		tp_stripes(2, i % 2, isY);
-		vTaskDelay(500);
+		vTaskDelay(500 / portTICK_PERIOD_MS);
 	}
 }
 
@@ -198,7 +198,7 @@ void tp_task(void *pvParameters) {
 					(x - y) % DISPLAY_HEIGHT == 0 ? 0xFFFFFFFF : 0xFF000000
 				);
 		updateFrame();
-		vTaskDelay(5000);
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 
 		ESP_LOGD(T, "Vertical stripes ...");
 		tp_stripes_sequence(true);
@@ -209,17 +209,17 @@ void tp_task(void *pvParameters) {
 		ESP_LOGD(T, "All red");
 		setAll(2, 0xFF0000FF);
 		updateFrame();
-		vTaskDelay(1000);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		ESP_LOGD(T, "All green");
 		setAll(2, 0xFF00FF00);
 		updateFrame();
-		vTaskDelay(1000);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		ESP_LOGD(T, "All blue");
 		setAll(2, 0xFFFF0000);
 		updateFrame();
-		vTaskDelay(1000);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 }
 

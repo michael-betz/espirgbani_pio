@@ -62,9 +62,6 @@ uint16_t *bitplane[BITPLANE_CNT] = {0};
 // DISPLAY_WIDTH * 32 * 3 array with image data, 8R8G8B
 
 // .json configurable parameters
-static int latch_offset = 0;
-static unsigned extra_blank = 0;
-static bool isColumnSwapped = false;
 static int ledBrightness = 0;
 static int clk_div = 4;
 static bool is_clk_inverted = true;
@@ -91,24 +88,8 @@ void reload_rgb_config()
 	// delay between updateFrame calls [ms]
 	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
 
-	// Swap pixel x[0] with x[1]
-	isColumnSwapped = jGetB(jPanel, "column_swap", false);
-	if (isColumnSwapped)
-		ESP_LOGV(T, "column_swap applied!");
-
-	// adjust clock cycle of the latch pulse (nominally = 0 = last pixel)
-	latch_offset = (DISPLAY_WIDTH - 1) + jGetI(jPanel, "latch_offset", 0);
-	latch_offset %= DISPLAY_WIDTH;
-	ESP_LOGV(T, "latch_offset = %d", latch_offset);
-
-	// adjust extra blanking cycles to reduce ghosting effects
-	extra_blank = jGetI(jPanel, "extra_blank", 1);
-
 	// set clock divider
 	clk_div = jGetI(jPanel, "clkm_div_num", 4);
-	if (clk_div < 1)
-		clk_div = 1;
-
 	is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
 
 	// a bit rude
@@ -117,7 +98,7 @@ void reload_rgb_config()
 }
 
 void init_rgb() {
-	set_brightness(0);
+	set_brightness(2);
 
 	initFb();
 
@@ -188,7 +169,6 @@ void init_rgb() {
 	// End markers
 	bufdesc[((1 << BITPLANE_CNT) - 1)].memory = NULL;
 
-	set_brightness(0);
 	updateFrame();
 
 	// Setup I2S

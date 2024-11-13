@@ -35,17 +35,18 @@ TaskHandle_t t_pinb = NULL;
 void mount_sd_card(const char *path) {
 	// TODO if this fails, it really doesn't make sense to continue.
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-	host.max_freq_khz = 20000; // [kHz]
+	host.max_freq_khz = 40000; // [kHz]
 
+	gpio_pullup_en(GPIO_SD_MISO);
 	spi_bus_config_t bus_cfg = {
 		.mosi_io_num = GPIO_SD_MOSI,
 		.miso_io_num = GPIO_SD_MISO,
 		.sclk_io_num = GPIO_SD_CLK,
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
-		.max_transfer_sz = 2048,
 	};
 	ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA));
+	gpio_pullup_en(GPIO_SD_MISO);
 
 	sdmmc_card_t *card = NULL;
 
@@ -56,7 +57,7 @@ void mount_sd_card(const char *path) {
 	esp_vfs_fat_sdmmc_mount_config_t mount_config = {
 		.format_if_mount_failed = true,
 		.max_files = 4,
-		.allocation_unit_size = 16 * 1024};
+	};
 	ESP_ERROR_CHECK(
 		esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg, &mount_config, &card)
 	);
@@ -156,8 +157,6 @@ void app_main(void) {
 		.pull_down_en = GPIO_PULLDOWN_DISABLE};
 	ESP_ERROR_CHECK(gpio_config(&cfg_i));
 
-	esp_log_level_set("*", ESP_LOG_INFO); // set all components to INFO level
-
 	// report initial status
 	ESP_LOGW(
 		T, "reset reason: %d, heap: %ld, min_heap: %ld",
@@ -180,6 +179,10 @@ void app_main(void) {
 
 	// Load settings.json from SD card, try to create file if it doesn't exist
 	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
+	esp_log_level_set("*", jGetI(getSettings(), "log_level", 3));
+	// this one is super verbose, keep it in INFO level
+	esp_log_level_set("spi_master", ESP_LOG_INFO);
+	esp_log_level_set("wifi", ESP_LOG_INFO);
 
 	// init I2S driven rgb - panel
 	init_rgb();

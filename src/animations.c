@@ -13,6 +13,7 @@
 #include "esp_adc/adc_oneshot.h"
 
 #include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -172,7 +173,7 @@ static void run_animation(FILE *f, unsigned aniId) {
 
 	// Keep a single frame displayed for a bit
 	if (myHeader.nStoredFrames <= 3 || myHeader.nFrameEntries <= 3)
-		vTaskDelay(3000);
+		vTaskDelay(3000 / portTICK_PERIOD_MS);
 
 	// Fade out the frame
 	uint32_t nTouched = 1;
@@ -231,17 +232,21 @@ static void manageBrightness(struct tm *timeinfo) {
 		// use ambient light sensor for brightness control
 		// < 300: minimum brightness (1)
 		// 300 - 4095: brightness from (1 - 100)
-		int raw_value = get_light_sensor(); // 0 .. 4095
+		int ambient_light = get_light_sensor(); // 0 .. 4095
 
 		int offset = jGetI(jPow, "offset", 300);
 		int divider = jGetI(jPow, "divider", 37);
 		int max_limit = jGetI(jPow, "max_limit", 100);
-		raw_value -= offset;  // -300 .. 3795
+		int min_limit = jGetI(jPow, "min_limit", 5);
+		int raw_value = ambient_light - offset;  // -300 .. 3795
 		raw_value /= divider; // -8 .. 102
 		if (raw_value <= 0)
 			raw_value = 1;
+		if (raw_value < min_limit)
+			raw_value = min_limit;
 		if (raw_value > max_limit)
 			raw_value = max_limit;
+		ESP_LOGI(T, "Ambient light: %d,  brightness: %d", ambient_light, raw_value);
 		set_brightness(raw_value); // 1 - 100
 	} else if (mode == 2) {
 		// use day and night switching times
@@ -375,7 +380,7 @@ void aniPinballTask(void *pvParameters) {
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
 			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
-				drawStrCentered("Low power", 1, color, 0xFF000000);
+				drawStrCentered("LPWR", 1, color, 0xFF000000);
 			} else {
 				strftime(
 					strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo

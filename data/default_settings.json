@@ -3,10 +3,7 @@
         "test_pattern": true,
         "tp_brightness": 10,
         "is_clk_inverted": true,
-        "column_swap": false,
-        "latch_offset": 0,
-        "extra_blank": 1,
-        "clkm_div_num": 3,
+        "clkm_div_num": 4,
         "lock_frame_buffer": false,
         "max_frame_rate": 30
     },
@@ -21,6 +18,7 @@
         "offset": 300,
         "divider": 37,
         "max_limit": 100,
+        "min_limit": 2,
         "day": {
             "h": 9,
             "m": 0,
@@ -36,7 +34,7 @@
         "INSERT_SSID": "INSERT_PASSWORD"
     },
     "hostname": "espirgbani",
-    "enable_ota": true,
-    "timezone": "PST8PDT,M3.2.0,M11.1.0",
+    "log_level": 3,
+    "timezone": "CET-1CEST,M3.5.0,M10.5.0/3",
     "ntp_host": "pool.ntp.org"
 }
