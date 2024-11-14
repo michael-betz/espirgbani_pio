@@ -82,6 +82,13 @@ void list_files(const char *path) {
 	closedir(dir);
 }
 
+void init_log()
+{
+	esp_log_level_set("*", jGetI(getSettings(), "log_level", 3));
+	// this one is super verbose, keep it in INFO level
+	esp_log_level_set("spi_master", ESP_LOG_INFO);
+	esp_log_level_set("wifi", ESP_LOG_INFO);
+}
 
 // This handles websocket traffic, needs ESP-IDF > 4.2.x
 static esp_err_t ws_handler(httpd_req_t *req) {
@@ -117,9 +124,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		case 'b':
 			// read / write settings.json
 			settings_ws_handler(req, &wsf.payload[1], wsf.len - 1);
-
-			if (wsf.len > 2)
-				reload_rgb_config();
+			init_log();
 			break;
 
 		case 'r':
@@ -179,10 +184,7 @@ void app_main(void) {
 
 	// Load settings.json from SD card, try to create file if it doesn't exist
 	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
-	esp_log_level_set("*", jGetI(getSettings(), "log_level", 3));
-	// this one is super verbose, keep it in INFO level
-	esp_log_level_set("spi_master", ESP_LOG_INFO);
-	esp_log_level_set("wifi", ESP_LOG_INFO);
+	init_log();
 
 	// init I2S driven rgb - panel
 	init_rgb();
@@ -224,13 +226,13 @@ void app_main(void) {
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	xTaskCreatePinnedToCore(
-		&aniBackgroundTask, "bck", 1750, NULL, 1, &t_backg, 1
+		&aniBackgroundTask, "bck", 2048, NULL, 1, &t_backg, 1
 	);
 
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
-	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 5000, f, 0, &t_pinb, 0);
+	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4096 * 2, f, 0, &t_pinb, 0);
 
 	vTaskDelete(NULL);
 }

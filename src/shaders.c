@@ -185,6 +185,7 @@ void aniBackgroundTask(void *pvParameters) {
 	cJSON *jDelay = jGet(getSettings(), "delays");
 	int shader_delay = jGetI(jDelay, "shader", 300); // [s]
 	shader_delay = shader_delay * 1000 / _f_del;	 // [cycles]
+	ESP_LOGI(T, "started aniBackgroundTask(), shader_delay: %d", shader_delay);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while (1) {
@@ -224,8 +225,8 @@ void aniBackgroundTask(void *pvParameters) {
 		}
 
 		unsigned dt = esp_timer_get_time() - t;
-		if (aniMode >= 1 && aniMode <= 5 && frm % 1000 == 0)
-			ESP_LOGI(T, "shader: %d, dt = %d us", aniMode, dt);
+		if (aniMode <= 5 && frm % 1000 == 0)
+			ESP_LOGI(T, "shader: %d, dt = %d us, frm = %d", aniMode, dt, frm);
 
 		// maximum global frame-rate: 1 / f_del kHz
 		vTaskDelayUntil(&xLastWakeTime, _f_del);

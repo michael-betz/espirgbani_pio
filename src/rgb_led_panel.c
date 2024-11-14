@@ -63,8 +63,6 @@ uint16_t *bitplane[BITPLANE_CNT] = {0};
 
 // .json configurable parameters
 static int ledBrightness = 0;
-static int clk_div = 4;
-static bool is_clk_inverted = true;
 
 void set_brightness(int value) {
 	if (value < 0)
@@ -75,26 +73,6 @@ void set_brightness(int value) {
 
 	ESP_LOGD(T, "set_brightness(%d)", value);
 	ledBrightness = value;
-}
-
-void reload_rgb_config()
-{
-	//--------------------------
-	// .json configuration
-	//--------------------------
-	// get `panel` dictionary
-	cJSON *jPanel = jGet(getSettings(), "panel");
-
-	// delay between updateFrame calls [ms]
-	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
-
-	// set clock divider
-	clk_div = jGetI(jPanel, "clkm_div_num", 4);
-	is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
-
-	// a bit rude
-	I2S1.clkm_conf.clkm_div_num = clk_div;
-	gpio_matrix_out(GPIO_CLK, I2S1O_WS_OUT_IDX, is_clk_inverted, false);
 }
 
 void init_rgb() {
@@ -127,10 +105,18 @@ void init_rgb() {
 	cfg.bufa = bufdesc;
 	cfg.bufb = NULL;
 
-	reload_rgb_config();
+	//--------------------------
+	// .json configuration
+	//--------------------------
+	// get `panel` dictionary
+	cJSON *jPanel = jGet(getSettings(), "panel");
 
-	cfg.clk_div = clk_div;
-	cfg.is_clk_inverted = is_clk_inverted;
+	// delay between updateFrame calls [ms]
+	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
+
+	// set clock divider
+	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
+	cfg.is_clk_inverted = jGetB(jPanel, "is_clk_inverted", true);
 
 	//--------------------------
 	// init the sub-frames

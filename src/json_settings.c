@@ -70,21 +70,22 @@ void settings_ws_handler(httpd_req_t *req, uint8_t *data, size_t len) {
 	// if data is given, it will overwrite the settings file
 	// then it will read the settings file and send it over the websocket
 	if (data != NULL && len > 1) {
-		data[len] = 0;
 		FILE *dest = fopen(g_settings_file, "wb");
 		if (dest) {
-			fputs((const char *)data, dest);
+			int ret = fwrite(data, 1, len, dest);
+			if (ret == len)
+				ESP_LOGI(T, "re-wrote %s", g_settings_file);
+			else
+				ESP_LOGE(T, "Writing the settings file to %s failed :( (%d / %d)", g_settings_file, ret, len);
 			fclose(dest);
 			dest = NULL;
-			ESP_LOGI(T, "re-wrote %s", g_settings_file);
 
-			// set_settings_file(NULL, NULL);
+			set_settings_file(NULL, NULL);
 		} else {
 			ESP_LOGE(
 				T, "fopen(%s, wb) failed: %s", g_settings_file, strerror(errno)
 			);
 		}
-		return;
 	}
 
 	// Send content of currently loaded settings file over websocket
