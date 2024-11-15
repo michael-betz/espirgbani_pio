@@ -296,10 +296,8 @@ void drawStrCentered(
 	// vertically center BB on display
 	yOff += (DISPLAY_HEIGHT - h) / 2;
 
-	startDrawing(layer);
 	setAll(layer, 0x00000000);
 	drawStr(str, xOff, yOff, layer, cOutline, cFill);
-	doneDrawing(layer);
 }
 
 // Returns the number of consecutive `path/0.fnt` files

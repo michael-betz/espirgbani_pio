@@ -6,7 +6,6 @@
 #include "esp_log.h"
 #include "fast_hsv2rgb.h"
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -18,51 +17,14 @@
 
 static const char *T = "FRAME_BUFFER";
 
-EventGroupHandle_t layersDoneDrawingFlags = NULL;
-
 // framebuffer with `N_LAYERS` in MSB ABGR LSB format
 // Colors are premultiplied with their alpha values for easiser compositing
 unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
 void initFb() {
-	layersDoneDrawingFlags = xEventGroupCreate();
 	// set all layers to transparent and unblock
-	for (int i = 0; i < N_LAYERS; i++) {
-		xEventGroupSetBits(layersDoneDrawingFlags, (1 << i));
+	for (int i = 0; i < N_LAYERS; i++)
 		setAll(i, 0);
-	}
-}
-
-// called by layer drawing functions before beginning to draw a frame
-// blocks until compositing cycle is complete
-void startDrawing(unsigned layer) {
-	// waits on doneUpdating()
-	xEventGroupWaitBits(
-		layersDoneDrawingFlags, (1 << layer), pdTRUE, pdTRUE,
-		500 / portTICK_PERIOD_MS
-	);
-}
-
-// called by layer drawing functions when done with drawing a frame
-void doneDrawing(unsigned layer) {
-	xEventGroupSetBits(layersDoneDrawingFlags, (1 << layer));
-}
-
-// called before compositing
-void waitDrawingDone() {
-	// waits on doneDrawing() for all layers
-	xEventGroupWaitBits(
-		layersDoneDrawingFlags,
-		(1 << N_LAYERS) - 1, // N_LAYERS = 3, bits = 1b111
-		pdTRUE, pdTRUE, 500 / portTICK_PERIOD_MS
-	);
-	// All bits cleared: Blocks startDrawing() for all layers
-}
-
-// called when done compositing. Completes the frame cycle.
-void doneUpdating() {
-	// Set all bits again, unlocking startDrawing() for all layers
-	xEventGroupSetBits(layersDoneDrawingFlags, (1 << N_LAYERS) - 1);
 }
 
 // Get a blended pixel from the N layers of frameBuffer,
@@ -276,16 +238,12 @@ void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb) {
 	unsigned shades[N_SHADES];
 	set_shade_opaque(color, shades);
 
-	if (lock_fb)
-		startDrawing(layer);
 	for (int i = 0; i < DISPLAY_WIDTH * DISPLAY_HEIGHT / 2; i++) {
 		// unpack the 2 pixels per byte, put their shades in the framebuffer
 		*p++ = get_pix_color(*pix >> 4, shades);
 		*p++ = get_pix_color(*pix, shades);
 		pix++;
 	}
-	if (lock_fb)
-		doneDrawing(layer);
 }
 
 // Xiaolin Wu antialiased line drawer. Integer optimized.

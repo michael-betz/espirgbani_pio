@@ -163,12 +163,8 @@ static void run_animation(FILE *f, unsigned aniId) {
 	TickType_t xLastWakeTime;
 	headerEntry_t myHeader;
 
-	// synchronize animation frames to global update rate (vsync)
-	cJSON *jPanel = jGet(getSettings(), "panel");
-	bool lock_fb = jGetB(jPanel, "lock_frame_buffer", false);
-
 	readHeaderEntry(f, &myHeader, aniId);
-	playAni(f, &myHeader, lock_fb);
+	playAni(f, &myHeader, false);
 	free(myHeader.frameHeader);
 	myHeader.frameHeader = NULL;
 
@@ -180,9 +176,7 @@ static void run_animation(FILE *f, unsigned aniId) {
 	uint32_t nTouched = 1;
 	xLastWakeTime = xTaskGetTickCount();
 	while (nTouched) {
-		startDrawing(2);
 		nTouched = fadeOut(2, 10);
-		doneDrawing(2);
 		vTaskDelayUntil(&xLastWakeTime, g_f_del / portTICK_PERIOD_MS);
 	}
 }

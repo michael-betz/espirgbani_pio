@@ -175,9 +175,6 @@ void updateFrame() {
     int oe_start = (DISPLAY_WIDTH - br) / 2;
     int oe_stop = (DISPLAY_WIDTH + br) / 2;
 
-	// Wait until all the layers are done updating
-	waitDrawingDone();
-
 	for (unsigned int y = 0; y < DISPLAY_HEIGHT / 2; y++) {
 		// Precalculate line bits of the *previous* line, which is the one we're
 		// displaying now
@@ -236,7 +233,5 @@ void updateFrame() {
 			}
 		}
 	}
-
-	doneUpdating();
 	g_frames++;
 }
