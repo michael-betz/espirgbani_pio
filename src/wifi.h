@@ -31,6 +31,7 @@ void web_console_init();
 // dump the whole RTC buffer to the WS, oldest entries first.
 // call this once the WS connection is open.
 void wsDumpRtc(httpd_req_t *req);
+void closeReq(httpd_req_t *req);
 
 void wsDisableLog();
 

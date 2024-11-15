@@ -45,6 +45,12 @@ void wsDisableLog()
 	current_request = NULL;
 }
 
+void closeReq(httpd_req_t *req)
+{
+	if (req == current_request)
+		current_request = NULL;
+}
+
 // add one character to the RTC log buffer.
 // Once a full line is accumulated, push it to the WS.
 // to forward all UART data, register it during init with:
@@ -60,38 +66,54 @@ static void wsDebugPutc(char c)
 	}
 
 	// line buffer for websocket output
-	static char line_buff[128] = {'a'};
-	static unsigned line_len = 1;
-	static char *cur_char = &line_buff[1];
+	// static char line_buff[128] = {'a'};
+	// static unsigned line_len = 1;
+	// static char *cur_char = &line_buff[1];
 
-	*cur_char++ = c;
-	line_len++;
+	// *cur_char++ = c;
+	// line_len++;
 
-	if (c == '\n' || line_len >= sizeof(line_buff) - 1) {
-		line_buff[sizeof(line_buff) - 1] = '\0';
-		if (current_request) {
-			httpd_ws_frame_t wsf = {0};
-			wsf.type = HTTPD_WS_TYPE_TEXT;
-			wsf.payload = (uint8_t *)line_buff;
-			wsf.len = line_len;
-			httpd_ws_send_frame(current_request, &wsf);
-		}
-		cur_char = &line_buff[1];
-		line_len = 1;
-	}
+	// if (c == '\n' || line_len >= sizeof(line_buff) - 1) {
+	// 	line_buff[sizeof(line_buff) - 1] = '\0';
+	// 	if (current_request) {
+	// 		httpd_ws_frame_t wsf = {0};
+	// 		wsf.type = HTTPD_WS_TYPE_TEXT;
+	// 		wsf.payload = (uint8_t *)line_buff;
+	// 		wsf.len = line_len;
+	// 		httpd_ws_send_frame(current_request, &wsf);
+	// 	}
+	// 	cur_char = &line_buff[1];
+	// 	line_len = 1;
+	// }
+}
+
+static int app_printf(void *cookie, const char *data, int size) {
+    fprintf(stderr, "app_printf: %.*s", size, data);
+    return size;
 }
 
 void web_console_init()
 {
 	current_request = NULL;
-	if (rtc_get_reset_reason(0) == POWERON_RESET) {
-		memset(rtcLogBuffer, 0, LOG_FILE_SIZE - 1);
+	int reason = rtc_get_reset_reason(0);
+	printf("Reset reason: %d\n", reason);
+	if (reason == POWERON_RESET) {
+		printf("Clearing RTC log\n");
+		memset(rtcLogBuffer, 0, LOG_FILE_SIZE);
 		rtcLogWritePtr = rtcLogBuffer;
 	} else {
 		if (rtcLogWritePtr < rtcLogBuffer || rtcLogWritePtr > logBuffEnd)
 			rtcLogWritePtr = rtcLogBuffer;
 	}
-	ets_install_putc2(wsDebugPutc);
+
+	// char *stdout_buf = (char *)malloc(128);
+    // fclose(stdout);
+    // stdout = fwopen(NULL, &app_printf);
+    // setvbuf(stdout, stdout_buf, _IOLBF, 128);
+    // fprintf(stderr, "fwopen ret=%p\n", stdout);
+
+	ets_install_putc1(wsDebugPutc);
+	// ets_install_putc2(wsDebugPutc);
 }
 
 void wsDumpRtc(httpd_req_t *req)
@@ -121,9 +143,11 @@ void wsDumpRtc(httpd_req_t *req)
 	wsf.len = p - buffer;
 	httpd_ws_send_frame(req, &wsf);
 
-	current_request = req;
-
 	free(buffer);
+
+	// ESP_LOG_BUFFER_HEXDUMP(T, rtcLogBuffer, LOG_FILE_SIZE, ESP_LOG_INFO);
+
+	current_request = req;
 }
 
 

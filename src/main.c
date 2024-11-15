@@ -97,6 +97,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		return ESP_OK;
 	}
 
+
 	// Copy the received payload into local buffer
 	httpd_ws_frame_t wsf = {0};
 	esp_err_t ret = httpd_ws_recv_frame(req, &wsf, 0);
@@ -113,12 +114,14 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		return ret;
 	}
 
-	// Process the payload
-	if (wsf.type == HTTPD_WS_TYPE_TEXT && wsf.len > 0) {
+	if (wsf.type == HTTPD_WS_TYPE_CLOSE) {
+		closeReq(req);
+	} else if (wsf.type == HTTPD_WS_TYPE_TEXT && wsf.len > 0) {
+		// Process the payload
 		ESP_LOGI(T, "ws_callback(%c, %d)", wsf.payload[0], wsf.len);
 		switch (wsf.payload[0]) {
 		case 'a':
-			// wsDumpRtc(req);  // read rolling log buffer in RTC memory
+			wsDumpRtc(req);  // read rolling log buffer in RTC memory
 			break;
 
 		case 'b':
@@ -142,6 +145,9 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 
 
 void app_main(void) {
+	// forward serial characters to web-console
+	web_console_init();
+
 	//------------------------------
 	// init hardware
 	//------------------------------
@@ -193,9 +199,6 @@ void app_main(void) {
 	initWifi();
 	tryJsonConnect();
 	startWebServer(ws_handler);
-
-	// forward serial characters to web-console
-	web_console_init();
 
 	//------------------------------
 	// Display test-patterns

@@ -1,5 +1,6 @@
 #include "animations.h"
 #include "common.h"
+#include "wifi.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "fast_hsv2rgb.h"
@@ -206,16 +207,17 @@ void init_light_sensor() {
 }
 
 int get_light_sensor() {
+	// 8x mode, actually 0 .. 32k now
 	//   10 lux,   3 uA, 0.03 V,   50, Twilight, candle light
 	//   50 lux,         0.17 V,  284, Street light at night
 	//  100 lux,  33 uA, 0.33 V,  550, Dark museum
 	// 1000 lux, 330 uA, 3.30 V, 4095, Bright office lightning
 	int sum = 0;
-	// for (unsigned i = 0; i < 32; i++) {
-	int tmp = 0;
-	adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &tmp);
-	sum += tmp;
-	// }
+	for (unsigned i = 0; i < 8; i++) {
+		int tmp = 0;
+		adc_oneshot_read(adc_handle, ADC_CHANNEL_0, &tmp);
+		sum += tmp;
+	}
 	return sum;
 }
 
@@ -232,18 +234,18 @@ static void manageBrightness(struct tm *timeinfo) {
 		// use ambient light sensor for brightness control
 		// < 300: minimum brightness (1)
 		// 300 - 4095: brightness from (1 - 100)
-		int ambient_light = get_light_sensor(); // 0 .. 4095
+		int ambient_light = get_light_sensor(); // 0 .. 32k
 
-		int offset = jGetI(jPow, "offset", 300);
-		int divider = jGetI(jPow, "divider", 37);
+		int offset = jGetI(jPow, "offset", 0);
+		int divider = jGetI(jPow, "divider", 327);
 		int max_limit = jGetI(jPow, "max_limit", 100);
 		int min_limit = jGetI(jPow, "min_limit", 5);
-		int raw_value = ambient_light - offset;  // -300 .. 3795
-		raw_value /= divider; // -8 .. 102
-		if (raw_value <= 0)
-			raw_value = 1;
+		int raw_value = ambient_light - offset;
+		raw_value /= divider;
 		if (raw_value < min_limit)
 			raw_value = min_limit;
+		if (raw_value <= 0)
+			raw_value = 1;
 		if (raw_value > max_limit)
 			raw_value = max_limit;
 		ESP_LOGI(T, "Ambient light: %d,  brightness: %d", ambient_light, raw_value);
@@ -390,6 +392,9 @@ void aniPinballTask(void *pvParameters) {
 			}
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
+
+			if (wifi_state == WIFI_NOT_CONNECTED)
+				tryJsonConnect();
 		}
 		sec_ = timeinfo.tm_sec;
 
