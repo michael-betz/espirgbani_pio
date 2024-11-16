@@ -33,7 +33,18 @@
         "INSERT_SSID": "INSERT_PASSWORD"
     },
     "hostname": "espirgbani",
-    "log_level": 3,
+    "log_level":    {
+        "*":    4,
+        "httpd_sess":   2,
+        "httpd_txrx":   2,
+        "httpd_ws": 2,
+        "httpd_server": 2,
+        "httpd_parse":  2,
+        "httpd":    2,
+        "spi_master":   2,
+        "vfs_fat":  2,
+        "wifi": 2
+    },
     "timezone": "CET-1CEST,M3.5.0,M10.5.0/3",
     "ntp_host": "pool.ntp.org"
 }

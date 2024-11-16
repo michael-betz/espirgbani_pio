@@ -9,16 +9,16 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include "esp_log.h"
 #include "esp_http_server.h"
+#include "esp_log.h"
 #include "esp_spiffs.h"
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 
 #include "esp_wifi.h"
 #include "json_settings.h"
-#include "wifi.h"
 #include "static_ws.h"
+#include "wifi.h"
 
 #include "animations.h"
 #include "common.h"
@@ -82,21 +82,28 @@ void list_files(const char *path) {
 	closedir(dir);
 }
 
-void init_log()
-{
-	esp_log_level_set("*", jGetI(getSettings(), "log_level", 3));
-	// this one is super verbose, keep it in INFO level
-	esp_log_level_set("spi_master", ESP_LOG_INFO);
-	esp_log_level_set("wifi", ESP_LOG_INFO);
+void init_log() {
+	const cJSON *jLog = NULL;
+	const cJSON *jLogs = jGet(getSettings(), "log_level");
+
+	cJSON_ArrayForEach(jLog, jLogs) {
+		if (!cJSON_IsNumber(jLog)) {
+			ESP_LOGW(T, "log_level: ignoring %s (not an int)", jLog->string);
+			continue;
+		}
+		esp_log_level_set(jLog->string, jLog->valueint);
+	}
 }
 
 // This handles websocket traffic, needs ESP-IDF > 4.2.x
 static esp_err_t ws_handler(httpd_req_t *req) {
+	static char ret_buffer[64];
+	int ret_len = -1;
+
 	if (req->method == HTTP_GET) {
 		ESP_LOGI(T, "WS handshake");
 		return ESP_OK;
 	}
-
 
 	// Copy the received payload into local buffer
 	httpd_ws_frame_t wsf = {0};
@@ -114,20 +121,19 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		return ret;
 	}
 
-	if (wsf.type == HTTPD_WS_TYPE_CLOSE) {
-		closeReq(req);
-	} else if (wsf.type == HTTPD_WS_TYPE_TEXT && wsf.len > 0) {
+	if (wsf.type == HTTPD_WS_TYPE_TEXT && wsf.len > 0) {
 		// Process the payload
-		ESP_LOGI(T, "ws_callback(%c, %d)", wsf.payload[0], wsf.len);
+		ESP_LOGV(T, "ws_callback(%c, %d)", wsf.payload[0], wsf.len);
 		switch (wsf.payload[0]) {
 		case 'a':
-			wsDumpRtc(req);  // read rolling log buffer in RTC memory
+			wsDumpRtc(req); // read rolling log buffer in RTC memory
 			break;
 
 		case 'b':
 			// read / write settings.json
 			settings_ws_handler(req, &wsf.payload[1], wsf.len - 1);
-			init_log();
+			if (wsf.len > 1)
+				init_log();
 			break;
 
 		case 'r':
@@ -136,13 +142,31 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 			vTaskDelay(100 / portTICK_PERIOD_MS);
 			esp_restart();
 			break;
+
+		case 'h':
+			ret_len = snprintf(
+				ret_buffer, sizeof(ret_buffer),
+				"h{\"heap\": %ld, \"min_heap\": %ld}", esp_get_free_heap_size(),
+				esp_get_minimum_free_heap_size()
+			);
+			break;
 		}
 	}
-
 	free(wsf.payload);
+
+	// Send reply if needed
+	if (ret_len >= 0) {
+		if (ret_len > sizeof(ret_buffer))
+			ret_len = sizeof(ret_buffer);
+
+		httpd_ws_frame_t ret_wsf = {0};
+		ret_wsf.type = HTTPD_WS_TYPE_TEXT;
+		ret_wsf.payload = (uint8_t *)ret_buffer;
+		ret_wsf.len = ret_len;
+		httpd_ws_send_frame(req, &ret_wsf);
+	}
 	return ESP_OK;
 }
-
 
 void app_main(void) {
 	// forward serial characters to web-console
@@ -153,9 +177,7 @@ void app_main(void) {
 	//------------------------------
 	// Power LED will be enabled by updateFrame loop if PD is not bad
 	gpio_config_t cfg_o = {
-		.pin_bit_mask = (1LL << GPIO_LED),
-		.mode = GPIO_MODE_OUTPUT
-	};
+		.pin_bit_mask = (1LL << GPIO_LED), .mode = GPIO_MODE_OUTPUT};
 	ESP_ERROR_CHECK(gpio_config(&cfg_o));
 	gpio_set_level(GPIO_LED, 0);
 
@@ -229,13 +251,13 @@ void app_main(void) {
 	// this one calls updateFrame and hence
 	// sets the global maximum frame-rate
 	xTaskCreatePinnedToCore(
-		&aniBackgroundTask, "bck", 2048, NULL, 1, &t_backg, 1
+		&aniBackgroundTask, "bck", 1024 * 4, NULL, 1, &t_backg, 1
 	);
 
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
-	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 4096 * 2, f, 0, &t_pinb, 0);
+	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 1024 * 8, f, 0, &t_pinb, 0);
 
 	vTaskDelete(NULL);
 }

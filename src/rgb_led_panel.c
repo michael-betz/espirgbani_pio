@@ -7,9 +7,9 @@
 #include "i2s_parallel.h"
 #include "json_settings.h"
 
+#include "esp_private/periph_ctrl.h"
 #include "rom/gpio.h"
 #include "rom/lldesc.h"
-#include "esp_private/periph_ctrl.h"
 #include "soc/gpio_periph.h"
 #include "soc/i2s_reg.h"
 #include "soc/i2s_struct.h"
@@ -50,7 +50,7 @@
 
 // 16 bit parallel mode - Save the calculated value to the bitplane memory
 // in reverse order to account for I2S Tx FIFO mode1 ordering
-#define ESP32_TX_FIFO_POSITION_ADJUST(x) (((x) & 1U) ? (x - 1) : (x + 1))
+#define ESP32_TX_FIFO_POSITION_ADJUST(x) (((x)&1U) ? (x - 1) : (x + 1))
 
 static const char *T = "LED_PANEL";
 
@@ -123,7 +123,8 @@ void init_rgb() {
 	//--------------------------
 	for (int i = 0; i < BITPLANE_CNT; i++) {
 		if (bitplane[i] == NULL) {
-			bitplane[i] = (uint16_t *)heap_caps_malloc(BITPLANE_SZ * 2, MALLOC_CAP_DMA);
+			bitplane[i] =
+				(uint16_t *)heap_caps_malloc(BITPLANE_SZ * 2, MALLOC_CAP_DMA);
 			assert(bitplane[i] && "Can't allocate bitplane memory");
 		}
 		memset(bitplane[i], 0, BITPLANE_SZ * 2);
@@ -171,9 +172,9 @@ void updateFrame() {
 	if (is_bad && br > 20)
 		br = 20;
 
-    // center the output enable between 2 strobes
-    int oe_start = (DISPLAY_WIDTH - br) / 2;
-    int oe_stop = (DISPLAY_WIDTH + br) / 2;
+	// center the output enable between 2 strobes
+	int oe_start = (DISPLAY_WIDTH - br) / 2;
+	int oe_stop = (DISPLAY_WIDTH + br) / 2;
 
 	for (unsigned int y = 0; y < DISPLAY_HEIGHT / 2; y++) {
 		// Precalculate line bits of the *previous* line, which is the one we're
@@ -192,16 +193,16 @@ void updateFrame() {
 			lbits |= BIT_E;
 
 		for (int x = 0; x < DISPLAY_WIDTH; x++) {
-            int x_ = ESP32_TX_FIFO_POSITION_ADJUST(x);
+			int x_ = ESP32_TX_FIFO_POSITION_ADJUST(x);
 			unsigned v = lbits;
 
-            // Do not show image while the line bits are changing
-            if (!(x_ >= oe_start && x_ < oe_stop))
-                v |= BIT_OE_N;
+			// Do not show image while the line bits are changing
+			if (!(x_ >= oe_start && x_ < oe_stop))
+				v |= BIT_OE_N;
 
-            // latch pulse at the end of shifting in row - data
-            if (x_ == (DISPLAY_WIDTH - 1))
-                v |= BIT_LAT;
+			// latch pulse at the end of shifting in row - data
+			if (x_ == (DISPLAY_WIDTH - 1))
+				v |= BIT_LAT;
 
 			// Does alpha blending of all graphical layers, a rather
 			// expensive operation and best kept out of innermost loop.

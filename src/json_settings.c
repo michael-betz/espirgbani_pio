@@ -76,7 +76,10 @@ void settings_ws_handler(httpd_req_t *req, uint8_t *data, size_t len) {
 			if (ret == len)
 				ESP_LOGI(T, "re-wrote %s", g_settings_file);
 			else
-				ESP_LOGE(T, "Writing the settings file to %s failed :( (%d / %d)", g_settings_file, ret, len);
+				ESP_LOGE(
+					T, "Writing the settings file to %s failed :( (%d / %d)",
+					g_settings_file, ret, len
+				);
 			fclose(dest);
 			dest = NULL;
 
@@ -106,7 +109,7 @@ void set_settings_file(const char *f_settings, const char *f_defaults) {
 		g_settings_file = f_settings;
 
 	if (g_settings != NULL)
-		cJSON_free(g_settings);
+		cJSON_Delete(g_settings);
 
 	g_settings = readJsonDyn(g_settings_file);
 

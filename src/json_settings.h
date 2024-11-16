@@ -1,10 +1,10 @@
 #ifndef JSON_SETTINGS_H
 #define JSON_SETTINGS_H
 
+#include "esp_http_server.h"
 #include <cJSON.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include "esp_http_server.h"
 
 // set the .json file with settings and a fall-back defaults_file
 // which will be copied over if not NULL

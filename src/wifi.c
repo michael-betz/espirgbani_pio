@@ -6,11 +6,11 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_wifi.h"
-#include "rom/rtc.h"
 #include "lwip/dns.h"
 #include "lwip/netdb.h"
 #include "mdns.h"
 #include "nvs_flash.h"
+#include "rom/rtc.h"
 #include "static_ws.h"
 #include "wifi.h"
 
@@ -23,7 +23,6 @@ static const char *T = "WIFI";
 
 int wifi_state = WIFI_NOT_CONNECTED;
 
-
 // -----------------------------------------------
 //  Websocket logger
 // -----------------------------------------------
@@ -34,122 +33,92 @@ int wifi_state = WIFI_NOT_CONNECTED;
 // such that it survives sleep mode
 RTC_NOINIT_ATTR static char rtcLogBuffer[LOG_FILE_SIZE];
 RTC_NOINIT_ATTR static char *rtcLogWritePtr = rtcLogBuffer;
+RTC_NOINIT_ATTR static char *rtcLogReadPtr = rtcLogBuffer;
 
 static const char *logBuffEnd = rtcLogBuffer + LOG_FILE_SIZE - 1;
 
-// Push log data to this socket
-static httpd_req_t *current_request = NULL;
+// The unmodified stdout file
+FILE *old_stdout = NULL;
+FILE *old_stderr = NULL;
 
-void wsDisableLog()
-{
-	current_request = NULL;
-}
+// add stdout chars to the RTC log buffer.
+static int print_to_ws(void *cookie, const char *data, int size) {
+	if (old_stdout != NULL)
+		fwrite(data, 1, size, old_stdout);
 
-void closeReq(httpd_req_t *req)
-{
-	if (req == current_request)
-		current_request = NULL;
-}
-
-// add one character to the RTC log buffer.
-// Once a full line is accumulated, push it to the WS.
-// to forward all UART data, register it during init with:
-// ets_install_putc2(wsDebugPutc);
-static void wsDebugPutc(char c)
-{
 	// ring-buffer in RTC memory for persistence in sleep mode
-	*rtcLogWritePtr = c;
-	if (rtcLogWritePtr >= logBuffEnd) {
-		rtcLogWritePtr = rtcLogBuffer;
-	} else {
-		rtcLogWritePtr++;
+	for (unsigned i = 0; i < size; i++) {
+		char c = data[i];
+
+		*rtcLogWritePtr = c;
+		if (rtcLogWritePtr >= logBuffEnd) {
+			rtcLogWritePtr = rtcLogBuffer;
+		} else {
+			rtcLogWritePtr++;
+		}
 	}
 
-	// line buffer for websocket output
-	// static char line_buff[128] = {'a'};
-	// static unsigned line_len = 1;
-	// static char *cur_char = &line_buff[1];
-
-	// *cur_char++ = c;
-	// line_len++;
-
-	// if (c == '\n' || line_len >= sizeof(line_buff) - 1) {
-	// 	line_buff[sizeof(line_buff) - 1] = '\0';
-	// 	if (current_request) {
-	// 		httpd_ws_frame_t wsf = {0};
-	// 		wsf.type = HTTPD_WS_TYPE_TEXT;
-	// 		wsf.payload = (uint8_t *)line_buff;
-	// 		wsf.len = line_len;
-	// 		httpd_ws_send_frame(current_request, &wsf);
-	// 	}
-	// 	cur_char = &line_buff[1];
-	// 	line_len = 1;
-	// }
+	return size;
 }
 
-static int app_printf(void *cookie, const char *data, int size) {
-    fprintf(stderr, "app_printf: %.*s", size, data);
-    return size;
-}
-
-void web_console_init()
-{
-	current_request = NULL;
+void web_console_init() {
 	int reason = rtc_get_reset_reason(0);
-	printf("Reset reason: %d\n", reason);
+	ESP_LOGW(T, "Enabling web-socket logging 👋");
+
+	// Keep a copy for printing to UART
+	old_stdout = stdout;
+	old_stderr = stderr;
+
+	// standard IO streams are inherited when a task is created, so this needs
+	// to be done before creating other tasks:
+	_GLOBAL_REENT->_stdout = fwopen(NULL, &print_to_ws);
+	_GLOBAL_REENT->_stderr = fwopen(NULL, &print_to_ws);
+
+	// Also redirect stdout/stderr of main task
+	stdout = _GLOBAL_REENT->_stdout;
+	stderr = _GLOBAL_REENT->_stderr;
+
 	if (reason == POWERON_RESET) {
-		printf("Clearing RTC log\n");
+		ESP_LOGW(T, "Clearing RTC log");
 		memset(rtcLogBuffer, 0, LOG_FILE_SIZE);
 		rtcLogWritePtr = rtcLogBuffer;
+		rtcLogReadPtr = rtcLogBuffer;
 	} else {
 		if (rtcLogWritePtr < rtcLogBuffer || rtcLogWritePtr > logBuffEnd)
 			rtcLogWritePtr = rtcLogBuffer;
+
+		if (rtcLogReadPtr < rtcLogBuffer || rtcLogReadPtr > logBuffEnd)
+			rtcLogReadPtr = rtcLogBuffer;
 	}
-
-	// char *stdout_buf = (char *)malloc(128);
-    // fclose(stdout);
-    // stdout = fwopen(NULL, &app_printf);
-    // setvbuf(stdout, stdout_buf, _IOLBF, 128);
-    // fprintf(stderr, "fwopen ret=%p\n", stdout);
-
-	ets_install_putc1(wsDebugPutc);
-	// ets_install_putc2(wsDebugPutc);
 }
 
-void wsDumpRtc(httpd_req_t *req)
-{
-	char *buffer = malloc(LOG_FILE_SIZE + 1);
+void wsDumpRtc(httpd_req_t *req) {
+	int n_bytes =
+		(rtcLogWritePtr - rtcLogReadPtr + LOG_FILE_SIZE) % LOG_FILE_SIZE;
+	if (n_bytes <= 0)
+		return;
+
+	char *buffer = malloc(n_bytes + 1);
 	if (!buffer)
 		return;
 
 	char *p = buffer;
 	*p++ = 'a';
 
-	const char *w_ptr = rtcLogWritePtr;
-
-	// dump rtc_buffer[w_ptr:] (oldest part)
-	unsigned l0 = logBuffEnd - w_ptr + 1;
-	memcpy(p, w_ptr, l0);
-	p += l0;
-
-	// dump rtc_buffer[:w_ptr] (newest part)
-	unsigned l1 = w_ptr - rtcLogBuffer;
-	memcpy(p, rtcLogBuffer, l1);
-	p += l1;
+	for (unsigned i = 0; i < n_bytes; i++) {
+		*p++ = *rtcLogReadPtr++;
+		if (rtcLogReadPtr > logBuffEnd)
+			rtcLogReadPtr = rtcLogBuffer;
+	}
 
 	httpd_ws_frame_t wsf = {0};
 	wsf.type = HTTPD_WS_TYPE_TEXT;
 	wsf.payload = (uint8_t *)buffer;
-	wsf.len = p - buffer;
+	wsf.len = n_bytes + 1;
 	httpd_ws_send_frame(req, &wsf);
 
 	free(buffer);
-
-	// ESP_LOG_BUFFER_HEXDUMP(T, rtcLogBuffer, LOG_FILE_SIZE, ESP_LOG_INFO);
-
-	current_request = req;
 }
-
 
 // go through wifi scan results and look for the first known wifi
 // if the wifi is known, meaning it is configured in the .json, connect to it

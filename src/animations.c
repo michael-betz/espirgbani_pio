@@ -1,6 +1,5 @@
 #include "animations.h"
 #include "common.h"
-#include "wifi.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "fast_hsv2rgb.h"
@@ -8,6 +7,7 @@
 #include "frame_buffer.h"
 #include "json_settings.h"
 #include "rom/rtc.h"
+#include "wifi.h"
 
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
@@ -242,7 +242,9 @@ static void manageBrightness(struct tm *timeinfo) {
 			raw_value = 1;
 		if (raw_value > max_limit)
 			raw_value = max_limit;
-		ESP_LOGI(T, "Ambient light: %d,  brightness: %d", ambient_light, raw_value);
+		ESP_LOGI(
+			T, "Ambient light: %d,  brightness: %d", ambient_light, raw_value
+		);
 		set_brightness(raw_value); // 1 - 100
 	} else if (mode == 2) {
 		// use day and night switching times
