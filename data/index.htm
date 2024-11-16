@@ -96,11 +96,15 @@
     websocket.onopen = function(evt) {
       connected_status.innerHTML = "⌚";
       writeToConsole("WS CONNECTED");
-      websocket.send('h');
-      // get heap command
+
+      // dump complete log buffer
+      websocket.send('a1');
+
       intervalId = setInterval(function() {
+        // get heap command
         websocket.send("h");
-        websocket.send('a');  // dump RTC buffer command
+        // dump log updates
+        websocket.send('a0');
       }, 1000);
     };
 

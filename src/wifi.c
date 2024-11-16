@@ -92,9 +92,17 @@ void web_console_init() {
 	}
 }
 
-void wsDumpRtc(httpd_req_t *req) {
-	int n_bytes =
-		(rtcLogWritePtr - rtcLogReadPtr + LOG_FILE_SIZE) % LOG_FILE_SIZE;
+void wsDumpRtc(httpd_req_t *req, bool dump_all) {
+	int n_bytes = 0;
+
+	if (dump_all) {
+		n_bytes = LOG_FILE_SIZE;
+		rtcLogReadPtr = rtcLogWritePtr;
+	} else {
+		n_bytes = (rtcLogWritePtr - rtcLogReadPtr + LOG_FILE_SIZE);
+		n_bytes %= LOG_FILE_SIZE;
+	}
+
 	if (n_bytes <= 0)
 		return;
 

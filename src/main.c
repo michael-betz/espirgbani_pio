@@ -126,7 +126,12 @@ static esp_err_t ws_handler(httpd_req_t *req) {
 		ESP_LOGV(T, "ws_callback(%c, %d)", wsf.payload[0], wsf.len);
 		switch (wsf.payload[0]) {
 		case 'a':
-			wsDumpRtc(req); // read rolling log buffer in RTC memory
+			if (wsf.len > 1 && wsf.payload[1] == '1')
+				// dump complete log buffer
+				wsDumpRtc(req, true);
+			else
+				// dump updates only
+				wsDumpRtc(req, false);
 			break;
 
 		case 'b':
