@@ -4,7 +4,8 @@
         "tp_brightness": 10,
         "is_clk_inverted": true,
         "clkm_div_num": 4,
-        "max_frame_rate": 30
+        "max_frame_rate": 30,
+        "is_gamma": false
     },
     "delays": {
         "font": 3600,

@@ -63,7 +63,7 @@ static int print_to_ws(void *cookie, const char *data, int size) {
 
 void web_console_init() {
 	int reason = rtc_get_reset_reason(0);
-	ESP_LOGW(T, "Enabling web-socket logging 👋");
+	ESP_LOGI(T, "Enabling web-socket logging 👋");
 
 	// Keep a copy for printing to UART
 	old_stdout = stdout;
@@ -77,6 +77,9 @@ void web_console_init() {
 	// Also redirect stdout/stderr of main task
 	stdout = _GLOBAL_REENT->_stdout;
 	stderr = _GLOBAL_REENT->_stderr;
+
+	static char linebuf[128];
+  	setvbuf(stdout, linebuf, _IOLBF, sizeof(linebuf));
 
 	if (reason == POWERON_RESET) {
 		ESP_LOGW(T, "Clearing RTC log");

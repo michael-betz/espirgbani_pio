@@ -35,9 +35,10 @@ TaskHandle_t t_pinb = NULL;
 void mount_sd_card(const char *path) {
 	// TODO if this fails, it really doesn't make sense to continue.
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-	host.max_freq_khz = 40000; // [kHz]
+	host.max_freq_khz = 26000; // [kHz]
 
 	gpio_pullup_en(GPIO_SD_MISO);
+	gpio_pullup_en(GPIO_SD_CS);
 	spi_bus_config_t bus_cfg = {
 		.mosi_io_num = GPIO_SD_MOSI,
 		.miso_io_num = GPIO_SD_MISO,

@@ -10,6 +10,8 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "i2s_parallel.h"
+#include "val2pwm.h"
+#include "json_settings.h"
 #include "rgb_led_panel.h"
 #include <math.h>
 #include <stdio.h>
@@ -17,14 +19,19 @@
 
 static const char *T = "FRAME_BUFFER";
 
+static bool is_gamma = true;
+
 // framebuffer with `N_LAYERS` in MSB ABGR LSB format
 // Colors are premultiplied with their alpha values for easiser compositing
 unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
 void initFb() {
-	// set all layers to transparent and unblock
+	// set all layers to transparent
 	for (int i = 0; i < N_LAYERS; i++)
 		setAll(i, 0);
+
+	cJSON *jPanel = jGet(getSettings(), "panel");
+	is_gamma = jGetB(jPanel, "is_gamma", true);
 }
 
 // Get a blended pixel from the N layers of frameBuffer,
@@ -40,10 +47,12 @@ unsigned getBlendedPixel(unsigned x, unsigned y) {
 		resG = INT_PRELERP(resG, GG(p), GA(p));
 		resB = INT_PRELERP(resB, GB(p), GA(p));
 	}
-	// TODO not sure if worth it ...
-	// resR = valToPwm(resR);
-	// resG = valToPwm(resG);
-	// resB = valToPwm(resB);
+	// not sure if worth it ...
+	if (is_gamma) {
+		resR = valToPwm(resR);
+		resG = valToPwm(resG);
+		resB = valToPwm(resB);
+	}
 	return (resB << 16) | (resG << 8) | resR;
 }
 
