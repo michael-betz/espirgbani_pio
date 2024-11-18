@@ -290,6 +290,12 @@ void drawStrCentered(
 	// horizontally center `str` on display
 	xOff += (DISPLAY_WIDTH - w) / 2;
 
+	// Center string in single panel mode (right half only)
+	cJSON *jPanel = jGet(getSettings(), "panel");
+	if (jGetB(jPanel, "is_single_panel", false)) {
+		xOff += DISPLAY_WIDTH / 4;
+	}
+
 	// align top of BB with top of display
 	yOff = -top;
 

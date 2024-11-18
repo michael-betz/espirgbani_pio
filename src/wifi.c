@@ -62,8 +62,23 @@ static int print_to_ws(void *cookie, const char *data, int size) {
 }
 
 void web_console_init() {
-	int reason = rtc_get_reset_reason(0);
+	static char linebuf[128];
+
 	ESP_LOGI(T, "Enabling web-socket logging 👋");
+
+	int reason = rtc_get_reset_reason(0);
+	if (reason == POWERON_RESET) {
+		ESP_LOGW(T, "Clearing RTC log");
+		memset(rtcLogBuffer, 0, LOG_FILE_SIZE);
+		rtcLogWritePtr = rtcLogBuffer;
+		rtcLogReadPtr = rtcLogBuffer;
+	} else {
+		if (rtcLogWritePtr < rtcLogBuffer || rtcLogWritePtr > logBuffEnd)
+			rtcLogWritePtr = rtcLogBuffer;
+
+		if (rtcLogReadPtr < rtcLogBuffer || rtcLogReadPtr > logBuffEnd)
+			rtcLogReadPtr = rtcLogBuffer;
+	}
 
 	// Keep a copy for printing to UART
 	old_stdout = stdout;
@@ -78,21 +93,7 @@ void web_console_init() {
 	stdout = _GLOBAL_REENT->_stdout;
 	stderr = _GLOBAL_REENT->_stderr;
 
-	static char linebuf[128];
   	setvbuf(stdout, linebuf, _IOLBF, sizeof(linebuf));
-
-	if (reason == POWERON_RESET) {
-		ESP_LOGW(T, "Clearing RTC log");
-		memset(rtcLogBuffer, 0, LOG_FILE_SIZE);
-		rtcLogWritePtr = rtcLogBuffer;
-		rtcLogReadPtr = rtcLogBuffer;
-	} else {
-		if (rtcLogWritePtr < rtcLogBuffer || rtcLogWritePtr > logBuffEnd)
-			rtcLogWritePtr = rtcLogBuffer;
-
-		if (rtcLogReadPtr < rtcLogBuffer || rtcLogReadPtr > logBuffEnd)
-			rtcLogReadPtr = rtcLogBuffer;
-	}
 }
 
 void wsDumpRtc(httpd_req_t *req, bool dump_all) {

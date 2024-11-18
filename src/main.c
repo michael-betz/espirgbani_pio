@@ -32,13 +32,10 @@ static const char *T = "MAIN";
 TaskHandle_t t_backg = NULL;
 TaskHandle_t t_pinb = NULL;
 
-void mount_sd_card(const char *path) {
-	// TODO if this fails, it really doesn't make sense to continue.
+static esp_err_t mount_sd_card(const char *path) {
 	sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 	host.max_freq_khz = 26000; // [kHz]
 
-	gpio_pullup_en(GPIO_SD_MISO);
-	gpio_pullup_en(GPIO_SD_CS);
 	spi_bus_config_t bus_cfg = {
 		.mosi_io_num = GPIO_SD_MOSI,
 		.miso_io_num = GPIO_SD_MISO,
@@ -48,6 +45,7 @@ void mount_sd_card(const char *path) {
 	};
 	ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA));
 	gpio_pullup_en(GPIO_SD_MISO);
+	gpio_pullup_en(GPIO_SD_CS);
 
 	sdmmc_card_t *card = NULL;
 
@@ -59,12 +57,21 @@ void mount_sd_card(const char *path) {
 		.format_if_mount_failed = true,
 		.max_files = 4,
 	};
-	ESP_ERROR_CHECK(
-		esp_vfs_fat_sdspi_mount("/sd", &host, &device_cfg, &mount_config, &card)
-	);
 
-	// Card has been initialized, print its properties
-	sdmmc_card_print_info(stdout, card);
+	esp_err_t ret = esp_vfs_fat_sdspi_mount(
+		"/sd",
+		&host,
+		&device_cfg,
+		&mount_config,
+		&card
+	);
+	if (ret == ESP_OK) {
+		// Card has been initialized, print its properties
+		sdmmc_card_print_info(stdout, card);
+	} else {
+		ESP_LOGE(T, "Failed to mount SD card. Continuing in test-pattern mode.");
+	}
+	return ret;
 }
 
 void list_files(const char *path) {
@@ -213,11 +220,16 @@ void app_main(void) {
 	list_files("/spiffs");
 
 	// Mount SD for animations, fonts and for settings.json
-	mount_sd_card("/sd");
-	list_files("/sd");
+	esp_err_t ret = mount_sd_card("/sd");
+	if (ret == ESP_OK) {
+		list_files("/sd");
+		// Load settings.json from SD card, try to create file if it doesn't exist
+		set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
+	} else {
+		// No SD card, load default settings and go to test-pattern mode
+		set_settings_file("/spiffs/default_settings.json", NULL);
+	}
 
-	// Load settings.json from SD card, try to create file if it doesn't exist
-	set_settings_file("/sd/settings.json", "/spiffs/default_settings.json");
 	init_log();
 
 	// init I2S driven rgb - panel

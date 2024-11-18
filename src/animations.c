@@ -93,9 +93,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId) {
 }
 
 // play a single animation, start to finish
-// lock_fb: synchronize with updateFrame(), prevents artifacts, reduces frame
-// rate (vsync)
-static void playAni(FILE *f, headerEntry_t *h, bool lock_fb) {
+static void playAni(FILE *f, headerEntry_t *h) {
 	int64_t seek_time = 0;
 	int max_seek_time = 0;
 
@@ -124,7 +122,7 @@ static void playAni(FILE *f, headerEntry_t *h, bool lock_fb) {
 		if (fh.frameId <= 0)
 			setAll(2, 0xFF000000); // invalid frame = translucent black
 		else
-			setFromFile(f, 2, color, lock_fb);
+			setFromFile(f, 2, color);
 		draw_time = esp_timer_get_time() - draw_time;
 		sum_draw_time += draw_time;
 		if (draw_time > max_draw_time)
@@ -164,7 +162,7 @@ static void run_animation(FILE *f, unsigned aniId) {
 	headerEntry_t myHeader;
 
 	readHeaderEntry(f, &myHeader, aniId);
-	playAni(f, &myHeader, false);
+	playAni(f, &myHeader);
 	free(myHeader.frameHeader);
 	myHeader.frameHeader = NULL;
 

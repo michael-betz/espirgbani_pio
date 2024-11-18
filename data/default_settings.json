@@ -5,7 +5,8 @@
         "is_clk_inverted": true,
         "clkm_div_num": 4,
         "max_frame_rate": 30,
-        "is_gamma": false
+        "is_gamma": false,
+        "is_single_panel": false
     },
     "delays": {
         "font": 3600,
@@ -35,7 +36,7 @@
     },
     "hostname": "espirgbani",
     "log_level":    {
-        "*":    4,
+        "*":    3,
         "httpd_sess":   2,
         "httpd_txrx":   2,
         "httpd_ws": 2,

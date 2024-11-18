@@ -235,7 +235,7 @@ static unsigned get_pix_color(unsigned pix, unsigned *shades) {
 	return shades[pix];
 }
 
-void setFromFile(FILE *f, unsigned layer, unsigned color, bool lock_fb) {
+void setFromFile(FILE *f, unsigned layer, unsigned color) {
 	uint8_t frm_buff[DISPLAY_WIDTH * DISPLAY_HEIGHT / 2], *pix = frm_buff;
 	unsigned *p = g_frameBuff[layer];
 	unsigned ret = fread(frm_buff, 1, sizeof(frm_buff), f);
