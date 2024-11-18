@@ -93,24 +93,4 @@ unsigned fadeOut(unsigned layer, unsigned factor);
 // initialize all layers with translucent black
 void initFb();
 
-// -----------------------
-//  layer synchronization
-// -----------------------
-// the idea is to not write the composite image to the I2S DMA chain before
-// all layers have finished updating the current frame.
-// vice versa, the layers cannot be changed while compositing.
-// uses eventGroupBits:
-
-// called by layer drawing functions before beginning to draw a frame
-void startDrawing(unsigned layer);
-
-// called by layer drawing functions when done with drawing a frame
-void doneDrawing(unsigned layer);
-
-// called when done compositing. Completes the frame cycle.
-void doneUpdating();
-
-// called before compositing
-void waitDrawingDone();
-
 #endif

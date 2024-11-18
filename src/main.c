@@ -14,6 +14,7 @@
 #include "esp_spiffs.h"
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
+#include "driver/sdmmc_host.h"
 
 #include "esp_wifi.h"
 #include "json_settings.h"
@@ -43,7 +44,7 @@ static esp_err_t mount_sd_card(const char *path) {
 		.quadwp_io_num = -1,
 		.quadhd_io_num = -1,
 	};
-	ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA));
+	ESP_ERROR_CHECK(spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_HOST));
 	gpio_pullup_en(GPIO_SD_MISO);
 	gpio_pullup_en(GPIO_SD_CS);
 
@@ -65,6 +66,36 @@ static esp_err_t mount_sd_card(const char *path) {
 		&mount_config,
 		&card
 	);
+
+
+
+    // sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+    // sdmmc_slot_config_t slot_config = SDMMC_SLOT_CONFIG_DEFAULT();
+    // slot_config.width = 1;
+
+    // slot_config.clk = GPIO_SD_CLK;
+    // slot_config.cmd = GPIO_SD_MOSI;
+    // slot_config.d0 = GPIO_SD_MISO;
+
+    // // Enable internal pullups on enabled pins. The internal pullups
+    // // are insufficient however, please make sure 10k external pullups are
+    // // connected on the bus. This is for debug / example purpose only.
+    // slot_config.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;
+
+    // ESP_LOGI(T, "Mounting filesystem");
+    // ret = esp_vfs_fat_sdmmc_mount(mount_point, &host, &slot_config, &mount_config, &card);
+
+    // if (ret != ESP_OK) {
+    //     if (ret == ESP_FAIL) {
+    //         ESP_LOGE(T, "Failed to mount filesystem. ")
+    //     } else {
+    //         ESP_LOGE(T, "Failed to initialize the card (%s). ", esp_err_to_name(ret));
+    //         // check_sd_card_pins(&config, pin_count);
+    //     }
+    //     return;
+    // }
+
+
 	if (ret == ESP_OK) {
 		// Card has been initialized, print its properties
 		sdmmc_card_print_info(stdout, card);
@@ -251,18 +282,6 @@ void app_main(void) {
 		tp_task(NULL);
 	}
 
-	//------------------------------
-	// Open animation file on SD
-	//------------------------------
-	FILE *f = fopen(ANIMATION_FILE, "r");
-	if (!f) {
-		ESP_LOGE(
-			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
-		);
-		ESP_LOGE(T, "Will not show animations!");
-		vTaskDelete(NULL); // kill current task (== return;)
-	}
-
 	//-----------------------------------
 	// Startup animated background layer
 	//-----------------------------------
@@ -275,7 +294,7 @@ void app_main(void) {
 	//---------------------------------
 	// Draw animations and clock layer
 	//---------------------------------
-	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 1024 * 8, f, 0, &t_pinb, 0);
+	xTaskCreatePinnedToCore(&aniPinballTask, "pin", 1024 * 8, NULL, 0, &t_pinb, 0);
 
 	vTaskDelete(NULL);
 }

@@ -4,94 +4,55 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-typedef struct {
-	int16_t fontSize;
-	uint8_t bitField; // bit 0: smooth; bit 1: unicode; bit 2: italic; bit 3:
-					  // bold; bit 4: fixedHeigth; bits 5-7: reserved
-	uint8_t charSet;
-	uint16_t stretchH;
-	uint8_t aa;
-	uint8_t paddingUp;
-	uint8_t paddingRight;
-	uint8_t paddingDown;
-	uint8_t paddingLeft;
-	uint8_t spacingHoriz;
-	uint8_t spacingVert;
-	uint8_t outline; // added with version 2
-	char fontName[]; // null terminated string
-} __attribute__((__packed__)) fontInfo_t;
+// Text alignment and horizontal anchor point
+#define A_LEFT 0
+#define A_CENTER 1
+#define A_RIGHT 2
 
 typedef struct {
-	uint16_t lineHeight;
-	uint16_t base;
-	uint16_t scaleW;
-	uint16_t scaleH;
-	uint16_t pages;
-	uint8_t bitField; // bits 0-6: reserved; bit 7: packed
-	uint8_t alphaChnl;
-	uint8_t redChnl;
-	uint8_t greenChnl;
-	uint8_t blueChnl;
-} __attribute__((__packed__)) fontCommon_t;
+	uint32_t magic;
+    uint16_t n_glyphs;  // number of glyphs in this font file
+    // simple ascci mapping parameters
+    uint16_t map_start;  // the first glyph maps to this codepoint
+    uint16_t map_n;  // how many glyphs map to incremental codepoints
+    // offset to optional glyph id to codepoint mapping table
+    uint16_t map_table_offset; // equal to glyph_description_offset when not present
+    uint32_t glyph_description_offset;
+    uint32_t glyph_data_offset;
+    uint16_t linespace;
+    int8_t yshift;  // to vertically center the digits, add this to tsb
+    // bit0: has_outline. glyph index of outline = glyph index of fill * 2
+    uint8_t flags;
+} font_header_t;
 
 typedef struct {
-	uint32_t id;	 // The character id.
-	uint16_t x;		 // The left position of the character image in the texture.
-	uint16_t y;		 // The top position of the character image in the texture.
-	uint16_t width;	 // The width of the character image in the texture.
-	uint16_t height; // The height of the character image in the texture.
-	int16_t xoffset; // How much the current position should be offset when
-					 // copying the image from the texture to the screen.
-	int16_t yoffset; // How much the current position should be offset when
-					 // copying the image from the texture to the screen.
-	int16_t xadvance; // How much the current position should be advanced after
-					  // drawing the character.
-	uint8_t page;	  // The texture page where the character image is found.
-	uint8_t chnl; // The texture channel where the character image is found (1 =
-				  // blue; 2 = green; 4 = red; 8 = alpha; 15 = all channels).
-} __attribute__((__packed__)) fontChar_t;
+    uint8_t width;  // bitmap width [pixels]
+    uint8_t height;  // bitmap height [pixels]
+    int8_t lsb;  // left side bearing
+    int8_t tsb;  // top side bearing
+    int8_t advance;  // cursor advance width
+    uint32_t start_index;  // offset to first byte of bitmap (relative to start of glyph description table)
+} glyph_description_t;
 
-typedef struct {
-	uint32_t first; // These fields are repeated until all kerning pairs have
-					// been described
-	uint32_t second;
-	int16_t amount;
-} __attribute__((__packed__)) fontKern_t;
-
-typedef struct {
-	fontInfo_t *info;
-	fontCommon_t *common;
-	char *pageNames;  // Zero terminated strings
-	int pageNamesLen; // [bytes]
-	fontChar_t *chars;
-	int charsLen; // [bytes]
-	fontKern_t *kerns;
-	int kernsLen; // [bytes]
-} font_t;
-
-font_t *load_font_info(char *file_name);
-void print_font_info(font_t *fDat);
-fontChar_t *getCharInfo(font_t *fDat, char c);
-void free_font_info(font_t *fDat);
+// Load a <filePrefix>.fnt file
 bool initFont(const char *filePrefix);
-void drawChar(char c, uint8_t layer, uint32_t color, uint8_t chOffset);
-void setCur(int x, int y);
 
-// draws a zero terminated string into `layer` at x,y with colors cOutline and
-// cFill
-void drawStr(
-	const char *str, int x, int y, uint8_t layer, uint32_t cOutline,
-	uint32_t cFill
-);
-
-// returns expected width of the string rectangle
-int getStrWidth(const char *str);
-
-// draws a zero terminated string into `layer` centered on the screen with
+// draws a string of length `n` into `layer`
+// to center it use x_a = 0 and
 // colors cOutline and cFill
-void drawStrCentered(
-	const char *str, uint8_t layer, uint32_t cOutline, uint32_t cFill
+void push_str(
+    int x_a,  // x-offset of the anchor point in pixels
+    int y_a,  // y-offset in pixels
+    const char *c,  // the UTF8 string to draw (can be zero terminated)
+    unsigned n,  // length of the string
+    unsigned align,  // Anchor point. One of A_LEFT, A_CENTER, A_RIGHT
+    uint8_t layer,  // framebuffer layer to draw into
+    unsigned color,  // RGBA color
+    bool is_outline  // draw the outline glyphs if True, otherwise the fill glyphs
 );
+
+// Simplified clock string drawing
+void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill);
 
 // Returns the number of consecutive `path/0.fnt` files
 int cntFntFiles(const char *path);

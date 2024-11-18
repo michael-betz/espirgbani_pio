@@ -87,8 +87,10 @@ unsigned getPixel(unsigned layer, unsigned x, unsigned y) {
 
 // used by font drawing function
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color) {
-	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT)
+	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) {
+		ESP_LOGE(T, "setPixelOver(%d, %d)", x, y);
 		return;
+	}
 	unsigned p = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
 	unsigned resR = INT_PRELERP(GR(p), GR(color), GA(color));
 	unsigned resG = INT_PRELERP(GG(p), GG(color), GA(color));

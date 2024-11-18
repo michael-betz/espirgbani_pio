@@ -13,6 +13,7 @@
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
 
+#include <errno.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -161,6 +162,9 @@ static void run_animation(FILE *f, unsigned aniId) {
 	TickType_t xLastWakeTime;
 	headerEntry_t myHeader;
 
+	if (f == NULL)
+		return;
+
 	readHeaderEntry(f, &myHeader, aniId);
 	playAni(f, &myHeader);
 	free(myHeader.frameHeader);
@@ -308,12 +312,26 @@ void aniPinballTask(void *pvParameters) {
 	static int sec_ = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	// Pinball animation stuff
-	FILE *f = (FILE *)pvParameters;
+	//------------------------------
+	// Open animation file on SD card
+	//------------------------------
 	fileHeader_t fh;
-	getFileHeader(f, &fh);
+	FILE *fAnimations = fopen(ANIMATION_FILE, "r");
+	if (fAnimations == NULL) {
+		ESP_LOGE(
+			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
+		);
+		ESP_LOGE(T, "Will not show animations!");
+	} else {
+		if(setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
+			ESP_LOGW(T, " setvbuf(%s, 512) failed: %s", ANIMATION_FILE, strerror(errno));
 
-	// Font and time stuff
+		getFileHeader(fAnimations, &fh);
+	}
+
+	//------------------------------
+	// Count font files on SD card
+	//------------------------------
 	struct tm timeinfo;
 	char strftime_buf[64];
 	unsigned color = 0;
@@ -325,6 +343,9 @@ void aniPinballTask(void *pvParameters) {
 	else
 		ESP_LOGI(T, "last font file: /sd/fnt/%02d.fnt", nFnts - 1);
 
+	//------------------------------
+	// Load configuration
+	//------------------------------
 	cJSON *jDelay = jGet(getSettings(), "delays");
 
 	// delay between animations
@@ -347,10 +368,10 @@ void aniPinballTask(void *pvParameters) {
 		bool doRedrawFont = false;
 
 		// draw an animation
-		if (cycles > 0 && cycles % ani_delay == 0) {
+		if (fAnimations && cycles > 0 && cycles % ani_delay == 0) {
 			unsigned aniId = RAND_AB(0, fh.nAnimations - 1);
 			// aniId = 0x0619;
-			run_animation(f, aniId);
+			run_animation(fAnimations, aniId);
 		}
 
 		// change font color every delays.color minutes
@@ -362,7 +383,7 @@ void aniPinballTask(void *pvParameters) {
 		// change font every delays.font minutes
 		if (nFnts > 0 && cycles % font_delay == 0) {
 			cur_fnt = RAND_AB(0, nFnts - 1);
-			sprintf(strftime_buf, "/sd/fnt/%02d", cur_fnt);
+			sprintf(strftime_buf, "/sd/fnt/%02d.fnt", cur_fnt);
 			// cur_fnt = (cur_fnt + 1) % nFnts;
 			initFont(strftime_buf);
 			doRedrawFont = true;
@@ -376,13 +397,13 @@ void aniPinballTask(void *pvParameters) {
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
 			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
-				drawStrCentered("LPWR", 1, color, 0xFF000000);
+				drawStrCentered("LPWR", color, 0xFF000000);
 			} else {
 				strftime(
 					strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
 				);
 				// randomly colored outline, black filling
-				drawStrCentered(strftime_buf, 1, color, 0xFF000000);
+				drawStrCentered(strftime_buf, color, 0xFF000000);
 			}
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
@@ -395,5 +416,10 @@ void aniPinballTask(void *pvParameters) {
 		cycles++;
 		vTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);
 	}
-	fclose(f);
+
+	if (fAnimations)
+		fclose(fAnimations);
+	fAnimations = NULL;
+
+	vTaskDelete(NULL);
 }
