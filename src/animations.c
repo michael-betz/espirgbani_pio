@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <sys/stat.h>
 
 static const char *T = "ANIMATIONS";
 
@@ -304,6 +305,22 @@ static void stats(unsigned cur_fnt) {
 		esp_get_minimum_free_heap_size(), uxTaskGetStackHighWaterMark(t_backg),
 		uxTaskGetStackHighWaterMark(t_pinb)
 	);
+}
+
+// Returns the number of consecutive `path/0.fnt` files
+static int cntFntFiles(const char *path) {
+	int nFiles = 0;
+	char fNameBuffer[32];
+	struct stat buffer;
+	while (1) {
+		sprintf(fNameBuffer, "%s/%02d.fnt", path, nFiles);
+		if (stat(fNameBuffer, &buffer) == 0) {
+			nFiles++;
+		} else {
+			break;
+		}
+	}
+	return nFiles;
 }
 
 // takes care of drawing pinball animations (layer 2) and the clock (layer 1)

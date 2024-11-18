@@ -11,9 +11,33 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 
 #define FLAG_HAS_OUTLINE (1 << 0)
+
+typedef struct {
+	uint32_t magic;
+    uint16_t n_glyphs;  // number of glyphs in this font file
+    // simple ascci mapping parameters
+    uint16_t map_start;  // the first glyph maps to this codepoint
+    uint16_t map_n;  // how many glyphs map to incremental codepoints
+    // offset to optional glyph id to codepoint mapping table
+    uint16_t map_table_offset; // equal to glyph_description_offset when not present
+    uint32_t glyph_description_offset;
+    uint32_t glyph_data_offset;
+    uint16_t linespace;
+    int8_t yshift;  // to vertically center the digits, add this to tsb
+    // bit0: has_outline. glyph index of outline = glyph index of fill * 2
+    uint8_t flags;
+} font_header_t;
+
+typedef struct {
+    uint8_t width;  // bitmap width [pixels]
+    uint8_t height;  // bitmap height [pixels]
+    int8_t lsb;  // left side bearing
+    int8_t tsb;  // top side bearing
+    int8_t advance;  // cursor advance width
+    uint32_t start_index;  // offset to first byte of bitmap (relative to start of glyph description table)
+} glyph_description_t;
 
 static const char *T = "FONT";
 
@@ -328,7 +352,7 @@ static void push_char(unsigned codepoint, uint8_t layer, uint32_t color, bool is
 	if (!get_glyph_description(glyph_index, &desc))
 		return;
 
-	ESP_LOGD(T, "push_char(%c, %d, %d)", (char) codepoint, cursor_x + desc.lsb, cursor_y - desc.tsb);
+	ESP_LOGV(T, "push_char(%c, %d, %d)", (char) codepoint, cursor_x + desc.lsb, cursor_y - desc.tsb);
 	glyphToBuffer(
 		&desc,
 		cursor_x + desc.lsb,
@@ -375,7 +399,7 @@ static int get_str_width(const char *c, unsigned n)
 	}
 	utf8_dec('\0');  // reset internal state
 
-	ESP_LOGD(T, "%s width is %d pixels", c, w);
+	ESP_LOGV(T, "%s width is %d pixels", c, w);
 	return w;
 }
 
@@ -458,20 +482,4 @@ void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
 		c_fill,
 		false
 	);
-}
-
-// Returns the number of consecutive `path/0.fnt` files
-int cntFntFiles(const char *path) {
-	int nFiles = 0;
-	char fNameBuffer[32];
-	struct stat buffer;
-	while (1) {
-		sprintf(fNameBuffer, "%s/%02d.fnt", path, nFiles);
-		if (stat(fNameBuffer, &buffer) == 0) {
-			nFiles++;
-		} else {
-			break;
-		}
-	}
-	return nFiles;
 }

@@ -88,7 +88,8 @@ unsigned getPixel(unsigned layer, unsigned x, unsigned y) {
 // used by font drawing function
 void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color) {
 	if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT) {
-		ESP_LOGE(T, "setPixelOver(%d, %d)", x, y);
+		// The shader with the rays trigger this with 30 Hz
+		// ESP_LOGE(T, "setPixelOver(%d, %d)", x, y);
 		return;
 	}
 	unsigned p = g_frameBuff[layer][x + y * DISPLAY_WIDTH];
