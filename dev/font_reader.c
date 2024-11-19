@@ -147,7 +147,7 @@ int main(int argc, char* args[])
 	printf("name: %s, %d\n", name, name_len);
 	printf("\n");
 
-	for (unsigned i=0; i<header.n_glyphs; i+=header.n_glyphs - 1) {
+	for (unsigned i=0; i<header.n_glyphs; i+=1) {
 		glyph_description_t desc;
 
 		get_glyph_description(i, &desc);
