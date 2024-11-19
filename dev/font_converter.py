@@ -191,7 +191,7 @@ def auto_tune_font_size(face, target_height=30 * 64):
     return char_size, yshift
 
 
-def convert(args, face):
+def convert(args, face, yshift, out_name):
     print("\nGenerating bitmap .fnt file ...")
     # --------------------------------------------------
     #  Generate the glyph bitmap data
@@ -207,7 +207,7 @@ def convert(args, face):
     ascii_map_start, ascii_map_n = get_n_ascii(cp_set)
 
     for c in cp_set:
-        print("    ", hex(c), chr(c))
+        # print("    ", hex(c), chr(c))
 
         buf, props = get_glyph(chr(c), face)
         props["start_index"] = len(glyph_data_bs)
@@ -250,16 +250,11 @@ def convert(args, face):
     #  Generate the font description header
     # --------------------------------------------------
     n_glyphs = len(glyph_props)
-
     name = face.family_name
-
     map_table_offset = calcsize(FMT_HEADER) + len(name) + 1
     glyph_description_offset = map_table_offset + len(map_table_bs)
     glyph_data_offset = glyph_description_offset + len(glyph_description_bs)
-
     linespace = face.size.height // 64
-    yshift = get_y_stats(glyph_props)[1] // 64
-
     flags = 0
 
     font_header_bs = pack(
@@ -272,18 +267,9 @@ def convert(args, face):
         glyph_description_offset,
         glyph_data_offset,
         linespace,
-        yshift,
+        yshift // 64,
         flags,
     )
-
-    out_name = Path("fnt/")
-    out_name.mkdir(exist_ok=True)
-
-    if args.numeric_name:
-        out_name = get_next_filename(out_name)
-    else:
-        tmp = re.sub("[^A-Za-z0-9]+", "_", name.decode().lower())
-        out_name = (out_name / tmp).with_suffix(".fnt")
 
     all_bs = (
         font_header_bs
@@ -299,7 +285,7 @@ def convert(args, face):
 
     print(f"    wrote {out_name} ({len(all_bs) / 1024:.1f} kB)")
 
-    return glyph_props, glyph_data_bs, out_name
+    return glyph_props, glyph_data_bs
 
 
 def main():
@@ -342,16 +328,31 @@ def main():
     # Load an existing font file
     face = ft.Face(args.font_file)
 
+    # Generate the output file name
+    out_name = Path("fnt/")
+    out_name.mkdir(exist_ok=True)
+
+    if args.numeric_name:
+        out_name = get_next_filename(out_name)
+    else:
+        tmp = re.sub("[^A-Za-z0-9]+", "_", face.family_name.decode().lower())
+        out_name = (out_name / tmp).with_suffix(".fnt")
+
+    out_name_png = out_name.with_suffix(".png")
+
+    if out_name.is_file():
+        print("file exists")
+        exit(0)
+
     # determine its optimum size
     char_size, yshift = auto_tune_font_size(face, int(args.font_height * 64))
 
     # generate bitmap font
     face.set_char_size(height=char_size)
-    glyph_props, glyph_data_bs, out_name = convert(args, face)
+    glyph_props, glyph_data_bs = convert(args, face, yshift, out_name)
 
     # generate preview image
     img = get_preview(glyph_props, glyph_data_bs, yshift)
-    out_name_png = out_name.with_suffix(".png")
     img.save(out_name_png, "PNG")
     print("    wrote", out_name_png)
 

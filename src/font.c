@@ -313,17 +313,17 @@ static void glyphToBuffer(glyph_description_t *desc, int offs_x, int offs_y, uns
 	}
 
 	uint8_t *p = buff;
-	for (unsigned y=0; y<desc->height; y++) {
+	for (int y=0; y<desc->height; y++) {
 		int yPixel = y + offs_y;
-		if (yPixel < 0 || yPixel >= DISPLAY_HEIGHT)
+		if (yPixel < 0 || yPixel >= DISPLAY_HEIGHT) {
+			p += desc->width;
 			continue;
+		}
 
-		for (unsigned x=0; x<desc->width; x++) {
+		for (int x=0; x<desc->width; x++) {
 			int xPixel = x + offs_x;
-			if (xPixel < 0 || xPixel >= DISPLAY_WIDTH)
-				continue;
-
-			setPixelOver(layer, xPixel, yPixel, (*p << 24) | scale32(*p, color));
+			if (xPixel >= 0 && xPixel < DISPLAY_WIDTH)
+				setPixelOver(layer, xPixel, yPixel, (*p << 24) | scale32(*p, color));
 			p++;
 		}
 	}

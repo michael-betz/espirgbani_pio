@@ -313,7 +313,7 @@ static int cntFntFiles(const char *path) {
 	char fNameBuffer[32];
 	struct stat buffer;
 	while (1) {
-		sprintf(fNameBuffer, "%s/%02d.fnt", path, nFiles);
+		sprintf(fNameBuffer, "%s/%03d.fnt", path, nFiles);
 		if (stat(fNameBuffer, &buffer) == 0) {
 			nFiles++;
 		} else {
@@ -358,7 +358,7 @@ void aniPinballTask(void *pvParameters) {
 	if (nFnts <= 0)
 		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
 	else
-		ESP_LOGI(T, "last font file: /sd/fnt/%02d.fnt", nFnts - 1);
+		ESP_LOGI(T, "last font file: /sd/fnt/%03d.fnt", nFnts - 1);
 
 	//------------------------------
 	// Load configuration
@@ -400,7 +400,7 @@ void aniPinballTask(void *pvParameters) {
 		// change font every delays.font minutes
 		if (nFnts > 0 && cycles % font_delay == 0) {
 			cur_fnt = RAND_AB(0, nFnts - 1);
-			sprintf(strftime_buf, "/sd/fnt/%02d.fnt", cur_fnt);
+			sprintf(strftime_buf, "/sd/fnt/%03d.fnt", cur_fnt);
 			// cur_fnt = (cur_fnt + 1) % nFnts;
 			initFont(strftime_buf);
 			doRedrawFont = true;
