@@ -96,27 +96,30 @@ def get_n_ascii(cp_set):
     return (first_char, len(cp_set))
 
 
-def get_glyph(code, face, is_outline=False):
-    face.load_char(code, ft.FT_LOAD_RENDER)
+def get_glyph(code, face, is_outline=False, radius=64):
     face.select_charmap(ft.FT_ENCODING_UNICODE)
+    face.load_char(code, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
+    glyph = face.glyph.get_glyph()
 
-    bitmap = face.glyph.bitmap
-    width = face.glyph.bitmap.width
-    rows = face.glyph.bitmap.rows
+    if is_outline:
+        stroker = ft.Stroker()
+        stroker.set(radius, ft.FT_STROKER_LINECAP_ROUND, ft.FT_STROKER_LINEJOIN_ROUND, 0)
+        glyph.stroke(stroker , True)
+
+    blyph = glyph.to_bitmap(ft.FT_RENDER_MODE_NORMAL, ft.Vector(0,0), True)
+    bitmap = blyph.bitmap
 
     props = {
-        "width": width,
-        "height": rows,
-        "height_hr": face.glyph.metrics.height,
-        "lsb": face.glyph.bitmap_left,
-        "tsb": face.glyph.bitmap_top,
-        "tsb_hr": face.glyph.metrics.horiBearingY,
+        "width": bitmap.width,
+        "height": bitmap.rows,
+        "lsb": blyph.left,
+        "tsb": blyph.top,
         "advance": face.glyph.advance.x // 64,
     }
     return bytes(bitmap.buffer), props
 
 
-def getImg(p, glyph_data_bs):
+def get_img(p, glyph_data_bs):
     start_ind = p["start_index"]
     end_ind = start_ind + p["width"] * p["height"]
     bs = glyph_data_bs[start_ind:end_ind]
@@ -134,7 +137,7 @@ def get_preview(glyph_props, glyph_data_bs, yshift):
     cur_x = 4
     for i, p in enumerate(glyph_props):
         img_all.paste(
-            getImg(p, glyph_data_bs), (cur_x + p["lsb"], -p["tsb"] + 32 - yshift // 64)
+            get_img(p, glyph_data_bs), (cur_x + p["lsb"], -p["tsb"] + 32 - yshift // 64)
         )
         cur_x += p["advance"]
 
