@@ -1,5 +1,7 @@
 # The ESP32 Pinball RGB Animation clock
 
+![video of the clock in action](dev/readme.gif)
+
 Display the time and animations on HUB75 LED panels.
 
   * Anti aliased fonts
@@ -10,7 +12,6 @@ Display the time and animations on HUB75 LED panels.
   * USB-PD powered. Can drive the two 64 x 32 panels at full brightness. The LED turns on if PD negotiation succeeded. Otherwise the clock will run in low-power mode
   * Ambient light sensor
 
-![clock](dev/readme.gif)
 
 [Video of how it looks like](https://www.youtube.com/watch?v=0dwTC5q5t4M)
 
