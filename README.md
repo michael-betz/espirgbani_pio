@@ -10,7 +10,7 @@ Display the time and animations on HUB75 LED panels.
   * USB-PD powered. Can drive the two 64 x 32 panels at full brightness. The LED turns on if PD negotiation succeeded. Otherwise the clock will run in low-power mode
   * Ambient light sensor
 
-![clock](https://github.com/michael-betz/Espirgbani/raw/master/pcb/pdf/front.jpg)
+![clock](https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEj-xfbNnZE7qYXfZ9GnO4af9S2vNti0kCJVDzxu4nVtRs1IRPTWj-GEIguX_U8i6AslL1UuPgKdLniGKmL3l9czf78Z7YgnSOywraAnLW6bqI-BJS3mrv5MU9ApvD_lSMaY6k228KWHqbQ/s1600/ezgif.com-optimize.gif)
 
 [Video of how it looks like](https://www.youtube.com/watch?v=0dwTC5q5t4M)
 
