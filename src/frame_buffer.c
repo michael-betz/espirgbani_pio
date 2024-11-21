@@ -10,9 +10,9 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "i2s_parallel.h"
-#include "val2pwm.h"
 #include "json_settings.h"
 #include "rgb_led_panel.h"
+#include "val2pwm.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -28,16 +28,12 @@ SemaphoreHandle_t fbSemaphore = NULL;
 // Colors are premultiplied with their alpha values for easiser compositing
 unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
-void lockFrameBuffer()
-{
+void lockFrameBuffer() {
 	if (is_locked)
-    	xSemaphoreTake(fbSemaphore, portTICK_PERIOD_MS * 500);
+		xSemaphoreTake(fbSemaphore, portTICK_PERIOD_MS * 500);
 }
 
-void releaseFrameBuffer()
-{
-	xSemaphoreGive(fbSemaphore);
-}
+void releaseFrameBuffer() { xSemaphoreGive(fbSemaphore); }
 
 void initFb() {
 	fbSemaphore = xSemaphoreCreateBinary();

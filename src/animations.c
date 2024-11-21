@@ -17,8 +17,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <sys/stat.h>
+#include <time.h>
 
 static const char *T = "ANIMATIONS";
 
@@ -340,8 +340,11 @@ void aniPinballTask(void *pvParameters) {
 		);
 		ESP_LOGE(T, "Will not show animations!");
 	} else {
-		if(setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
-			ESP_LOGW(T, " setvbuf(%s, 512) failed: %s", ANIMATION_FILE, strerror(errno));
+		if (setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
+			ESP_LOGW(
+				T, " setvbuf(%s, 512) failed: %s", ANIMATION_FILE,
+				strerror(errno)
+			);
 
 		getFileHeader(fAnimations, &fh);
 	}

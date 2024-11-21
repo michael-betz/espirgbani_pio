@@ -16,14 +16,15 @@ bool initFont(const char *filePrefix);
 // to center it use x_a = 0 and
 // colors cOutline and cFill
 void push_str(
-    int x_a,  // x-offset of the anchor point in pixels
-    int y_a,  // y-offset in pixels
-    const char *c,  // the UTF8 string to draw (can be zero terminated)
-    unsigned n,  // length of the string
-    unsigned align,  // Anchor point. One of A_LEFT, A_CENTER, A_RIGHT
-    uint8_t layer,  // framebuffer layer to draw into
-    unsigned color,  // RGBA color
-    bool is_outline  // draw the outline glyphs if True, otherwise the fill glyphs
+	int x_a,		// x-offset of the anchor point in pixels
+	int y_a,		// y-offset in pixels
+	const char *c,	// the UTF8 string to draw (can be zero terminated)
+	unsigned n,		// length of the string
+	unsigned align, // Anchor point. One of A_LEFT, A_CENTER, A_RIGHT
+	uint8_t layer,	// framebuffer layer to draw into
+	unsigned color, // RGBA color
+	bool
+		is_outline // draw the outline glyphs if True, otherwise the fill glyphs
 );
 
 // Simplified clock string drawing

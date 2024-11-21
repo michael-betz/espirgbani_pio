@@ -16,27 +16,29 @@
 
 typedef struct {
 	uint32_t magic;
-    uint16_t n_glyphs;  // number of glyphs in this font file
-    // simple ascci mapping parameters
-    uint16_t map_start;  // the first glyph maps to this codepoint
-    uint16_t map_n;  // how many glyphs map to incremental codepoints
-    // offset to optional glyph id to codepoint mapping table
-    uint16_t map_table_offset; // equal to glyph_description_offset when not present
-    uint32_t glyph_description_offset;
-    uint32_t glyph_data_offset;
-    uint16_t linespace;
-    int8_t yshift;  // to vertically center the digits, add this to tsb
-    // bit0: has_outline. glyph index of outline = glyph index of fill * 2
-    uint8_t flags;
+	uint16_t n_glyphs; // number of glyphs in this font file
+	// simple ascci mapping parameters
+	uint16_t map_start; // the first glyph maps to this codepoint
+	uint16_t map_n;		// how many glyphs map to incremental codepoints
+	// offset to optional glyph id to codepoint mapping table
+	uint16_t
+		map_table_offset; // equal to glyph_description_offset when not present
+	uint32_t glyph_description_offset;
+	uint32_t glyph_data_offset;
+	uint16_t linespace;
+	int8_t yshift; // to vertically center the digits, add this to tsb
+	// bit0: has_outline. glyph index of outline = glyph index of fill * 2
+	uint8_t flags;
 } font_header_t;
 
 typedef struct {
-    uint8_t width;  // bitmap width [pixels]
-    uint8_t height;  // bitmap height [pixels]
-    int8_t lsb;  // left side bearing
-    int8_t tsb;  // top side bearing
-    int8_t advance;  // cursor advance width
-    uint32_t start_index;  // offset to first byte of bitmap (relative to start of glyph description table)
+	uint8_t width;		  // bitmap width [pixels]
+	uint8_t height;		  // bitmap height [pixels]
+	int8_t lsb;			  // left side bearing
+	int8_t tsb;			  // top side bearing
+	int8_t advance;		  // cursor advance width
+	uint32_t start_index; // offset to first byte of bitmap (relative to start
+						  // of glyph description table)
 } glyph_description_t;
 
 static const char *T = "FONT";
@@ -48,98 +50,98 @@ static char *fontName = NULL;
 static unsigned *map_unicode_table = NULL;
 static glyph_description_t *glyph_description_table = NULL;
 
-
 // glyph cursor
 static int cursor_x = 0, cursor_y = 0;
 
 // decodes one UTF8 character at a time, keeping internal state
 // returns a valid unicode character once complete or 0
-static unsigned utf8_dec(char c)
-{
+static unsigned utf8_dec(char c) {
 	// Unicode return value                   UTF-8 encoded chars
 	// 00000000 00000000 00000000 0xxxxxxx -> 0xxxxxxx
 	// 00000000 00000000 00000yyy yyxxxxxx -> 110yyyyy 10xxxxxx
 	// 00000000 00000000 zzzzyyyy yyxxxxxx -> 1110zzzz 10yyyyyy 10xxxxxx
-	// 00000000 000wwwzz zzzzyyyy yyxxxxxx -> 11110www 10zzzzzz 10yyyyyy 10xxxxxx
-    static unsigned readN=0, result=0;
+	// 00000000 000wwwzz zzzzyyyy yyxxxxxx -> 11110www 10zzzzzz 10yyyyyy
+	// 10xxxxxx
+	static unsigned readN = 0, result = 0;
 
-    if ((c & 0x80) == 0) {
-        // 1 byte character, nothing to decode
-        readN = 0;  // reset state
-        return c;
-    }
+	if ((c & 0x80) == 0) {
+		// 1 byte character, nothing to decode
+		readN = 0; // reset state
+		return c;
+	}
 
-    if (readN == 0) {
-        result = 0;
+	if (readN == 0) {
+		result = 0;
 
-        // first byte of several, initialize N bytes decode
-        if ((c & 0xE0) == 0xC0) {
-            readN = 1;  // 1 more byte to decode
-            result |= (c & 0x1F) << 6;
-            return 0;
-        } else if ((c & 0xF0) == 0xE0) {
-            readN = 2;
-            result |= (c & 0x0F) << 12;
-            return 0;
-        } else if ((c & 0xF8) == 0xF0) {
-            readN = 3;
-            result |= (c & 0x07) << 18;
-            return 0;
-        } else {  // shouldn't happen?
-            return 0;
-        }
-    }
+		// first byte of several, initialize N bytes decode
+		if ((c & 0xE0) == 0xC0) {
+			readN = 1; // 1 more byte to decode
+			result |= (c & 0x1F) << 6;
+			return 0;
+		} else if ((c & 0xF0) == 0xE0) {
+			readN = 2;
+			result |= (c & 0x0F) << 12;
+			return 0;
+		} else if ((c & 0xF8) == 0xF0) {
+			readN = 3;
+			result |= (c & 0x07) << 18;
+			return 0;
+		} else { // shouldn't happen?
+			return 0;
+		}
+	}
 
-    switch (readN) {
-        case 1:
-            result |= c & 0x3F;
-            readN = 0;
-            return result;
+	switch (readN) {
+	case 1:
+		result |= c & 0x3F;
+		readN = 0;
+		return result;
 
-        case 2:
-            result |= (c & 0x3F) << 6;
-            break;
+	case 2:
+		result |= (c & 0x3F) << 6;
+		break;
 
-        case 3:
-            result |= (c & 0x3F) << 12;
-            break;
+	case 3:
+		result |= (c & 0x3F) << 12;
+		break;
 
-        default:
-            readN = 1;
-    }
-    readN--;
+	default:
+		readN = 1;
+	}
+	readN--;
 
-    return 0;
+	return 0;
 }
 
 static int binary_search(unsigned target, const unsigned *arr, int length) {
-    int left = 0;
-    int right = length - 1;
+	int left = 0;
+	int right = length - 1;
 
-    while (left <= right) {
-        int mid = left + (right - left) / 2;
+	while (left <= right) {
+		int mid = left + (right - left) / 2;
 
-        // Check if target is present at mid
-        if (arr[mid] == target) {
-            return mid;
-        }
+		// Check if target is present at mid
+		if (arr[mid] == target) {
+			return mid;
+		}
 
-        // If target greater, ignore left half
-        if (arr[mid] < target) {
-            left = mid + 1;
-        }
-        // If target is smaller, ignore right half
-        else {
-            right = mid - 1;
-        }
-    }
+		// If target greater, ignore left half
+		if (arr[mid] < target) {
+			left = mid + 1;
+		}
+		// If target is smaller, ignore right half
+		else {
+			right = mid - 1;
+		}
+	}
 
-    // Target is not present in array
-    return -1;
+	// Target is not present in array
+	return -1;
 }
 
-static bool get_glyph_description(unsigned glyph_index, glyph_description_t *desc, bool is_outline)
-{
+static bool get_glyph_description(
+	unsigned glyph_index, glyph_description_t *desc, bool is_outline
+) {
 	if (desc == NULL)
 		return false;
 
@@ -169,25 +171,25 @@ static bool get_glyph_description(unsigned glyph_index, glyph_description_t *des
 	// 	return false;
 	// }
 
-	memcpy(desc, &glyph_description_table[glyph_index], sizeof(glyph_description_t));
+	memcpy(
+		desc, &glyph_description_table[glyph_index], sizeof(glyph_description_t)
+	);
 	return true;
 }
 
 // finds the glyph_index for unicode character `codepoint`
 // returns -1 on failure
-static int find_glyph_index(unsigned codepoint)
-{
+static int find_glyph_index(unsigned codepoint) {
 	int glyph_index = -1;
 
 	// check if the character is in the ascii map
-	if (codepoint >= fntHeader.map_start && (codepoint - fntHeader.map_start) < fntHeader.map_n) {
+	if (codepoint >= fntHeader.map_start &&
+		(codepoint - fntHeader.map_start) < fntHeader.map_n) {
 		glyph_index = codepoint - fntHeader.map_start;
 	} else if (map_unicode_table != NULL) {
 		// otherwise binary search in map_unicode_table
 		glyph_index = binary_search(
-			codepoint,
-			map_unicode_table,
-			fntHeader.n_glyphs - fntHeader.map_n
+			codepoint, map_unicode_table, fntHeader.n_glyphs - fntHeader.map_n
 		);
 		if (glyph_index > -1)
 			glyph_index += fntHeader.map_n;
@@ -218,8 +220,7 @@ void freeFont() {
 	memset(&fntHeader, 0, sizeof(font_header_t));
 }
 
-static bool load_helper(void **target, int len, const char *name)
-{
+static bool load_helper(void **target, int len, const char *name) {
 	if (len > 0) {
 		*target = malloc(len);
 		if (*target == NULL) {
@@ -260,26 +261,25 @@ bool initFont(const char *fileName) {
 	}
 
 	if (!load_helper(
-		(void**)&fontName,
-		fntHeader.map_table_offset - sizeof(font_header_t),
-		"fontName"
-	)) {
+			(void **)&fontName,
+			fntHeader.map_table_offset - sizeof(font_header_t), "fontName"
+		)) {
 		return false;
 	}
 
 	if (!load_helper(
-		(void**)&map_unicode_table,
-		fntHeader.glyph_description_offset - fntHeader.map_table_offset,
-		"unicode mapping table"
-	)) {
+			(void **)&map_unicode_table,
+			fntHeader.glyph_description_offset - fntHeader.map_table_offset,
+			"unicode mapping table"
+		)) {
 		return false;
 	}
 
 	if (!load_helper(
-		(void**)&glyph_description_table,
-		fntHeader.glyph_data_offset - fntHeader.glyph_description_offset,
-		"glyph description table"
-	)) {
+			(void **)&glyph_description_table,
+			fntHeader.glyph_data_offset - fntHeader.glyph_description_offset,
+			"glyph description table"
+		)) {
 		return false;
 	}
 
@@ -293,8 +293,10 @@ bool initFont(const char *fileName) {
 	return true;
 }
 
-static void glyphToBuffer(glyph_description_t *desc, int offs_x, int offs_y, unsigned layer, unsigned color)
-{
+static void glyphToBuffer(
+	glyph_description_t *desc, int offs_x, int offs_y, unsigned layer,
+	unsigned color
+) {
 	if (desc == NULL)
 		return;
 
@@ -321,24 +323,27 @@ static void glyphToBuffer(glyph_description_t *desc, int offs_x, int offs_y, uns
 	}
 
 	uint8_t *p = buff;
-	for (int y=0; y<desc->height; y++) {
+	for (int y = 0; y < desc->height; y++) {
 		int yPixel = y + offs_y;
 		if (yPixel < 0 || yPixel >= DISPLAY_HEIGHT) {
 			p += desc->width;
 			continue;
 		}
 
-		for (int x=0; x<desc->width; x++) {
+		for (int x = 0; x < desc->width; x++) {
 			int xPixel = x + offs_x;
 			if (xPixel >= 0 && xPixel < DISPLAY_WIDTH)
-				setPixelOver(layer, xPixel, yPixel, (*p << 24) | scale32(*p, color));
+				setPixelOver(
+					layer, xPixel, yPixel, (*p << 24) | scale32(*p, color)
+				);
 			p++;
 		}
 	}
 	free(buff);
 }
 
-static void push_char(unsigned codepoint, uint8_t layer, uint32_t color, bool is_outline) {
+static void
+push_char(unsigned codepoint, uint8_t layer, uint32_t color, bool is_outline) {
 	glyph_description_t desc;
 
 	if (fntFile == NULL) {
@@ -353,20 +358,18 @@ static void push_char(unsigned codepoint, uint8_t layer, uint32_t color, bool is
 	if (!get_glyph_description(glyph_index, &desc, is_outline))
 		return;
 
-	ESP_LOGV(T, "push_char(%c, %d, %d)", (char) codepoint, cursor_x + desc.lsb, cursor_y - desc.tsb);
+	ESP_LOGV(
+		T, "push_char(%c, %d, %d)", (char)codepoint, cursor_x + desc.lsb,
+		cursor_y - desc.tsb
+	);
 	glyphToBuffer(
-		&desc,
-		cursor_x + desc.lsb,
-		cursor_y - desc.tsb,
-		layer,
-		color
+		&desc, cursor_x + desc.lsb, cursor_y - desc.tsb, layer, color
 	);
 
 	cursor_x += desc.advance;
 }
 
-static int get_char_width(unsigned codepoint)
-{
+static int get_char_width(unsigned codepoint) {
 	glyph_description_t desc;
 
 	int glyph_index = find_glyph_index(codepoint);
@@ -379,8 +382,7 @@ static int get_char_width(unsigned codepoint)
 	return desc.advance;
 }
 
-static int get_str_width(const char *c, unsigned n)
-{
+static int get_str_width(const char *c, unsigned n) {
 	const char *p = c;
 	int w = 0;
 
@@ -388,24 +390,23 @@ static int get_str_width(const char *c, unsigned n)
 		return w;
 
 	while (*p && n > 0) {
-        unsigned codepoint = utf8_dec(*p++);
-        n--;
-        if (codepoint == 0)
-            continue;
+		unsigned codepoint = utf8_dec(*p++);
+		n--;
+		if (codepoint == 0)
+			continue;
 
 		if (codepoint == '\n')
 			break;
 
 		w += (get_char_width(codepoint));
 	}
-	utf8_dec('\0');  // reset internal state
+	utf8_dec('\0'); // reset internal state
 
 	ESP_LOGV(T, "%s width is %d pixels", c, w);
 	return w;
 }
 
-static void set_x_cursor(int x_a, const char *c, unsigned n, unsigned align)
-{
+static void set_x_cursor(int x_a, const char *c, unsigned n, unsigned align) {
 	int w_str = get_str_width(c, n);
 	if (align == A_RIGHT)
 		cursor_x = x_a - w_str;
@@ -415,8 +416,10 @@ static void set_x_cursor(int x_a, const char *c, unsigned n, unsigned align)
 		cursor_x = x_a;
 }
 
-void push_str(int x_a, int y_a, const char *c, unsigned n, unsigned align, uint8_t layer, unsigned color, bool is_outline)
-{
+void push_str(
+	int x_a, int y_a, const char *c, unsigned n, unsigned align, uint8_t layer,
+	unsigned color, bool is_outline
+) {
 	if (fntFile == NULL) {
 		ESP_LOGE(T, "No font file loaded");
 		return;
@@ -433,10 +436,10 @@ void push_str(int x_a, int y_a, const char *c, unsigned n, unsigned align, uint8
 	set_x_cursor(x_a, c, n, align);
 
 	while (*c && n > 0) {
-        unsigned codepoint = utf8_dec(*c++);
+		unsigned codepoint = utf8_dec(*c++);
 		n--;
-        if (codepoint == 0)
-            continue;
+		if (codepoint == 0)
+			continue;
 
 		if (codepoint == '\n') {
 			cursor_y += fntHeader.linespace;
@@ -446,12 +449,11 @@ void push_str(int x_a, int y_a, const char *c, unsigned n, unsigned align, uint8
 
 		push_char(codepoint, layer, color, is_outline);
 	}
-	utf8_dec('\0');  // reset internal state
+	utf8_dec('\0'); // reset internal state
 }
 
 // convenience function to center a small text with outline and fill color
-void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
-{
+void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill) {
 	lockFrameBuffer();
 
 	// transparent black
@@ -460,14 +462,8 @@ void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
 	// Draw the outline first (if the font supports it)
 	if ((fntHeader.flags & FLAG_HAS_OUTLINE)) {
 		push_str(
-			DISPLAY_WIDTH / 2,
-			DISPLAY_HEIGHT - fntHeader.yshift,
-			c,
-			16,
-			A_CENTER,
-			1,
-			c_outline,
-			true
+			DISPLAY_WIDTH / 2, DISPLAY_HEIGHT - fntHeader.yshift, c, 16,
+			A_CENTER, 1, c_outline, true
 		);
 	} else {
 		// Otherwise, just fill the letters
@@ -476,14 +472,8 @@ void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
 
 	// Then overwrite with the fill
 	push_str(
-		DISPLAY_WIDTH / 2,
-		DISPLAY_HEIGHT - fntHeader.yshift,
-		c,
-		16,
-		A_CENTER,
-		1,
-		c_fill,
-		false
+		DISPLAY_WIDTH / 2, DISPLAY_HEIGHT - fntHeader.yshift, c, 16, A_CENTER,
+		1, c_fill, false
 	);
 
 	releaseFrameBuffer();

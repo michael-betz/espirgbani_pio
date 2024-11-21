@@ -93,7 +93,7 @@ void web_console_init() {
 	stdout = _GLOBAL_REENT->_stdout;
 	stderr = _GLOBAL_REENT->_stderr;
 
-  	setvbuf(stdout, linebuf, _IOLBF, sizeof(linebuf));
+	setvbuf(stdout, linebuf, _IOLBF, sizeof(linebuf));
 }
 
 void wsDumpRtc(httpd_req_t *req, bool dump_all) {
