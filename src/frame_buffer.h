@@ -93,4 +93,8 @@ unsigned fadeOut(unsigned layer, unsigned factor);
 // initialize all layers with translucent black
 void initFb();
 
+// Will not update the screen while the lock is taken
+void lockFrameBuffer();
+void releaseFrameBuffer();
+
 #endif

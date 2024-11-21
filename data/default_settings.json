@@ -6,6 +6,7 @@
         "clkm_div_num": 4,
         "max_frame_rate": 30,
         "is_gamma": false,
+        "is_locked": true,
         "is_single_panel": false
     },
     "delays": {

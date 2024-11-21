@@ -20,18 +20,37 @@
 static const char *T = "FRAME_BUFFER";
 
 static bool is_gamma = true;
+static bool is_locked = true;
+
+SemaphoreHandle_t fbSemaphore = NULL;
 
 // framebuffer with `N_LAYERS` in MSB ABGR LSB format
 // Colors are premultiplied with their alpha values for easiser compositing
 unsigned g_frameBuff[N_LAYERS][DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
+void lockFrameBuffer()
+{
+	if (is_locked)
+    	xSemaphoreTake(fbSemaphore, portTICK_PERIOD_MS * 500);
+}
+
+void releaseFrameBuffer()
+{
+	xSemaphoreGive(fbSemaphore);
+}
+
 void initFb() {
+	fbSemaphore = xSemaphoreCreateBinary();
+
 	// set all layers to transparent
 	for (int i = 0; i < N_LAYERS; i++)
 		setAll(i, 0);
 
 	cJSON *jPanel = jGet(getSettings(), "panel");
 	is_gamma = jGetB(jPanel, "is_gamma", true);
+	is_locked = jGetB(jPanel, "is_locked", true);
+
+	xSemaphoreGive(fbSemaphore);
 }
 
 // Get a blended pixel from the N layers of frameBuffer,

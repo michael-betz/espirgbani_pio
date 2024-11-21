@@ -452,6 +452,8 @@ void push_str(int x_a, int y_a, const char *c, unsigned n, unsigned align, uint8
 // convenience function to center a small text with outline and fill color
 void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
 {
+	lockFrameBuffer();
+
 	// transparent black
 	setAll(1, 0x00000000);
 
@@ -483,4 +485,6 @@ void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill)
 		c_fill,
 		false
 	);
+
+	releaseFrameBuffer();
 }
