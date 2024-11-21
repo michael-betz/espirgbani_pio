@@ -101,6 +101,9 @@ def get_glyph(code, face, outline_radius=0):
     face.load_char(code, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
     glyph = face.glyph.get_glyph()
 
+    # these values are not valid for outline mode
+    metrics = face.glyph.metrics
+
     if outline_radius > 0:
         stroker = ft.Stroker()
         stroker.set(
@@ -116,8 +119,15 @@ def get_glyph(code, face, outline_radius=0):
         "height": bitmap.rows,
         "lsb": blyph.left,
         "tsb": blyph.top,
-        "advance": face.glyph.advance.x // 64,
+        "advance_hr": face.glyph.advance.x,
     }
+
+    if outline_radius == 0:
+        # these metrics are only valid if the Stroker() is not used
+        props["height_hr"] = metrics.height
+        props["lsb_hr"] = metrics.horiBearingX
+        props["tsb_hr"] = metrics.horiBearingY
+
     return bytes(bitmap.buffer), props
 
 
@@ -144,7 +154,7 @@ def get_preview(glyph_props, glyph_data_bs, yshift, has_outline=False):
 
     total_advance = 0
     for p in draws[0]:
-        total_advance += p["advance"]
+        total_advance += p["advance_hr"] // 64
 
     img_all = Image.new("RGBA", (total_advance + 8, 32), 0x00000000)
 
@@ -153,9 +163,9 @@ def get_preview(glyph_props, glyph_data_bs, yshift, has_outline=False):
         for i, p in enumerate(draw):
             img_all.alpha_composite(
                 get_img(p, glyph_data_bs, color),
-                (cur_x + p["lsb"], -p["tsb"] + 32 - yshift),
+                (cur_x + p["lsb"], -p["tsb"] + 32 - yshift // 64),
             )
-            cur_x += p["advance"]
+            cur_x += p["advance_hr"] // 64
 
     return img_all
 
@@ -169,8 +179,8 @@ def get_y_stats(glyph_props, DISPLAY_HEIGHT=32):
     us = []
     ls = []
     for p in glyph_props:
-        y_max = p["tsb"]
-        y_min = p["tsb"] - p["height"]
+        y_max = p["tsb_hr"]
+        y_min = p["tsb_hr"] - p["height"] * 64
         # print(f'{y_max:3d}  {y_min:3d}')
         us.append(y_max)
         ls.append(y_min)
@@ -180,7 +190,7 @@ def get_y_stats(glyph_props, DISPLAY_HEIGHT=32):
     bb_mid = (bb_up + bb_down) / 2
 
     bb_height = bb_up - bb_down
-    yshift = round(DISPLAY_HEIGHT / 2 - bb_mid)
+    yshift = round(DISPLAY_HEIGHT * 64 / 2  - bb_mid)
 
     return bb_height, yshift
 
@@ -197,28 +207,28 @@ def auto_tune_font_size(face, target_height=30, display_width=128):
     char_size = target_height * 64
     yshift = 0
 
-    for i in range(32):
+    for i in range(8):
         face.set_char_size(height=char_size)
         props = [get_glyph(c, face)[1] for c in test_string]
         bb_height, yshift = get_y_stats(props)
-        print(f"    height: {char_size / 64:4.1f} --> {bb_height:3d}, {yshift:2d}")
-        err = target_height - bb_height
+        print(f"    height: {char_size / 64:4.1f} --> {bb_height / 64:4.1f}, {yshift / 64:.1f}")
+        err = target_height * 64 - bb_height
         if err == 0:
             print("    👍")
             break
-        char_size += err * 24
+        char_size += err
 
     # Make sure the width of the digits fits on the display
-    for i in range(16):
-        advs = [p["advance"] for p in props]
+    for i in range(8):
+        advs = [p["advance_hr"] for p in props]
         w_clock = 4 * max(advs[:-1]) + advs[-1]
-        margin = display_width - w_clock
-        print(f"    width:  {char_size / 64:4.1f} --> {w_clock:d}")
+        margin = display_width * 64 - w_clock
+        print(f"    width:  {char_size / 64:4.1f} --> {w_clock / 64:.1f}")
         if margin > 0:
             print("    👍")
             break
 
-        char_size += margin * 8
+        char_size += margin
         face.set_char_size(height=char_size)
         props = [get_glyph(c, face)[1] for c in test_string]
         bb_height, yshift = get_y_stats(props)
@@ -271,7 +281,7 @@ def convert(args, face, yshift, out_name, outline_radius=0):
                     props["height"],
                     props["lsb"],
                     props["tsb"],
-                    props["advance"],
+                    props["advance_hr"] // 64,
                     props["start_index"],
                 )
             except struct.error:
@@ -319,7 +329,7 @@ def convert(args, face, yshift, out_name, outline_radius=0):
         glyph_description_offset,
         glyph_data_offset,
         linespace,
-        yshift,
+        yshift // 64,
         flags,
     )
 
