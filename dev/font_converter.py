@@ -190,7 +190,7 @@ def get_y_stats(glyph_props, DISPLAY_HEIGHT=32):
     bb_mid = (bb_up + bb_down) / 2
 
     bb_height = bb_up - bb_down
-    yshift = round(DISPLAY_HEIGHT * 64 / 2  - bb_mid)
+    yshift = round(DISPLAY_HEIGHT * 64 / 2 - bb_mid)
 
     return bb_height, yshift
 
@@ -207,16 +207,18 @@ def auto_tune_font_size(face, target_height=30, display_width=128):
     char_size = target_height * 64
     yshift = 0
 
-    for i in range(8):
+    for i in range(16):
         face.set_char_size(height=char_size)
         props = [get_glyph(c, face)[1] for c in test_string]
         bb_height, yshift = get_y_stats(props)
-        print(f"    height: {char_size / 64:4.1f} --> {bb_height / 64:4.1f}, {yshift / 64:.1f}")
+        print(
+            f"    height: {char_size / 64:4.1f} --> {bb_height / 64:4.1f}, {yshift / 64:.1f}"
+        )
         err = target_height * 64 - bb_height
         if err == 0:
             print("    👍")
             break
-        char_size += err
+        char_size += err // 2
 
     # Make sure the width of the digits fits on the display
     for i in range(8):
@@ -228,7 +230,7 @@ def auto_tune_font_size(face, target_height=30, display_width=128):
             print("    👍")
             break
 
-        char_size += margin
+        char_size += margin // 4
         face.set_char_size(height=char_size)
         props = [get_glyph(c, face)[1] for c in test_string]
         bb_height, yshift = get_y_stats(props)

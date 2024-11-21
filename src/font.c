@@ -138,7 +138,7 @@ static int binary_search(unsigned target, const unsigned *arr, int length) {
     return -1;
 }
 
-static bool get_glyph_description(unsigned glyph_index, glyph_description_t *desc)
+static bool get_glyph_description(unsigned glyph_index, glyph_description_t *desc, bool is_outline)
 {
 	if (desc == NULL)
 		return false;
@@ -148,6 +148,14 @@ static bool get_glyph_description(unsigned glyph_index, glyph_description_t *des
 		return false;
 	}
 
+	if (is_outline) {
+		if ((fntHeader.flags & FLAG_HAS_OUTLINE) == 0)
+			return false;
+
+		glyph_index += fntHeader.n_glyphs / 2;
+	}
+
+	// Read glyph description from SD card
 	// unsigned offs = fntHeader.glyph_description_offset;
 	// offs += glyph_index * sizeof(glyph_description_t);
 	// if (fseek(fntFile, offs, SEEK_SET) == -1) {
@@ -342,14 +350,7 @@ static void push_char(unsigned codepoint, uint8_t layer, uint32_t color, bool is
 	if (glyph_index < 0)
 		return;
 
-	if (is_outline) {
-		if ((fntHeader.flags & FLAG_HAS_OUTLINE) == 0)
-			return;
-
-		glyph_index *= 2;
-	}
-
-	if (!get_glyph_description(glyph_index, &desc))
+	if (!get_glyph_description(glyph_index, &desc, is_outline))
 		return;
 
 	ESP_LOGV(T, "push_char(%c, %d, %d)", (char) codepoint, cursor_x + desc.lsb, cursor_y - desc.tsb);
@@ -372,7 +373,7 @@ static int get_char_width(unsigned codepoint)
 	if (glyph_index < 0)
 		return 0;
 
-	if (!get_glyph_description(glyph_index, &desc))
+	if (!get_glyph_description(glyph_index, &desc, false))
 		return 0;
 
 	return desc.advance;
