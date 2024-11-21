@@ -398,9 +398,9 @@ def main():
 
     out_name_png = out_name.with_suffix(".png")
 
-    if out_name.is_file():
-        print("file exists")
-        exit(0)
+    # if out_name.is_file():
+    #     print("file exists")
+    #     exit(0)
 
     # determine its optimum size
     char_size, yshift = auto_tune_font_size(face, int(args.font_height))
