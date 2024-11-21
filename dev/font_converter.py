@@ -96,17 +96,19 @@ def get_n_ascii(cp_set):
     return (first_char, len(cp_set))
 
 
-def get_glyph(code, face, is_outline=False, radius=64):
+def get_glyph(code, face, outline_radius=0):
     face.select_charmap(ft.FT_ENCODING_UNICODE)
     face.load_char(code, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
     glyph = face.glyph.get_glyph()
 
-    if is_outline:
+    if outline_radius > 0:
         stroker = ft.Stroker()
-        stroker.set(radius, ft.FT_STROKER_LINECAP_ROUND, ft.FT_STROKER_LINEJOIN_ROUND, 0)
-        glyph.stroke(stroker , True)
+        stroker.set(
+            outline_radius, ft.FT_STROKER_LINECAP_ROUND, ft.FT_STROKER_LINEJOIN_ROUND, 0
+        )
+        glyph.stroke(stroker, True)
 
-    blyph = glyph.to_bitmap(ft.FT_RENDER_MODE_NORMAL, ft.Vector(0,0), True)
+    blyph = glyph.to_bitmap(ft.FT_RENDER_MODE_NORMAL, ft.Vector(0, 0), True)
     bitmap = blyph.bitmap
 
     props = {
@@ -119,27 +121,41 @@ def get_glyph(code, face, is_outline=False, radius=64):
     return bytes(bitmap.buffer), props
 
 
-def get_img(p, glyph_data_bs):
+def get_img(p, glyph_data_bs, color=0xFFFFFFFF):
     start_ind = p["start_index"]
     end_ind = start_ind + p["width"] * p["height"]
     bs = glyph_data_bs[start_ind:end_ind]
-    return Image.frombuffer("L", (p["width"], p["height"]), bs)
+
+    img = Image.frombuffer("L", (p["width"], p["height"]), bs)
+    img_ = Image.new("RGBA", img.size, color)
+    img_.putalpha(img)
+    return img_
 
 
-def get_preview(glyph_props, glyph_data_bs, yshift):
+def get_preview(glyph_props, glyph_data_bs, yshift, has_outline=False):
     print("\nGenerating preview image ...")
+    draws = [glyph_props]
+    colors = [0xFFFFFFFF]
+
+    if has_outline:
+        l = len(glyph_props) // 2
+        draws = [glyph_props[l:], glyph_props[:l]]
+        colors = [0xFF0000FF, 0xFF000000]
+
     total_advance = 0
-    for p in glyph_props:
+    for p in draws[0]:
         total_advance += p["advance"]
 
-    img_all = Image.new("L", (total_advance + 8, 32), 0x22)
+    img_all = Image.new("RGBA", (total_advance + 8, 32), 0x00000000)
 
-    cur_x = 4
-    for i, p in enumerate(glyph_props):
-        img_all.paste(
-            get_img(p, glyph_data_bs), (cur_x + p["lsb"], -p["tsb"] + 32 - yshift // 64)
-        )
-        cur_x += p["advance"]
+    for draw, color in zip(draws, colors):
+        cur_x = 4
+        for i, p in enumerate(draw):
+            img_all.alpha_composite(
+                get_img(p, glyph_data_bs, color),
+                (cur_x + p["lsb"], -p["tsb"] + 32 - yshift),
+            )
+            cur_x += p["advance"]
 
     return img_all
 
@@ -153,8 +169,8 @@ def get_y_stats(glyph_props, DISPLAY_HEIGHT=32):
     us = []
     ls = []
     for p in glyph_props:
-        y_max = p["tsb_hr"]
-        y_min = p["tsb_hr"] - p["height_hr"]
+        y_max = p["tsb"]
+        y_min = p["tsb"] - p["height"]
         # print(f'{y_max:3d}  {y_min:3d}')
         us.append(y_max)
         ls.append(y_min)
@@ -164,12 +180,12 @@ def get_y_stats(glyph_props, DISPLAY_HEIGHT=32):
     bb_mid = (bb_up + bb_down) / 2
 
     bb_height = bb_up - bb_down
-    yshift = round(DISPLAY_HEIGHT / 2 * 64 - bb_mid)
+    yshift = round(DISPLAY_HEIGHT / 2 - bb_mid)
 
     return bb_height, yshift
 
 
-def auto_tune_font_size(face, target_height=30 * 64):
+def auto_tune_font_size(face, target_height=30, display_width=128):
     """
     Find the correct char_size to fill the whole height of the display
     returns
@@ -178,23 +194,43 @@ def auto_tune_font_size(face, target_height=30 * 64):
     """
     print("\nTuning font size ...")
     test_string = "1234567890:"
-    char_size = target_height
+    char_size = target_height * 64
     yshift = 0
 
-    for i in range(8):
+    for i in range(32):
         face.set_char_size(height=char_size)
         props = [get_glyph(c, face)[1] for c in test_string]
         bb_height, yshift = get_y_stats(props)
-        print(f"    {char_size / 64:4.1f}, {bb_height / 64:4.1f}, {yshift / 64:4.1f}")
+        print(f"    height: {char_size / 64:4.1f} --> {bb_height:3d}, {yshift:2d}")
         err = target_height - bb_height
         if err == 0:
+            print("    👍")
             break
-        char_size += err
+        char_size += err * 24
+
+    # Make sure the width of the digits fits on the display
+    for i in range(16):
+        advs = [p["advance"] for p in props]
+        w_clock = 4 * max(advs[:-1]) + advs[-1]
+        margin = display_width - w_clock
+        print(f"    width:  {char_size / 64:4.1f} --> {w_clock:d}")
+        if margin > 0:
+            print("    👍")
+            break
+
+        char_size += margin * 8
+        face.set_char_size(height=char_size)
+        props = [get_glyph(c, face)[1] for c in test_string]
+        bb_height, yshift = get_y_stats(props)
 
     return char_size, yshift
 
 
-def convert(args, face, yshift, out_name):
+def convert(args, face, yshift, out_name, outline_radius=0):
+    """
+    If outline_radius is > 0 it will add the normal glyphs to the font and in
+    addition the outline glyphs with the set stroke width.
+    """
     print("\nGenerating bitmap .fnt file ...")
     # --------------------------------------------------
     #  Generate the glyph bitmap data
@@ -209,32 +245,42 @@ def convert(args, face, yshift, out_name):
 
     ascii_map_start, ascii_map_n = get_n_ascii(cp_set)
 
-    for c in cp_set:
-        # print("    ", hex(c), chr(c))
+    ols = [0]
+    if outline_radius > 0:
+        ols.append(outline_radius)
 
-        buf, props = get_glyph(chr(c), face)
-        props["start_index"] = len(glyph_data_bs)
+    for ol in ols:
+        if ol == 0:
+            print("    * filled")
+        else:
+            print(f"    * outline: {ol / 32:.1f} px")
 
-        # --------------------------------------------------
-        #  Generate the glyph description table
-        # --------------------------------------------------
-        try:
-            bs = pack(
-                FMT_GLYPH_DESCRIPTION,
-                props["width"],
-                props["height"],
-                props["lsb"],
-                props["tsb"],
-                props["advance"],
-                props["start_index"],
-            )
-        except struct.error:
-            print("Glyph doesnt fit. Skipping it...")
-            continue
+        for c in cp_set:
+            # print("    ", hex(c), chr(c))
 
-        glyph_props.append(props)
-        glyph_data_bs += buf
-        glyph_description_bs += bs
+            buf, props = get_glyph(chr(c), face, outline_radius=ol)
+            props["start_index"] = len(glyph_data_bs)
+
+            # --------------------------------------------------
+            #  Generate the glyph description table
+            # --------------------------------------------------
+            try:
+                bs = pack(
+                    FMT_GLYPH_DESCRIPTION,
+                    props["width"],
+                    props["height"],
+                    props["lsb"],
+                    props["tsb"],
+                    props["advance"],
+                    props["start_index"],
+                )
+            except struct.error:
+                print("Glyph doesnt fit. Skipping it...")
+                continue
+
+            glyph_props.append(props)
+            glyph_data_bs += buf
+            glyph_description_bs += bs
 
     print("    glyph_data:", len(glyph_data_bs), "bytes")
     print("    glyph_description_table:", len(glyph_description_bs), "bytes")
@@ -258,7 +304,10 @@ def convert(args, face, yshift, out_name):
     glyph_description_offset = map_table_offset + len(map_table_bs)
     glyph_data_offset = glyph_description_offset + len(glyph_description_bs)
     linespace = face.size.height // 64
+
     flags = 0
+    if outline_radius > 0:
+        flags |= FLAG_HAS_OUTLINE
 
     font_header_bs = pack(
         FMT_HEADER,
@@ -270,7 +319,7 @@ def convert(args, face, yshift, out_name):
         glyph_description_offset,
         glyph_data_offset,
         linespace,
-        yshift // 64,
+        yshift,
         flags,
     )
 
@@ -302,6 +351,12 @@ def main():
         help="Target height of the digits in [pixels]",
     )
     parser.add_argument(
+        "--outline-radius",
+        default=0,
+        type=int,
+        help="If > 0, will add the outline glyphs to the font. [pixels / 64]",
+    )
+    parser.add_argument(
         "--add-numerals",
         action="store_true",
         help="Add 0-9 and : to the generated file",
@@ -319,7 +374,7 @@ def main():
     )
 
     parser.add_argument(
-        "font_file", help="Name of the .ttf, .otf or .woff2 file to convert"
+        "fontfile", help="Name of the .ttf, .otf or .woff2 file to convert"
     )
     parser.add_argument(
         "--numeric-name",
@@ -329,7 +384,7 @@ def main():
     args = parser.parse_args()
 
     # Load an existing font file
-    face = ft.Face(args.font_file)
+    face = ft.Face(args.fontfile)
 
     # Generate the output file name
     out_name = Path("fnt/")
@@ -348,14 +403,16 @@ def main():
         exit(0)
 
     # determine its optimum size
-    char_size, yshift = auto_tune_font_size(face, int(args.font_height * 64))
+    char_size, yshift = auto_tune_font_size(face, int(args.font_height))
 
     # generate bitmap font
     face.set_char_size(height=char_size)
-    glyph_props, glyph_data_bs = convert(args, face, yshift, out_name)
+    glyph_props, glyph_data_bs = convert(
+        args, face, yshift, out_name, args.outline_radius
+    )
 
     # generate preview image
-    img = get_preview(glyph_props, glyph_data_bs, yshift)
+    img = get_preview(glyph_props, glyph_data_bs, yshift, args.outline_radius > 0)
     img.save(out_name_png, "PNG")
     print("    wrote", out_name_png)
 
