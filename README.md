@@ -12,15 +12,12 @@ Display the time and animations on HUB75 LED panels.
   * USB-PD powered. Can drive the two 64 x 32 panels at full brightness. The LED turns on if PD negotiation succeeded. Otherwise the clock will run in low-power mode
   * Ambient light sensor
 
-
 [Video of how it looks like](https://www.youtube.com/watch?v=0dwTC5q5t4M)
 
 [Older writeup](http://yetifrisstlama.blogspot.com/2018/02/the-esp32-pinball-rgb-matrix-animation.html)
 
 # Building
 Needs [platform.io](https://platformio.org/) installed.
-
-WIFI credentials can optionally be set in `platform.ini`. At run-time these will be overwritten by the `wifi_ssid` and `wifi_pw` entries in `settings.json`, if they exist.
 
 To install the toolchain and build the project:
 
@@ -108,6 +105,7 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     "ntp_host": "pool.ntp.org"
 }
 ```
+
 ### `panel` section
 Not all LED panels are the same. Here the timing parameters of the I2S panel driver can be configured.
 

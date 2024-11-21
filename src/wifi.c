@@ -307,7 +307,7 @@ void initWifi() {
 	assert(ap_netif);
 
 	// Init DNS and mDNS
-	const char *hostname = jGetS(getSettings(), "hostname", WIFI_HOST_NAME);
+	const char *hostname = jGetS(getSettings(), "hostname", "espirgbani");
 	E(esp_netif_set_hostname(sta_netif, hostname));
 	E(mdns_init());
 	E(mdns_hostname_set(hostname));
