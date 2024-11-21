@@ -339,7 +339,7 @@ void tryJsonConnect() {
 void tryApMode() {
 	E(esp_wifi_set_mode(WIFI_MODE_AP));
 	E(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
-	ESP_LOGI(T, "started AP mode. SSID: %s", WIFI_HOST_NAME);
+	ESP_LOGI(T, "started AP mode. SSID: %s", jGetS(getSettings(), "hostname", "espirgbani"));
 	wifi_state = WIFI_AP_MODE;
 }
 
