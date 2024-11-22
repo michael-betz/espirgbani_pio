@@ -11,6 +11,8 @@
 #include <frame_buffer.h>
 #include "common.h"
 
+#define D_SCALE 4.0
+
 SDL_Renderer *rr = NULL;
 SDL_Window* window = NULL;
 

@@ -1,7 +1,6 @@
 // Implements a framebuffer with N layers and alpha blending
 
 #include "frame_buffer.h"
-#include <common.h>
 #include "fast_hsv2rgb.h"
 #include "rgb_led_panel.h"
 #include "val2pwm.h"

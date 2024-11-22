@@ -1,6 +1,7 @@
 #ifndef FRAME_BUFFER_H
 #define FRAME_BUFFER_H
 #include "rgb_led_panel.h"
+#include "common.h"
 #include <stdint.h>
 #include <stdio.h>
 

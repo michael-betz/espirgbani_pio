@@ -1,7 +1,14 @@
 #ifndef COMMON_H
 #define COMMON_H
+
+#if defined(ESP_PLATFORM)
 #include "driver/gpio.h"
 #include "esp_random.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+extern TaskHandle_t t_backg;
+extern TaskHandle_t t_pinb;
 
 // ---------------
 //  SD card GPIOs
@@ -48,6 +55,13 @@
 // Wifi button
 #define GPIO_WIFI GPIO_NUM_34
 
+// Random number within the range [a,b]
+#define RAND_AB(a, b) (esp_random() % (b + 1 - a) + a)
+#else
+#include <stdlib.h>
+#define RAND_AB(a, b) (rand() % (b + 1 - a) + a)
+#endif
+
 // Width and height of the chain of panels [pixels]
 // ... don't change it, things will catch fire! :p
 #define DISPLAY_WIDTH 128
@@ -57,13 +71,5 @@
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
-
-// Random number within the range [a,b]
-#define RAND_AB(a, b) (esp_random() % (b + 1 - a) + a)
-
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-extern TaskHandle_t t_backg;
-extern TaskHandle_t t_pinb;
 
 #endif
