@@ -1,23 +1,27 @@
 // The animated background patterns
 
+#include <frame_buffer.h>
 #include "shaders.h"
-#include "esp_log.h"
-#include "esp_timer.h"
 #include "fast_hsv2rgb.h"
-#include "frame_buffer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "json_settings.h"
 #include "palette.h"
-#include "rgb_led_panel.h"
 #include <math.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
 
+#if defined(ESP_PLATFORM)
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "json_settings.h"
+#include "rgb_led_panel.h"
+#endif
+
 static const char *T = "SHADERS";
 
-static void drawXorFrame(unsigned frm) {
+void drawXorFrame(unsigned frm) {
 	static uint16_t aniZoom = 0x04, boost = 7;
 	for (int y = 0; y <= 31; y++)
 		for (int x = 0; x <= 127; x++)
@@ -35,7 +39,7 @@ static void drawXorFrame(unsigned frm) {
 	}
 }
 
-static void drawBendyFrame(unsigned frm) {
+void drawBendyFrame(unsigned frm) {
 	static int i = 2, j = 3, k = ((2 << 5) - 1), l = ((3 << 5) - 1);
 	int temp1, temp2, f = frm % 3000;
 	if (f == 0) {
@@ -56,7 +60,7 @@ static void drawBendyFrame(unsigned frm) {
 	}
 }
 
-static void drawAlienFlameFrame(unsigned frm) {
+void drawAlienFlameFrame(unsigned frm) {
 	//  *p points to last pixel of second last row (lower right)
 	// uint32_t *p =
 	// (uint32_t*)g_frameBuff[0][DISPLAY_WIDTH*(DISPLAY_HEIGHT-1)-1]; uint32_t
@@ -118,7 +122,7 @@ static void flameSpread(unsigned ind) {
 	}
 }
 
-static void drawDoomFlameFrame(unsigned frm) {
+void drawDoomFlameFrame(unsigned frm) {
 	static const uint32_t *pal = g_palettes[0];
 	// Slowly modulate flames / change palette now and then
 	if ((frm % 25) == 0) {
@@ -142,7 +146,7 @@ static void drawDoomFlameFrame(unsigned frm) {
 	}
 }
 
-static void drawLasers(unsigned frm) {
+void drawLasers(unsigned frm) {
 	// aaLine: ~1 ms   aaLine2: ~4 ms
 	static float alpha = 0.0, ri = 10;
 	static unsigned n_lines = 8, x = 64, y = 16;
@@ -174,6 +178,7 @@ static void drawLasers(unsigned frm) {
 	alpha += 0.002;
 }
 
+#if defined(ESP_PLATFORM)
 void aniBackgroundTask(void *pvParameters) {
 	unsigned frm = 1, aniMode = 0;
 	unsigned _f_del = g_f_del / portTICK_PERIOD_MS;
@@ -234,3 +239,4 @@ void aniBackgroundTask(void *pvParameters) {
 		frm++;
 	}
 }
+#endif

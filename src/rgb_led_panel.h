@@ -1,6 +1,6 @@
 #ifndef RGB_LED_PANEL_H
 #define RGB_LED_PANEL_H
-#include "common.h"
+#include <common.h>
 
 void init_rgb();
 void updateFrame();
@@ -13,5 +13,8 @@ extern unsigned g_frames;
 
 // delay [ms] between updateFrame() calls (determines max. global frame-rate)
 extern unsigned g_f_del;
+
+// blocks and displays test-patterns forever
+void tp_task(void *pvParameters);
 
 #endif

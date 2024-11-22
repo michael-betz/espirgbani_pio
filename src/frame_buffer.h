@@ -1,6 +1,7 @@
 #ifndef FRAME_BUFFER_H
 #define FRAME_BUFFER_H
 #include "rgb_led_panel.h"
+#include <stdint.h>
 #include <stdio.h>
 
 #define N_LAYERS 3
@@ -79,9 +80,6 @@ void setPixelOver(unsigned layer, unsigned x, unsigned y, unsigned color);
 
 // Set whole layer to fixed color
 void setAll(unsigned layer, unsigned color);
-
-// blocks and displays test-patterns forever
-void tp_task(void *pvParameters);
 
 // write image from a runDmd image file into layer with shades of color
 void setFromFile(FILE *f, unsigned layer, unsigned color);
