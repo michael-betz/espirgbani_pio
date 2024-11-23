@@ -9,9 +9,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
+#include "esp_log.h"
 
 #if defined(ESP_PLATFORM)
-#include "esp_log.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -84,6 +84,7 @@ void drawAlienFlameFrame(unsigned frm) {
 	}
 }
 
+// We add 1 extra row for seeding the flames
 static uint8_t pbuff[DISPLAY_WIDTH * (DISPLAY_HEIGHT + 1)];
 
 static void flameSeedRow() {
@@ -92,8 +93,8 @@ static void flameSeedRow() {
 	// ESP_LOGI(T, "flameseed");
 	for (unsigned x = 0; x < DISPLAY_WIDTH; x++) {
 		if (c <= 0) {
-			c = RAND_AB(0, 5);	   // width
-			v = RAND_AB(0, 2) - 1; // intensity -1 .. 1
+			c = RAND_AB(0, 5);	   // block width
+			v = RAND_AB(-1, 1); // intensity
 		}
 		*p += v;
 		// Detect negative underflow
@@ -107,35 +108,64 @@ static void flameSeedRow() {
 	}
 }
 
-static void flameSpread(unsigned ind) {
-	uint8_t pixel = pbuff[ind];
-	if (pixel == 0) {
-		pbuff[ind - DISPLAY_WIDTH] = 0;
-	} else {
-		unsigned r = RAND_AB(0, 2);
-		int tmp = pixel - r;
-		if (tmp < 0)
-			tmp = 0;
-		if (tmp >= P_SIZE)
-			tmp = P_SIZE - 1;
-		pbuff[ind - DISPLAY_WIDTH - (r & 1)] = tmp;
+static void flameSpread(int x, int y, bool randomize) {
+	static int wind = 1, heat_damper = 4;
+
+	if (randomize) {
+		wind = RAND_AB(-2, 1);
+		heat_damper = RAND_AB(4, 10);
+		ESP_LOGI(T, "flameSpread() wind = %d, damp = %d", wind, heat_damper);
+		return;
 	}
+
+	// source index
+	int ind = x + y * DISPLAY_WIDTH;
+
+	// random horizontal location offset to simulate wind
+	int x_ = (x + wind + RAND_AB(0, 1) + DISPLAY_WIDTH) % DISPLAY_WIDTH;
+
+	// target index
+	int ind_ = x_ + (y - 1) * DISPLAY_WIDTH;
+
+	// propagate the pixel to the row above with dampening
+	uint8_t pixel = pbuff[ind];
+	uint8_t pixel_ = pbuff[ind_];
+
+	int heat = pixel - RAND_AB(0, heat_damper);  // the max can be 2, 3, 4, 5
+	if (heat <= 0) {
+		pbuff[ind_] = 0;
+		return;
+	}
+
+	if (heat_damper >= 7)
+		heat += pixel_ / 4;
+	else
+		heat += pixel_ / 8;
+
+	if (heat >= P_SIZE)
+		heat = P_SIZE - 1;
+
+	pbuff[ind_] = heat;
 }
 
 void drawDoomFlameFrame(unsigned frm) {
-	static const uint32_t *pal = g_palettes[0];
+	static const uint32_t *pal = NULL;
+	if (pal == NULL)
+		pal = get_palette(0);
+
 	// Slowly modulate flames / change palette now and then
 	if ((frm % 25) == 0) {
 		flameSeedRow();
-		if ((frm % 9000) == 0) {
+		if ((frm % 15000) == 0) {
 			pal = get_random_palette();
+			flameSpread(0, 0, true);
 		}
 	}
 
 	// Flame generation
 	for (int y = DISPLAY_HEIGHT; y > 0; y--)
 		for (int x = 0; x < DISPLAY_WIDTH; x++)
-			flameSpread(x + y * DISPLAY_WIDTH);
+			flameSpread(x, y, false);
 
 	// Colorize flames and write into framebuffer
 	for (unsigned y = 0; y < DISPLAY_HEIGHT; y++) {
