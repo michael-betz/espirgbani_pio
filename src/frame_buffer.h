@@ -24,13 +24,13 @@
 // Scales all 4 components in p with the same scaling factor scale (255*255=255)
 static inline unsigned scale32(unsigned scale, unsigned p) {
 	scale += 1;
-	unsigned ag = (p >> 8) & 0x00FF00FF;
-	unsigned rb = p & 0x00FF00FF;
-	unsigned sag = scale * ag;
-	unsigned srb = scale * rb;
-	sag = sag & 0xFF00FF00;
-	srb = (srb >> 8) & 0x00FF00FF;
-	return sag | srb;
+	unsigned ag = (p >> 8) & 0x00FF00FF;  // only contains the alpha and green channel with 8 bit of zeros between them
+	unsigned br = p & 0x00FF00FF;  // only contains the blue and red channel with 8 bit of zeros between them
+	unsigned sag = scale * ag;  // multiply, result overflows into the 8 bit of zeros
+	unsigned sbr = scale * br;
+	sag = sag & 0xFF00FF00;  // mask out the fractional part in the lower 8 bit
+	sbr = (sbr >> 8) & 0x00FF00FF;
+	return sag | sbr;
 }
 
 #define GC(p, ci) (((p) >> ((ci)*8)) & 0xFF)
