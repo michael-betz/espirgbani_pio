@@ -329,6 +329,9 @@ void aniPinballTask(void *pvParameters) {
 	static int sec_ = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
+	initFont("/spiffs/default.fnt");
+	setAll(1, 0x00000000);
+
 	//------------------------------
 	// Open animation file on SD card
 	//------------------------------
@@ -339,6 +342,7 @@ void aniPinballTask(void *pvParameters) {
 			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
 		);
 		ESP_LOGE(T, "Will not show animations!");
+		push_str(0, 13, "ani: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
 	} else {
 		if (setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
 			ESP_LOGW(
@@ -347,6 +351,7 @@ void aniPinballTask(void *pvParameters) {
 			);
 
 		getFileHeader(fAnimations, &fh);
+		push_str(0, 13, "ani: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
 	}
 
 	//------------------------------
@@ -358,10 +363,13 @@ void aniPinballTask(void *pvParameters) {
 
 	// count font files and choose a random one
 	int nFnts = cntFntFiles("/sd/fnt");
-	if (nFnts <= 0)
+	if (nFnts <= 0) {
 		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
-	else
+		push_str(0, 13, "\nfnt: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
+	} else {
+		push_str(0, 13, "\nfnt: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
 		ESP_LOGI(T, "last font file: /sd/fnt/%03d.fnt", nFnts - 1);
+	}
 
 	//------------------------------
 	// Load configuration

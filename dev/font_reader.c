@@ -14,6 +14,7 @@ typedef struct {
     uint16_t linespace;
     int8_t yshift;  // to vertically center the digits, add this to tsb
     // bit0: has_outline. glyph index of outline = glyph index of fill * 2
+    // bit2, bit1: pixel-format. 00 = 1 bit, 01 = 8 bit monochrome, 10 = 8 bit color
     uint8_t flags;
 } font_header_t;
 
@@ -67,7 +68,17 @@ void dump_bitmap(glyph_description_t *desc)
 
 	// Find the beginning and length of the glyph blob
 	unsigned data_start = header.glyph_data_offset + desc->start_index;
-	unsigned len = desc->width * desc->height;
+	unsigned pix_mode = (header.flags >> 1) & 3;
+	unsigned len = 0;
+
+	if (pix_mode == 0)  // 1 bit per pixel
+		len = (desc->width + 7) / 8 * desc->height;
+	else if (pix_mode == 1)  // 1 byte per pixel
+		len = desc->width * desc->height;
+	else {
+		printf("ERROR: Don't know this pixel mode: %d\n", pix_mode);
+		return;
+	}
 	printf("len: %d\n", len);
 
 	if (len > sizeof(buff)) {

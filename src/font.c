@@ -45,6 +45,7 @@ static const char *T = "FONT";
 
 static FILE *fntFile = NULL;
 static font_header_t fntHeader;
+static unsigned pix_mode = 0;
 
 static char *fontName = NULL;
 static unsigned *map_unicode_table = NULL;
@@ -290,7 +291,40 @@ bool initFont(const char *fileName) {
 	ESP_LOGD(T, "linespace: %d", fntHeader.linespace);
 	ESP_LOGD(T, "yshift: %d", fntHeader.yshift);
 	ESP_LOGD(T, "flags: %x", fntHeader.flags);
+	pix_mode = (fntHeader.flags >> 1) & 3;
+	ESP_LOGD(T, "pix_mode: %d", pix_mode);
 	return true;
+}
+
+static uint8_t *get_pix_val(uint8_t *p, unsigned *val)
+{
+	// decodes a pixel with 1 bit or 8 bit width
+	static int n_bits_left = 0;
+	static unsigned byte_val = 0;
+
+	if (p == NULL || val == NULL) {
+		n_bits_left = 0;
+		return p;
+	}
+
+	// 1 byte per pixel
+	if (pix_mode == 1) {
+		*val = *p++;
+		return p;
+	}
+
+	// 1 bit per pixel
+	if (pix_mode == 0) {
+		if (n_bits_left <= 0) {
+			byte_val = *p++;
+			n_bits_left = 8;
+		}
+
+		*val = (byte_val & 0x80) > 0 ? 0xFF : 0;
+		byte_val <<= 1;
+	}
+
+	return p;
 }
 
 static void glyphToBuffer(
@@ -302,7 +336,20 @@ static void glyphToBuffer(
 
 	// Find the beginning and length of the glyph blob
 	unsigned data_start = fntHeader.glyph_data_offset + desc->start_index;
-	unsigned len = desc->width * desc->height;
+
+	unsigned pitch = 0;
+	if (pix_mode == 0) {  // 1 bit per pixel
+		pitch = (desc->width + 7) / 8;
+	} else if (pix_mode == 1) {  // 1 byte per pixel
+		pitch = desc->width;
+	} else {
+		ESP_LOGE(T, "Don't know this pixel mode: %d", pix_mode);
+		return;
+	}
+	unsigned len = pitch * desc->height;
+
+	if (len <= 0)
+		return;
 
 	if (fseek(fntFile, data_start, SEEK_SET) == -1) {
 		ESP_LOGE(T, "glyph seek failed :( %s", strerror(errno));
@@ -325,18 +372,29 @@ static void glyphToBuffer(
 	uint8_t *p = buff;
 	for (int y = 0; y < desc->height; y++) {
 		int yPixel = y + offs_y;
+
+		// if target y-coordinate is outside the displayable area
 		if (yPixel < 0 || yPixel >= DISPLAY_HEIGHT) {
-			p += desc->width;
+			// skip this whole row
+			p += pitch;
 			continue;
 		}
 
+		// Make sure to read a fresh byte in 1 pixel mode
+		get_pix_val(NULL, NULL);
+
 		for (int x = 0; x < desc->width; x++) {
+			unsigned pix_val = 0;
+			p = get_pix_val(p, &pix_val);
+
 			int xPixel = x + offs_x;
-			if (xPixel >= 0 && xPixel < DISPLAY_WIDTH)
+			// if target x-coordinate is inside the displayable area
+			if (xPixel >= 0 && xPixel < DISPLAY_WIDTH) {
+				// draw this pixel
 				setPixelOver(
-					layer, xPixel, yPixel, (*p << 24) | scale32(*p, color)
+					layer, xPixel, yPixel, (pix_val << 24) | scale32(pix_val, color)
 				);
-			p++;
+			}
 		}
 	}
 	free(buff);

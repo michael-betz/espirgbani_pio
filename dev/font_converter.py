@@ -1,5 +1,5 @@
 """
-Convert font files (.ttf, and others supported by freetype) to the internally used bitmap format (.fnt file).
+Convert font files (.ttf, .bdf and others supported by freetype) to the internally used bitmap format (.fnt file).
 
 Needs freetype-py installed.
 """
@@ -11,7 +11,6 @@ import struct
 from PIL import Image
 from glob import glob
 import freetype as ft
-
 
 # typedef struct {
 #     uint8_t width;  // bitmap width [pixels]
@@ -40,7 +39,12 @@ FMT_GLYPH_DESCRIPTION = "BBbbbI"
 # } font_header_t;
 FMT_HEADER = "IHHHHIIHbB"
 
-FLAG_HAS_OUTLINE = 1
+# Flag is set if outline glyphs are available in the font (doubles the number of glyphs)
+FLAG_HAS_OUTLINE = 1 << 0
+
+# Pixel format_B/_A: 00 = 1 bit, 01 = 8 bit monochrome, 10 = 8 bit color
+FLAG_PIX_FORMAT_A = 1 << 1
+FLAG_PIX_FORMAT_B = 1 << 2
 
 
 def get_next_filename(out_dir):
@@ -98,23 +102,30 @@ def get_n_ascii(cp_set):
 
 def get_glyph(code, face, outline_radius=0):
     face.select_charmap(ft.FT_ENCODING_UNICODE)
-    face.load_char(code, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
-    glyph = face.glyph.get_glyph()
-
-    # these values are not valid for outline mode
-    metrics = face.glyph.metrics
 
     if outline_radius > 0:
         stroker = ft.Stroker()
         stroker.set(
             outline_radius, ft.FT_STROKER_LINECAP_ROUND, ft.FT_STROKER_LINEJOIN_ROUND, 0
         )
+        face.load_char(code, ft.FT_LOAD_DEFAULT | ft.FT_LOAD_NO_BITMAP)
+        glyph = face.glyph.get_glyph()
         glyph.stroke(stroker, True)
+    else:
+        face.load_char(code, ft.FT_LOAD_DEFAULT)
+        glyph = face.glyph.get_glyph()
+
+    # these values are not valid for outline mode
+    metrics = face.glyph.metrics
 
     blyph = glyph.to_bitmap(ft.FT_RENDER_MODE_NORMAL, ft.Vector(0, 0), True)
     bitmap = blyph.bitmap
 
     props = {
+        # number of bytes taken per row
+        "pitch": bitmap.pitch,
+        # 1 = A monochrome bitmap, using 1 bit per pixel, MSB first,  2 = Each pixel is stored in one byte
+        "pixel_mode": bitmap.pixel_mode,
         "width": bitmap.width,
         "height": bitmap.rows,
         "lsb": blyph.left,
@@ -136,13 +147,26 @@ def get_img(p, glyph_data_bs, color=0xFFFFFFFF):
     end_ind = start_ind + p["width"] * p["height"]
     bs = glyph_data_bs[start_ind:end_ind]
 
-    img = Image.frombuffer("L", (p["width"], p["height"]), bs)
+    if p["pixel_mode"] == ft.FT_PIXEL_MODE_MONO:
+        # convert 8 pixel / byte buffer to 1 pixel / byte
+        bs_ = bytearray(p["width"] * p["height"])
+        for y in range(p["height"]):
+            for x in range(p["width"]):
+                src = bs[y * p["pitch"] + x // 8]
+                bit = (src >> (7 - x)) & 1
+                bs_[p["width"] * y + x] = bit * 0xFF
+    elif p["pixel_mode"] == ft.FT_PIXEL_MODE_GRAY:
+        bs_ = bs
+    else:
+        NotImplementedError("pixel mode not supported")
+
+    img = Image.frombuffer("L", (p["width"], p["height"]), bs_)
     img_ = Image.new("RGBA", img.size, color)
     img_.putalpha(img)
     return img_
 
 
-def get_preview(glyph_props, glyph_data_bs, yshift, has_outline=False):
+def get_preview(glyph_props, glyph_data_bs, yshift=0, has_outline=False):
     print("\nGenerating preview image ...")
     draws = [glyph_props]
     colors = [0xFFFFFFFF]
@@ -321,6 +345,17 @@ def convert(args, face, yshift, out_name, outline_radius=0):
     if outline_radius > 0:
         flags |= FLAG_HAS_OUTLINE
 
+    pix_mode = glyph_props[0]["pixel_mode"]
+    if pix_mode == ft.FT_PIXEL_MODE_MONO:
+        pass
+    elif pix_mode == ft.FT_PIXEL_MODE_GRAY:
+        flags |= FLAG_PIX_FORMAT_A
+    else:
+        RuntimeError(
+            "pixel mode of this font file is not supported. Can only do 1 bit or 8 bit greyscale.",
+            pix_mode,
+        )
+
     font_header_bs = pack(
         FMT_HEADER,
         0x005A54BE,  # magic number
@@ -415,10 +450,12 @@ def main():
     #     exit(0)
 
     # determine its optimum size
-    char_size, yshift = auto_tune_font_size(face, int(args.font_height))
+    yshift = 0
+    if face.is_scalable:
+        char_size, yshift = auto_tune_font_size(face, int(args.font_height))
+        face.set_char_size(height=char_size)
 
     # generate bitmap font
-    face.set_char_size(height=char_size)
     glyph_props, glyph_data_bs = convert(
         args, face, yshift, out_name, args.outline_radius
     )
