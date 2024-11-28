@@ -12,6 +12,11 @@
 #include <frame_buffer.h>
 #include "common.h"
 
+#ifdef __EMSCRIPTEN__
+	#include "emscripten.h"
+	#include "emscripten/html5.h"
+#endif
+
 #define D_SCALE 6.0
 
 void (*shader_fcts[]) (unsigned frm) = {
