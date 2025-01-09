@@ -6469,6 +6469,17 @@
 		)
 		(uuid "44bf5e7e-6c4d-49f4-9de6-77642ccbcee1")
 	)
+	(text "*  Connect SD card to the fixed pins of the MMC-interface.\n   Because the SD-SPI driver in IDF-V5 does seek very slowly"
+		(exclude_from_sim no)
+		(at 198.12 186.69 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify left bottom)
+		)
+		(uuid "508c942e-6719-4f3b-a6b4-bcfaecc1cd90")
+	)
 	(text "S"
 		(exclude_from_sim no)
 		(at 239.522 92.71 0)
