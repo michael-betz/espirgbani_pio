@@ -87,7 +87,7 @@ void drawAlienFlameFrame(unsigned frm) {
 // We add 1 extra row for seeding the flames
 static uint8_t pbuff[DISPLAY_WIDTH * (DISPLAY_HEIGHT + 1)];
 
-static void flameSeedRow() {
+void flameSeedRow() {
 	int c = 0, v = 0;
 	uint8_t *p = &pbuff[DISPLAY_HEIGHT * DISPLAY_WIDTH];
 	// ESP_LOGI(T, "flameseed");
@@ -109,20 +109,32 @@ static void flameSeedRow() {
 }
 
 static void flameSpread(int x, int y, bool randomize) {
-	static int wind = 1, heat_damper = 4;
+	static int wind_rnd = 48;  // from -128 to 128
+	static int wind = 48;  // from -128 to 128
+	static int heat_damper = 7;
 
-	if (randomize) {
-		wind = RAND_AB(-2, 1);
-		heat_damper = RAND_AB(4, 10);
-		ESP_LOGI(T, "flameSpread() wind = %d, damp = %d", wind, heat_damper);
-		return;
-	}
+	// if (randomize) {
+	// 	wind = RAND_AB(64, 128);
+	// 	if (RAND() > 0x7FFFFFFF)
+	//		wind *= -1;
+	// 	heat_damper = RAND_AB(4, 10);
+	// 	ESP_LOGI(T, "flameSpread() wind = %d, damp = %d", wind, heat_damper);
+	// 	return;
+	// }
 
 	// source index
 	int ind = x + y * DISPLAY_WIDTH;
 
 	// random horizontal location offset to simulate wind
-	int x_ = (x + wind + RAND_AB(0, 1) + DISPLAY_WIDTH) % DISPLAY_WIDTH;
+	int wind_x_shift = RAND();
+
+	unsigned rnd = RAND() & 0xFF;
+	if (wind_rnd > 0 && rnd < wind)
+	// 	wind_x_shift = 1;
+	// else if (wind < 0 && rnd < (-wind))
+	// 	wind_x_shift = -1;
+
+	int x_ = (x + wind_x_shift + DISPLAY_WIDTH) % DISPLAY_WIDTH;
 
 	// target index
 	int ind_ = x_ + (y - 1) * DISPLAY_WIDTH;
@@ -188,7 +200,13 @@ void drawLasers(unsigned frm) {
 		x = RAND_AB(4, DISPLAY_WIDTH - 5); // center point
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
 		ri = RAND_AB(0, 200) / 10.0; // inner radius
+
+		// Clear the screen every frame or not
 		do_clear = RAND_AB(0, 1);
+
+		// Clear screen at least once now to remove artifacts in circle
+		if (!do_clear)
+			setAll(0, 0xFF000000);
 	}
 
 	if (do_clear)

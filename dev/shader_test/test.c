@@ -17,7 +17,7 @@
 	#include "emscripten/html5.h"
 #endif
 
-#define D_SCALE 6.0
+#define D_SCALE 2.0
 
 void (*shader_fcts[]) (unsigned frm) = {
 	drawXorFrame,
@@ -76,7 +76,7 @@ bool is_running = true;
 void one_iter()
 {
 	static unsigned frm = 0;
-	static int current_shader = 0;
+	static int current_shader = 3;
 
 	SDL_Event e;
 
@@ -131,6 +131,9 @@ int main(int argc, char* args[])
 
 	SDL_SetRenderDrawColor(rr, 0x22, 0x22, 0x22, 0xFF);
 	SDL_RenderClear(rr);
+
+	for (int i=0; i < 100; i++)
+		flameSeedRow();
 
 	#ifdef __EMSCRIPTEN__
 		emscripten_set_main_loop(one_iter, 0, 1);

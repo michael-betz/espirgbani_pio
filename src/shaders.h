@@ -11,4 +11,5 @@ void drawAlienFlameFrame(unsigned frm);
 void drawDoomFlameFrame(unsigned frm);
 void drawLasers(unsigned frm);
 
+void flameSeedRow();
 #endif

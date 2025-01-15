@@ -2,65 +2,68 @@
 #define COMMON_H
 
 #if defined(ESP_PLATFORM)
-#include "driver/gpio.h"
-#include "esp_random.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+	#include "driver/gpio.h"
+	#include "esp_random.h"
+	#include "freertos/FreeRTOS.h"
+	#include "freertos/task.h"
 
-extern TaskHandle_t t_backg;
-extern TaskHandle_t t_pinb;
+	extern TaskHandle_t t_backg;
+	extern TaskHandle_t t_pinb;
 
-// ---------------
-//  SD card GPIOs
-// ---------------
-#define GPIO_SD_MISO GPIO_NUM_25 // REV2 of the PCB
-#define GPIO_SD_CS GPIO_NUM_14
-#define GPIO_SD_MOSI GPIO_NUM_27
-#define GPIO_SD_CLK GPIO_NUM_26
+	// ---------------
+	//  SD card GPIOs
+	// ---------------
+	#define GPIO_SD_MISO GPIO_NUM_25 // REV2 of the PCB
+	#define GPIO_SD_CS GPIO_NUM_14
+	#define GPIO_SD_MOSI GPIO_NUM_27
+	#define GPIO_SD_CLK GPIO_NUM_26
 
-// -----------------
-//  LED panel GPIOs
-// -----------------
-// Upper half RGB
-#define GPIO_R1 GPIO_NUM_22
-#define GPIO_G1 GPIO_NUM_21
-#define GPIO_B1 GPIO_NUM_23
-// Lower half RGB
-#define GPIO_R2 GPIO_NUM_18
-#define GPIO_G2 GPIO_NUM_5
-#define GPIO_B2 GPIO_NUM_19
-// Row address
-#define GPIO_A GPIO_NUM_16
-#define GPIO_B GPIO_NUM_17
-#define GPIO_C GPIO_NUM_2
-#define GPIO_D GPIO_NUM_4
-#define GPIO_E GPIO_NUM_32
-// Control signals
-#define GPIO_LAT GPIO_NUM_15
-#define GPIO_OE_N GPIO_NUM_33
-#define GPIO_CLK GPIO_NUM_13
+	// -----------------
+	//  LED panel GPIOs
+	// -----------------
+	// Upper half RGB
+	#define GPIO_R1 GPIO_NUM_22
+	#define GPIO_G1 GPIO_NUM_21
+	#define GPIO_B1 GPIO_NUM_23
+	// Lower half RGB
+	#define GPIO_R2 GPIO_NUM_18
+	#define GPIO_G2 GPIO_NUM_5
+	#define GPIO_B2 GPIO_NUM_19
+	// Row address
+	#define GPIO_A GPIO_NUM_16
+	#define GPIO_B GPIO_NUM_17
+	#define GPIO_C GPIO_NUM_2
+	#define GPIO_D GPIO_NUM_4
+	#define GPIO_E GPIO_NUM_32
+	// Control signals
+	#define GPIO_LAT GPIO_NUM_15
+	#define GPIO_OE_N GPIO_NUM_33
+	#define GPIO_CLK GPIO_NUM_13
 
-// -----------------
-//  Misc GPIOs
-// -----------------
-// USB-PD failed to negotiate
-#define GPIO_PD_BAD GPIO_NUM_35
+	// -----------------
+	//  Misc GPIOs
+	// -----------------
+	// USB-PD failed to negotiate
+	#define GPIO_PD_BAD GPIO_NUM_35
 
-// Ambient light sensor (ALS-PDIC144-6C/L378)
-#define GPIO_LIGHT_SENSOR GPIO_NUM_36
+	// Ambient light sensor (ALS-PDIC144-6C/L378)
+	#define GPIO_LIGHT_SENSOR GPIO_NUM_36
 
-// green LED at the back
-#define GPIO_LED GPIO_NUM_12
+	// green LED at the back
+	#define GPIO_LED GPIO_NUM_12
 
-// Wifi button
-#define GPIO_WIFI GPIO_NUM_34
+	// Wifi button
+	#define GPIO_WIFI GPIO_NUM_34
 
-// Random number within the range [a,b]
-#define RAND_AB(a, b) (esp_random() % (b + 1 - a) + a)
+	// Random number within the range [a,b]
+	#include <esp_random.h>
+	#define RAND() esp_random()
 #else
-#include <stdlib.h>
-#define RAND_AB(a, b) (rand() % (b + 1 - a) + a)
+	#include <stdlib.h>
+	#define RAND() rand()
 #endif
+
+#define RAND_AB(a, b) (RAND() % (b + 1 - a) + a)
 
 // Width and height of the chain of panels [pixels]
 // ... don't change it, things will catch fire! :p
