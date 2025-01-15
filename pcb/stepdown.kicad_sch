@@ -6,7 +6,7 @@
 	(paper "A4")
 	(title_block
 		(title "ESP Pinball RGB Animation clock (espirgbani)")
-		(date "2025-01-14")
+		(date "2025-01-15")
 		(rev "3")
 	)
 	(lib_symbols
