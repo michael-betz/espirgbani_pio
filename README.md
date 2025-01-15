@@ -181,3 +181,13 @@ The server used for time synchronization.
   * wifi button support (access point on button press)
   * mqtt support?
   * update image from serial terminal
+
+
+# BOM
+  * >= 1 GB SD card
+  * Back frame
+  * Front frame
+  * 2x P2.5 panels
+  * PCB
+  * 20x M3x10 screws, hex head
+  * Spacer, M3, something between 15 - 18 mm

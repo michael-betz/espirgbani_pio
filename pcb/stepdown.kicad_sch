@@ -5,8 +5,9 @@
 	(uuid "8f17ae50-9f86-4a09-a145-0afa06a34b92")
 	(paper "A4")
 	(title_block
-		(date "2024-10-19")
-		(rev "2")
+		(title "ESP Pinball RGB Animation clock (espirgbani)")
+		(date "2025-01-14")
+		(rev "3")
 	)
 	(lib_symbols
 		(symbol "Device:R"
