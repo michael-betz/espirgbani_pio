@@ -7169,7 +7169,7 @@
 		)
 		(uuid "c4c7ef96-98c9-4f13-8d1c-e1699f7816ec")
 	)
-	(text "Either / Or:\n4 wire SD\nLED + ADDR E"
+	(text "Choose:\neither 4 wire SD\nor LED + ADDR E"
 		(exclude_from_sim no)
 		(at 272.542 111.76 0)
 		(effects
@@ -7189,6 +7189,17 @@
 			(justify right)
 		)
 		(uuid "d7e5e739-ce16-4d69-a6aa-5f0554c9a63c")
+	)
+	(text "Before SD_D2 pullup is populated,\n3.3 V flash efuse must be burned"
+		(exclude_from_sim no)
+		(at 163.068 16.764 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(href "https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/sd_pullup_requirements.html#conflicts-between-bootstrap-and-sdio-on-dat2")
+		)
+		(uuid "e2752744-c2db-4d91-8956-02052fad2e52")
 	)
 	(text "S"
 		(exclude_from_sim no)
@@ -7221,6 +7232,17 @@
 			(justify right)
 		)
 		(uuid "f2341cfc-d35a-4f7f-83b5-c133dd8965a9")
+	)
+	(text "Untested features:\n  * USB QC support (for > 5 V over type A cables)\n  * SD-MMC with 4 data-lines"
+		(exclude_from_sim no)
+		(at 180.594 172.72 0)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify left)
+		)
+		(uuid "f81b111d-85fe-474b-b383-3a66e28c4931")
 	)
 	(text "S"
 		(exclude_from_sim no)
@@ -11631,6 +11653,73 @@
 			(project "rgb"
 				(path "/e2cadc20-e108-4c6f-b279-00d9d28fa9da"
 					(reference "U5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 154.94 30.48 270)
+		(unit 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(dnp yes)
+		(uuid "9cee649d-c644-487f-a0fd-957ab53ae28e")
+		(property "Reference" "R21"
+			(at 145.288 30.48 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "10k"
+			(at 154.94 30.48 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0603_1608Metric"
+			(at 154.94 28.702 90)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 154.94 30.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" ""
+			(at 154.94 30.48 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(pin "1"
+			(uuid "7ad8bbbf-005f-4478-b060-c31a8fffeadd")
+		)
+		(pin "2"
+			(uuid "1bf9bcd1-5815-4d8f-abd7-403da5861b63")
+		)
+		(instances
+			(project "rgb"
+				(path "/e2cadc20-e108-4c6f-b279-00d9d28fa9da"
+					(reference "R21")
 					(unit 1)
 				)
 			)
