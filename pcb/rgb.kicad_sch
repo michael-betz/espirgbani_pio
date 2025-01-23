@@ -7270,9 +7270,9 @@
 		)
 		(uuid "c4c7ef96-98c9-4f13-8d1c-e1699f7816ec")
 	)
-	(text "Choose one:\n  * LED + ADDR E\n  * 4 wire SD"
+	(text "Choose one:\n  * LED + ADDR E\n    R9, R22\n  * 4 wire SD\n    R23, R24"
 		(exclude_from_sim no)
-		(at 258.064 114.046 0)
+		(at 251.206 117.348 0)
 		(effects
 			(font
 				(size 1.524 1.524)
@@ -7292,13 +7292,14 @@
 		)
 		(uuid "d7e5e739-ce16-4d69-a6aa-5f0554c9a63c")
 	)
-	(text "Before SD_D2 pullup is populated,\n3.3 V flash efuse must be burned"
+	(text "Before R23 is populated,\n3.3 V flash efuse must\nbe burned"
 		(exclude_from_sim no)
-		(at 163.068 16.764 0)
+		(at 251.46 131.064 0)
 		(effects
 			(font
 				(size 1.524 1.524)
 			)
+			(justify left)
 			(href "https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/sd_pullup_requirements.html#conflicts-between-bootstrap-and-sdio-on-dat2")
 		)
 		(uuid "e2752744-c2db-4d91-8956-02052fad2e52")
