@@ -266,7 +266,7 @@ void app_main(void) {
 	init_rgb();
 
 	// init built in font
-	initFont("/spiffs/default.fnt");
+	initFont("/spiffs/lemon.fnt");
 	push_str(0, 13, "Wifi ...", 45, A_LEFT, 1, 0xFFFFFFFF, false);
 
 	// init web-server
