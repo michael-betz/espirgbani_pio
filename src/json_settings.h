@@ -1,10 +1,15 @@
 #ifndef JSON_SETTINGS_H
 #define JSON_SETTINGS_H
 
-#include "esp_http_server.h"
-#include <cJSON.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_http_server.h"
+
+#if defined(ESP_PLATFORM)
+    #include <cJSON.h>
+#else
+    #include <cjson/cJSON.h>
+#endif
 
 // set the .json file with settings and a fall-back defaults_file
 // which will be copied over if not NULL
@@ -31,5 +36,8 @@ double jGetD(cJSON *json, const char *name, double default_val);
 
 // return bool from .json or default-value on error
 bool jGetB(cJSON *json, const char *name, bool default_val);
+
+// Init log levels from an dict with name `log_level` in the config
+void init_log_levels();
 
 #endif

@@ -189,6 +189,10 @@ void drawLasers(unsigned frm) {
 		y = RAND_AB(1, DISPLAY_HEIGHT - 2);
 		ri = RAND_AB(0, 200) / 10.0; // inner radius
 		do_clear = RAND_AB(0, 1);
+
+		// Prevent this float from getting too big and loosing precision eventually
+		while (alpha > M_PI * 8)
+			alpha -= M_PI * 8;
 	}
 
 	if (do_clear)
