@@ -149,7 +149,7 @@ static void flameSpread(int x, int y, bool randomize) {
 }
 
 void drawDoomFlameFrame(unsigned frm) {
-	static const uint32_t *pal = NULL;
+	static const unsigned *pal = NULL;
 	if (pal == NULL)
 		pal = get_palette(0);
 

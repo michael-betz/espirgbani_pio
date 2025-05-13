@@ -10,6 +10,9 @@
 extern TaskHandle_t t_backg;
 extern TaskHandle_t t_pinb;
 
+// #define HW_REV2  // REV2 PCB as received from JLCPCB
+#define HW_REV3  // reworked REV2 PCB (GPIO 12 and 33 swapped)
+
 // ---------------
 //  SD card GPIOs
 // ---------------
@@ -37,8 +40,19 @@ extern TaskHandle_t t_pinb;
 #define GPIO_E GPIO_NUM_32
 // Control signals
 #define GPIO_LAT GPIO_NUM_15
-#define GPIO_OE_N GPIO_NUM_33
 #define GPIO_CLK GPIO_NUM_13
+
+#ifdef HW_REV2
+	#define GPIO_OE_N GPIO_NUM_33
+	// green LED at the back
+	#define GPIO_LED GPIO_NUM_12
+#endif
+
+#ifdef HW_REV3
+	#define GPIO_OE_N GPIO_NUM_12
+	// green LED at the back
+	#define GPIO_LED GPIO_NUM_33
+#endif
 
 // -----------------
 //  Misc GPIOs
@@ -49,8 +63,6 @@ extern TaskHandle_t t_pinb;
 // Ambient light sensor (ALS-PDIC144-6C/L378)
 #define GPIO_LIGHT_SENSOR GPIO_NUM_36
 
-// green LED at the back
-#define GPIO_LED GPIO_NUM_12
 
 // Wifi button
 #define GPIO_WIFI GPIO_NUM_34
