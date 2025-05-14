@@ -24,12 +24,12 @@ extern TaskHandle_t t_pinb;
 //  LED panel GPIOs
 // -----------------
 // Upper half RGB
-#define GPIO_R1 GPIO_NUM_23
-#define GPIO_G1 GPIO_NUM_21
+#define GPIO_R1 GPIO_NUM_21
+#define GPIO_G1 GPIO_NUM_23
 #define GPIO_B1 GPIO_NUM_22
 // Lower half RGB
-#define GPIO_R2 GPIO_NUM_19
-#define GPIO_G2 GPIO_NUM_5
+#define GPIO_R2 GPIO_NUM_5
+#define GPIO_G2 GPIO_NUM_19
 #define GPIO_B2 GPIO_NUM_18
 // Row address
 #define GPIO_A GPIO_NUM_16
