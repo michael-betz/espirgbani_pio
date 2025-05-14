@@ -334,7 +334,14 @@ void aniPinballTask(void *pvParameters) {
 	setAll(1, 0x00000000);
 	initFont("/spiffs/lemon.fnt");
 
-	push_print(WHITE, "USB power level: ");
+	const char *hostname = jGetS(getSettings(), "hostname", "espirgbani");
+	push_str(
+	DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2 + 4, hostname, 32, A_CENTER, 1, WHITE, false
+	);
+	vTaskDelay(3000 / portTICK_PERIOD_MS);
+	setAll(1, 0);
+
+	push_print(WHITE, "\nUSB power level: ");
 	if (gpio_get_level(GPIO_PD_BAD))
 		push_print(RED, "Low");
 	else
@@ -384,6 +391,8 @@ void aniPinballTask(void *pvParameters) {
 		ESP_LOGI(T, "last font file: /sd/fnt/%03d.fnt", nFnts - 1);
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
+	push_print(WHITE, "\nLet's go !!!");
+	vTaskDelay(2000 / portTICK_PERIOD_MS);
 
 	// Print wifi state
 	// push_print(WHITE, "\nWIFI: ");

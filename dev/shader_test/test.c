@@ -144,20 +144,25 @@ int main(int argc, char* args[])
 
 		initFont("lemon.fnt");
 
-		push_print(WHITE, "USB power level: ");
-		// push_print(RED, "Low");
-		push_print(GREEN, "High");
+		push_str(
+			DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2 + 4, "espirgbani", 10, A_CENTER, 1, WHITE, false
+			);
 
-		push_print(WHITE, "\nLoading animations ...");
-		// push_print(RED, "\n%s", strerror(42));
-		push_print(GREEN, "\n  N: 2043  B: DMD");
 
-		push_print(WHITE, "\nLoading fonts ...");
-		// push_print(RED, "\n  No fonts found :(");
-		push_print(GREEN, " N: %d", 102);
+		// push_print(WHITE, "USB power level: ");
+		// // push_print(RED, "Low");
+		// push_print(GREEN, "High");
 
-		push_print(WHITE, "\nWIFI: ");
-		push_print(GREEN, "192.168.45.23");
+		// push_print(WHITE, "\nLoading animations ...");
+		// // push_print(RED, "\n%s", strerror(42));
+		// push_print(GREEN, "\n  N: 2043  B: DMD");
+
+		// push_print(WHITE, "\nLoading fonts ...");
+		// // push_print(RED, "\n  No fonts found :(");
+		// push_print(GREEN, " N: %d", 102);
+
+		// push_print(WHITE, "\nWIFI: ");
+		// push_print(GREEN, "192.168.45.23");
 		// push_print(RED, "Not connected");
 
 

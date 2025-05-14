@@ -10,8 +10,7 @@
 extern TaskHandle_t t_backg;
 extern TaskHandle_t t_pinb;
 
-// #define HW_REV2  // REV2 PCB as received from JLCPCB
-#define HW_REV3  // reworked REV2 PCB (GPIO 12 and 33 swapped)
+#define HW_REV2  // REV2 PCB, reworked to have GPIO 12 and 33 swapped
 
 // ---------------
 //  SD card GPIOs
@@ -25,13 +24,13 @@ extern TaskHandle_t t_pinb;
 //  LED panel GPIOs
 // -----------------
 // Upper half RGB
-#define GPIO_R1 GPIO_NUM_22
+#define GPIO_R1 GPIO_NUM_23
 #define GPIO_G1 GPIO_NUM_21
-#define GPIO_B1 GPIO_NUM_23
+#define GPIO_B1 GPIO_NUM_22
 // Lower half RGB
-#define GPIO_R2 GPIO_NUM_18
+#define GPIO_R2 GPIO_NUM_19
 #define GPIO_G2 GPIO_NUM_5
-#define GPIO_B2 GPIO_NUM_19
+#define GPIO_B2 GPIO_NUM_18
 // Row address
 #define GPIO_A GPIO_NUM_16
 #define GPIO_B GPIO_NUM_17
@@ -46,12 +45,6 @@ extern TaskHandle_t t_pinb;
 	#define GPIO_OE_N GPIO_NUM_33
 	// green LED at the back
 	#define GPIO_LED GPIO_NUM_12
-#endif
-
-#ifdef HW_REV3
-	#define GPIO_OE_N GPIO_NUM_12
-	// green LED at the back
-	#define GPIO_LED GPIO_NUM_33
 #endif
 
 // -----------------
