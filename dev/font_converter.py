@@ -339,7 +339,11 @@ def convert(args, face, yshift, out_name, outline_radius=0):
     map_table_offset = calcsize(FMT_HEADER) + len(name) + 1
     glyph_description_offset = map_table_offset + len(map_table_bs)
     glyph_data_offset = glyph_description_offset + len(glyph_description_bs)
+
     linespace = face.size.height // 64
+    if (linespace == 0):
+        print("WARNING!! Setting linespace to 8")
+        linespace = 8
 
     flags = 0
     if outline_radius > 0:

@@ -30,4 +30,8 @@ void push_str(
 // Simplified clock string drawing
 void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill);
 
+// Like printf but to layer 1. Uses spiffs/lemon.fnt
+void push_print(unsigned color, const char *format, ...);
+
+
 #endif

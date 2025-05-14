@@ -8,9 +8,10 @@
 #include <time.h>
 #include <math.h>
 #include <limits.h>
-#include <shaders.h>
-#include <frame_buffer.h>
+#include "shaders.h"
+#include "frame_buffer.h"
 #include "common.h"
+#include "font.h"
 
 #ifdef __EMSCRIPTEN__
 	#include "emscripten.h"
@@ -18,6 +19,11 @@
 #endif
 
 #define D_SCALE 6.0
+
+
+void lockFrameBuffer() {}
+
+void releaseFrameBuffer() {}
 
 void (*shader_fcts[]) (unsigned frm) = {
 	drawXorFrame,
@@ -135,6 +141,26 @@ int main(int argc, char* args[])
 	#ifdef __EMSCRIPTEN__
 		emscripten_set_main_loop(one_iter, 0, 1);
 	#else
+
+		initFont("lemon.fnt");
+
+		push_print(WHITE, "USB power level: ");
+		// push_print(RED, "Low");
+		push_print(GREEN, "High");
+
+		push_print(WHITE, "\nLoading animations ...");
+		// push_print(RED, "\n%s", strerror(42));
+		push_print(GREEN, "\n  N: 2043  B: DMD");
+
+		push_print(WHITE, "\nLoading fonts ...");
+		// push_print(RED, "\n  No fonts found :(");
+		push_print(GREEN, " N: %d", 102);
+
+		push_print(WHITE, "\nWIFI: ");
+		push_print(GREEN, "192.168.45.23");
+		// push_print(RED, "Not connected");
+
+
 		while (is_running) {
 			one_iter();
 			SDL_Delay(20);

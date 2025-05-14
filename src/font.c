@@ -1,12 +1,8 @@
 #include "font.h"
+#include "common.h"
 #include "esp_log.h"
 #include "frame_buffer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-#include "freertos/task.h"
-#include "json_settings.h"
+#include <stdarg.h>
 #include <errno.h>
 #include <limits.h>
 #include <stdio.h>
@@ -465,13 +461,16 @@ static int get_str_width(const char *c, unsigned n) {
 }
 
 static void set_x_cursor(int x_a, const char *c, unsigned n, unsigned align) {
+	if (align == A_LEFT) {
+		cursor_x = x_a;
+		return;
+	}
+
 	int w_str = get_str_width(c, n);
 	if (align == A_RIGHT)
 		cursor_x = x_a - w_str;
 	else if (align == A_CENTER)
 		cursor_x = x_a - w_str / 2;
-	else
-		cursor_x = x_a;
 }
 
 void push_str(
@@ -500,14 +499,29 @@ void push_str(
 			continue;
 
 		if (codepoint == '\n') {
-			cursor_y += fntHeader.linespace;
-			set_x_cursor(x_a, c, n, align);
+			// cursor_y += fntHeader.linespace;
+			shiftUp(layer, fntHeader.linespace);
+			set_x_cursor(0, c, n, align);
+			continue;
+		}
+
+		if (codepoint == '\r') {
+			set_x_cursor(0, c, n, align);
 			continue;
 		}
 
 		push_char(codepoint, layer, color, is_outline);
 	}
 	utf8_dec('\0'); // reset internal state
+}
+
+void push_print(unsigned color, const char *format, ...) {
+    static char buf[128];
+    va_list ap;
+    va_start(ap, format);
+    vsnprintf(buf, sizeof(buf), format, ap);
+    va_end(ap);
+    push_str(cursor_x, DISPLAY_HEIGHT - 1, buf, sizeof(buf), A_LEFT, 1, color, false);
 }
 
 // convenience function to center a small text with outline and fill color

@@ -265,10 +265,6 @@ void app_main(void) {
 	// init I2S driven rgb - panel
 	init_rgb();
 
-	// init built in font
-	initFont("/spiffs/lemon.fnt");
-	push_str(0, 13, "Wifi ...", 45, A_LEFT, 1, 0xFFFFFFFF, false);
-
 	// init web-server
 	initWifi();
 	tryJsonConnect();

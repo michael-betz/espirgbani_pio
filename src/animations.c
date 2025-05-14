@@ -39,6 +39,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh) {
 	fh->nAnimations = SWAP16(fh->nAnimations);
 	fseek(f, 0x000001EF, SEEK_SET);
 	fread(&fh->buildStr, 8, 1, f);
+	fh->buildStr[8] = '\0';
 
 	ESP_LOGI(T, "nAnimations: %d, buildStr: %s", fh->nAnimations, fh->buildStr);
 	return 0;
@@ -329,12 +330,20 @@ void aniPinballTask(void *pvParameters) {
 	static int sec_ = 0;
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	initFont("/spiffs/default.fnt");
+	// init built in font
 	setAll(1, 0x00000000);
+	initFont("/spiffs/lemon.fnt");
+
+	push_print(WHITE, "USB power level: ");
+	if (gpio_get_level(GPIO_PD_BAD))
+		push_print(RED, "Low");
+	else
+		push_print(GREEN, "High");
 
 	//------------------------------
 	// Open animation file on SD card
 	//------------------------------
+	push_print(WHITE, "\nLoading animations ...");
 	fileHeader_t fh;
 	FILE *fAnimations = fopen(ANIMATION_FILE, "r");
 	if (fAnimations == NULL) {
@@ -342,7 +351,8 @@ void aniPinballTask(void *pvParameters) {
 			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
 		);
 		ESP_LOGE(T, "Will not show animations!");
-		push_str(0, 13, "ani: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
+		push_print(RED, "\n%s", strerror(errno));
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
 		if (setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
 			ESP_LOGW(
@@ -351,7 +361,8 @@ void aniPinballTask(void *pvParameters) {
 			);
 
 		getFileHeader(fAnimations, &fh);
-		push_str(0, 13, "ani: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
+		push_print(GREEN, "\n  N: %d  B: %s", fh.nAnimations, fh.buildStr);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 
 	//------------------------------
@@ -362,14 +373,25 @@ void aniPinballTask(void *pvParameters) {
 	unsigned color = 0;
 
 	// count font files and choose a random one
+	push_print(WHITE, "\nLoading fonts ...");
 	int nFnts = cntFntFiles("/sd/fnt");
 	if (nFnts <= 0) {
 		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
-		push_str(0, 13, "\nfnt: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
+		push_print(RED, "\n  No fonts found :(");
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
-		push_str(0, 13, "\nfnt: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
+		push_print(GREEN, " N: %d", nFnts);
 		ESP_LOGI(T, "last font file: /sd/fnt/%03d.fnt", nFnts - 1);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
+
+	// Print wifi state
+	// push_print(WHITE, "\nWIFI: ");
+	// if (wifi_state == WIFI_CONNECTED) {
+	// 	push_print(GREEN, "192.168.45.23");
+	// } else {
+	// 	push_print(RED, "Not connected");
+	// }
 
 	//------------------------------
 	// Load configuration
@@ -424,15 +446,12 @@ void aniPinballTask(void *pvParameters) {
 
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
-			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
-				drawStrCentered("LPWR", color, 0xFF000000);
-			} else {
-				strftime(
-					strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
-				);
-				// randomly colored outline, black filling
-				drawStrCentered(strftime_buf, color, 0xFF000000);
-			}
+			strftime(
+				strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
+			);
+			// randomly colored outline, black filling
+			drawStrCentered(strftime_buf, color, 0xFF000000);
+
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
 
