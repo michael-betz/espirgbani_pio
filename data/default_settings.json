@@ -2,22 +2,22 @@
     "panel": {
         "test_pattern": true,
         "tp_brightness": 10,
+        "low_power_brightness": 20,
         "is_clk_inverted": true,
         "clkm_div_num": 4,
         "max_frame_rate": 30,
         "is_gamma": false,
         "is_locked": true,
-        "is_single_panel": false,
-        "low_power_brightness": 20
+        "is_single_panel": false
     },
     "delays": {
         "font": 3600,
         "color": 600,
-        "ani": 15,
-        "shader": 300
+        "ani": 20,
+        "shader": 400
     },
     "power": {
-        "mode": 1,
+        "mode": 0,
         "offset": 300,
         "divider": 37,
         "max_limit": 100,
@@ -37,16 +37,16 @@
         "INSERT_SSID": "INSERT_PASSWORD"
     },
     "hostname": "espirgbani",
-    "log_level":    {
-        "*":    3,
-        "httpd_sess":   2,
-        "httpd_txrx":   2,
+    "log_level": {
+        "*": 3,
+        "httpd_sess": 2,
+        "httpd_txrx": 2,
         "httpd_ws": 2,
         "httpd_server": 2,
-        "httpd_parse":  2,
-        "httpd":    2,
-        "spi_master":   2,
-        "vfs_fat":  2,
+        "httpd_parse": 2,
+        "httpd": 2,
+        "spi_master": 2,
+        "vfs_fat": 2,
         "wifi": 2
     },
     "timezone": "CET-1CEST,M3.5.0,M10.5.0/3",
