@@ -63,6 +63,7 @@ uint16_t *bitplane[BITPLANE_CNT] = {0};
 
 // .json configurable parameters
 static int ledBrightness = 0;
+static int low_power_brightness = 20;  // max. brightness when USB-PD fails to negotiate
 
 void set_brightness(int value) {
 	if (value < 0)
@@ -113,6 +114,9 @@ void init_rgb() {
 
 	// delay between updateFrame calls [ms]
 	g_f_del = 1000 / jGetI(jPanel, "max_frame_rate", 30);
+
+	// max brightness in low power mode
+	low_power_brightness = jGetI(jPanel, "low_power_brightness", 20);
 
 	// set clock divider
 	cfg.clk_div = jGetI(jPanel, "clkm_div_num", 4);
@@ -165,12 +169,15 @@ void init_rgb() {
 }
 
 void updateFrame() {
-	// Check if we need to limit led brightness due to USB PD not giving 12 V
 	int br = ledBrightness;
-	bool is_bad = gpio_get_level(GPIO_PD_BAD);
-	gpio_set_level(GPIO_LED, !is_bad);
-	if (is_bad && br > 20)
-		br = 20;
+
+	#ifdef GPIO_PD_BAD
+		// Check if we need to limit led brightness due to USB PD not giving 12 V
+		bool is_bad = gpio_get_level(GPIO_PD_BAD);
+		gpio_set_level(GPIO_LED, !is_bad);
+		if (is_bad && br > low_power_brightness)
+			br = low_power_brightness;
+	#endif
 
 	// center the output enable between 2 strobes
 	int oe_start = (DISPLAY_WIDTH - br) / 2;

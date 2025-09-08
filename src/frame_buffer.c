@@ -148,6 +148,22 @@ void setAll(unsigned layer, unsigned color) {
 	}
 }
 
+// shift a layer by N rows up
+void shiftUp(unsigned layer, unsigned n_rows) {
+	if (layer >= N_LAYERS || n_rows <= 0 || n_rows >= DISPLAY_HEIGHT) {
+		return;
+	}
+
+	// We need to move a block of size `keep_size` from the bottom to the top
+	int keep_size = DISPLAY_WIDTH * (DISPLAY_HEIGHT - n_rows);
+	int blank_size = DISPLAY_WIDTH * n_rows;
+	unsigned *p_top = (unsigned *)g_frameBuff[layer];
+	unsigned *p_bottom = p_top + DISPLAY_WIDTH * DISPLAY_HEIGHT;
+	// unsigned *p_bottom2 = p_top + DISPLAY_WIDTH * DISPLAY_HEIGHT - n_rows;
+	memcpy(p_top, p_bottom - keep_size, keep_size * 4);
+	memset(p_bottom - blank_size, 0, blank_size * 4);
+}
+
 // get opaque shades of a specific hue (0 .. HSV_HUE_MAX). Gamma corrected!
 void set_shade_h(uint16_t hue, unsigned *shades) {
 	uint8_t r, g, b;

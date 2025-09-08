@@ -12,6 +12,7 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
+#include "esp_wifi.h"
 
 #include <errno.h>
 #include <stdint.h>
@@ -39,6 +40,7 @@ static int getFileHeader(FILE *f, fileHeader_t *fh) {
 	fh->nAnimations = SWAP16(fh->nAnimations);
 	fseek(f, 0x000001EF, SEEK_SET);
 	fread(&fh->buildStr, 8, 1, f);
+	fh->buildStr[8] = '\0';
 
 	ESP_LOGI(T, "nAnimations: %d, buildStr: %s", fh->nAnimations, fh->buildStr);
 	return 0;
@@ -323,18 +325,61 @@ static int cntFntFiles(const char *path) {
 	return nFiles;
 }
 
+static void show_wifi_state() {
+	push_print(WHITE, "\nWIFI: ");
+	switch (wifi_state) {
+	case WIFI_NOT_CONNECTED:
+		push_print(RED, "disconnected");
+		break;
+	// case WIFI_SCANNING:
+	// 	push_print(BLUE, "scanning ...");
+	// 	break;
+	case WIFI_DPP_LISTENING:
+		push_print(BLUE, "DPP mode ...");
+		break;
+	case WIFI_CONNECTED:
+		push_print(GREEN, "%s", wifi_ssid);
+		push_print(WHITE, "\nIP: " IPSTR, IP2STR(&wifi_ip));
+		break;
+	case WIFI_AP_MODE:
+		push_print(WHITE, "AP ");
+		push_print(GREEN, "%s", wifi_ssid);
+		break;
+	}
+}
+
 // takes care of drawing pinball animations (layer 2) and the clock (layer 1)
 void aniPinballTask(void *pvParameters) {
 	unsigned cycles = 0;
 	static int sec_ = 0;
+	static int wifi_state_last = -1;
+
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
-	initFont("/spiffs/default.fnt");
+	// init built in font
 	setAll(1, 0x00000000);
+	initFont("/spiffs/lemon.fnt");
 
+	const char *hostname = jGetS(getSettings(), "hostname", "espirgbani");
+	push_str(
+		DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2 + 4, hostname, 32, A_CENTER, 1,
+		WHITE, false
+	);
+	vTaskDelay(3000 / portTICK_PERIOD_MS);
+	setAll(1, 0);
+
+	init_print();
+	#ifdef GPIO_PD_BAD
+		push_print(WHITE, "\nUSB power level: ");
+		if (gpio_get_level(GPIO_PD_BAD))
+			push_print(RED, "Low");
+		else
+			push_print(GREEN, "High");
+	#endif
 	//------------------------------
 	// Open animation file on SD card
 	//------------------------------
+	push_print(WHITE, "\nLoading animations ...");
 	fileHeader_t fh;
 	FILE *fAnimations = fopen(ANIMATION_FILE, "r");
 	if (fAnimations == NULL) {
@@ -342,7 +387,8 @@ void aniPinballTask(void *pvParameters) {
 			T, "fopen(%s, rb) failed: %s", ANIMATION_FILE, strerror(errno)
 		);
 		ESP_LOGE(T, "Will not show animations!");
-		push_str(0, 13, "ani: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
+		push_print(RED, "\n%s", strerror(errno));
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
 		if (setvbuf(fAnimations, NULL, _IOFBF, 512) != 0)
 			ESP_LOGW(
@@ -351,8 +397,12 @@ void aniPinballTask(void *pvParameters) {
 			);
 
 		getFileHeader(fAnimations, &fh);
-		push_str(0, 13, "ani: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
+		push_print(GREEN, "\n  N: %d  B: %s", fh.nAnimations, fh.buildStr);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
+
+	show_wifi_state();
+	wifi_state_last = wifi_state;
 
 	//------------------------------
 	// Count font files on SD card
@@ -362,14 +412,20 @@ void aniPinballTask(void *pvParameters) {
 	unsigned color = 0;
 
 	// count font files and choose a random one
+	push_print(WHITE, "\nLoading fonts ...");
 	int nFnts = cntFntFiles("/sd/fnt");
 	if (nFnts <= 0) {
 		ESP_LOGE(T, "no fonts found on SD card :( :( :(");
-		push_str(0, 13, "\nfnt: failed to open", 45, A_LEFT, 1, 0xFF0000FF, false);
+		push_print(RED, "\n  No fonts found :(");
+		vTaskDelay(5000 / portTICK_PERIOD_MS);
 	} else {
-		push_str(0, 13, "\nfnt: opened", 45, A_LEFT, 1, 0xFFFFFFFF, false);
+		push_print(GREEN, " N: %d", nFnts);
 		ESP_LOGI(T, "last font file: /sd/fnt/%03d.fnt", nFnts - 1);
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
+	push_print(WHITE, "\nLet's go !!!");
+	restore_print();
+	vTaskDelay(2000 / portTICK_PERIOD_MS);
 
 	//------------------------------
 	// Load configuration
@@ -424,22 +480,38 @@ void aniPinballTask(void *pvParameters) {
 
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
-			if (cycles == 0 && gpio_get_level(GPIO_PD_BAD)) {
-				drawStrCentered("LPWR", color, 0xFF000000);
-			} else {
-				strftime(
-					strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
-				);
-				// randomly colored outline, black filling
-				drawStrCentered(strftime_buf, color, 0xFF000000);
-			}
+			strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
+			// randomly colored outline, black filling
+			drawStrCentered(strftime_buf, color, 0xFF000000);
+
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
 
+			// Every minute if wifi is not connected (also not in AP mode)
 			if (wifi_state == WIFI_NOT_CONNECTED)
 				tryJsonConnect();
 		}
 		sec_ = timeinfo.tm_sec;
+
+		// Button toggles between AP mode and Client mode
+		static bool lvl_ = false;
+		bool lvl = gpio_get_level(GPIO_WIFI); // active low
+		if (cycles > 0 && lvl_ && !lvl) {
+			if (wifi_state == WIFI_AP_MODE)
+				tryJsonConnect();
+			else
+				tryApMode();
+			// tryEasyConnect();
+		}
+		lvl_ = lvl;
+
+		if (wifi_state != wifi_state_last) {
+			init_print();
+			show_wifi_state();
+			wifi_state_last = wifi_state;
+			restore_print();
+			vTaskDelay(2000 / portTICK_PERIOD_MS);
+		}
 
 		cycles++;
 		vTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);

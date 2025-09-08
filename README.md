@@ -55,23 +55,23 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     "panel": {
         "test_pattern": true,
         "tp_brightness": 10,
+        "low_power_brightness": 20,
         "is_clk_inverted": true,
         "clkm_div_num": 4,
         "max_frame_rate": 30,
         "is_gamma": false,
-        "is_locked": true,
-        "is_single_panel": false
+        "is_locked": true
     },
     "delays": {
         "font": 3600,
         "color": 600,
-        "ani": 15,
-        "shader": 300
+        "ani": 30,
+        "shader": 400
     },
     "power": {
         "mode": 1,
-        "offset": 300,
-        "divider": 37,
+        "offset": 0,
+        "divider": 400,
         "max_limit": 100,
         "min_limit": 2,
         "day": {
@@ -111,6 +111,7 @@ Not all LED panels are the same. Here the timing parameters of the I2S panel dri
 
   * `test_pattern`: if `true`, enters a LED panel test mode instead of normal operation
   * `tp_brightness`: brightness of the test pattern, from 1 to 127. Current draw gets ridiculous for the higher values
+  * `low_power_brightness`: maximum brightness if USB-PD negotiation fails (if running from 5 V)
   * `is_clk_inverted`: if `false`, data changes on the rising clock edge. If `true`, data is stable on the rising clock edge (most panels need `true`)
   * `clkm_div_num`: sets the I2S clock divider from 2 to 128. Set it too high and get flicker, too low get ghost pixels. Flicker can be improved at the cost of color depth by reducing `BITPLANE_CNT` in `rgb_led_panel.h`.
   `"clkm_div_num": 4` corresponds to a 10 MHz pixel clock

@@ -40,6 +40,11 @@ static inline unsigned scale32(unsigned scale, unsigned p) {
 #define GA(p) (GC(p, 3))
 #define SRGBA(r, g, b, a) (((a) << 24) | ((b) << 16) | ((g) << 8) | (r))
 
+#define WHITE 0xFFFFFFFF
+#define RED 0xFF0000FF
+#define GREEN 0xFF00FF00
+#define BLUE 0xFFFF0000
+
 // shades of the color in set_shade_*
 #define N_SHADES 16 // not really changeable
 
@@ -91,6 +96,9 @@ unsigned fadeOut(unsigned layer, unsigned factor);
 
 // initialize all layers with translucent black
 void initFb();
+
+// shift a layer by N rows up
+void shiftUp(unsigned layer, unsigned n_rows);
 
 // Will not update the screen while the lock is taken
 void lockFrameBuffer();

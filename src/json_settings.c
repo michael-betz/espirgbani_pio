@@ -190,3 +190,17 @@ bool jGetB(cJSON *json, const char *name, bool default_val) {
 	}
 	return cJSON_IsTrue(j);
 }
+
+void init_log_levels()
+{
+	const cJSON *jLog = NULL;
+	const cJSON *jLogs = jGet(getSettings(), "log_level");
+
+	cJSON_ArrayForEach(jLog, jLogs) {
+		if (!cJSON_IsNumber(jLog)) {
+			ESP_LOGW(T, "log_level: ignoring %s (not an int)", jLog->string);
+			continue;
+		}
+		esp_log_level_set(jLog->string, jLog->valueint);
+	}
+}

@@ -13,7 +13,7 @@
 
 typedef struct {
 	uint16_t nAnimations;
-	char buildStr[8];
+	char buildStr[9];
 } fileHeader_t;
 
 // Type of the frame header table
