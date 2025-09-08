@@ -2,16 +2,19 @@
 #define WIFI_H
 
 #include "esp_http_server.h"
+#include "esp_wifi.h"
 
 enum e_wifi {
 	WIFI_NOT_CONNECTED,
-	WIFI_SCANNING,
+	// WIFI_SCANNING,
 	WIFI_DPP_LISTENING,
 	WIFI_CONNECTED,
 	WIFI_AP_MODE,
 };
 
 extern int wifi_state;
+extern esp_ip4_addr_t wifi_ip;
+extern char wifi_ssid[32];
 
 // -------------------
 //  wifi connection

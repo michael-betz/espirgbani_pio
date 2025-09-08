@@ -12,6 +12,7 @@
 #include "esp_adc/adc_cali.h"
 #include "esp_adc/adc_cali_scheme.h"
 #include "esp_adc/adc_oneshot.h"
+#include "esp_wifi.h"
 
 #include <errno.h>
 #include <stdint.h>
@@ -324,10 +325,35 @@ static int cntFntFiles(const char *path) {
 	return nFiles;
 }
 
+static void show_wifi_state() {
+	push_print(WHITE, "\nWIFI: ");
+	switch (wifi_state) {
+	case WIFI_NOT_CONNECTED:
+		push_print(RED, "disconnected");
+		break;
+	// case WIFI_SCANNING:
+	// 	push_print(BLUE, "scanning ...");
+	// 	break;
+	case WIFI_DPP_LISTENING:
+		push_print(BLUE, "DPP mode ...");
+		break;
+	case WIFI_CONNECTED:
+		push_print(GREEN, "%s", wifi_ssid);
+		push_print(WHITE, "\nIP: " IPSTR, IP2STR(&wifi_ip));
+		break;
+	case WIFI_AP_MODE:
+		push_print(WHITE, "AP ");
+		push_print(GREEN, "%s", wifi_ssid);
+		break;
+	}
+}
+
 // takes care of drawing pinball animations (layer 2) and the clock (layer 1)
 void aniPinballTask(void *pvParameters) {
 	unsigned cycles = 0;
 	static int sec_ = 0;
+	static int wifi_state_last = -1;
+
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 
 	// init built in font
@@ -336,11 +362,13 @@ void aniPinballTask(void *pvParameters) {
 
 	const char *hostname = jGetS(getSettings(), "hostname", "espirgbani");
 	push_str(
-	DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2 + 4, hostname, 32, A_CENTER, 1, WHITE, false
+		DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2 + 4, hostname, 32, A_CENTER, 1,
+		WHITE, false
 	);
 	vTaskDelay(3000 / portTICK_PERIOD_MS);
 	setAll(1, 0);
 
+	init_print();
 	push_print(WHITE, "\nUSB power level: ");
 	if (gpio_get_level(GPIO_PD_BAD))
 		push_print(RED, "Low");
@@ -372,6 +400,9 @@ void aniPinballTask(void *pvParameters) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 
+	show_wifi_state();
+	wifi_state_last = wifi_state;
+
 	//------------------------------
 	// Count font files on SD card
 	//------------------------------
@@ -392,15 +423,8 @@ void aniPinballTask(void *pvParameters) {
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}
 	push_print(WHITE, "\nLet's go !!!");
+	restore_print();
 	vTaskDelay(2000 / portTICK_PERIOD_MS);
-
-	// Print wifi state
-	// push_print(WHITE, "\nWIFI: ");
-	// if (wifi_state == WIFI_CONNECTED) {
-	// 	push_print(GREEN, "192.168.45.23");
-	// } else {
-	// 	push_print(RED, "Not connected");
-	// }
 
 	//------------------------------
 	// Load configuration
@@ -455,19 +479,38 @@ void aniPinballTask(void *pvParameters) {
 
 		// Redraw the clock when tm_sec rolls over
 		if (doRedrawFont || sec_ > timeinfo.tm_sec) {
-			strftime(
-				strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo
-			);
+			strftime(strftime_buf, sizeof(strftime_buf), "%H:%M", &timeinfo);
 			// randomly colored outline, black filling
 			drawStrCentered(strftime_buf, color, 0xFF000000);
 
 			manageBrightness(&timeinfo);
 			stats(cur_fnt);
 
+			// Every minute if wifi is not connected (also not in AP mode)
 			if (wifi_state == WIFI_NOT_CONNECTED)
 				tryJsonConnect();
 		}
 		sec_ = timeinfo.tm_sec;
+
+		// Button toggles between AP mode and Client mode
+		static bool lvl_ = false;
+		bool lvl = gpio_get_level(GPIO_WIFI); // active low
+		if (cycles > 0 && lvl_ && !lvl) {
+			if (wifi_state == WIFI_AP_MODE)
+				tryJsonConnect();
+			else
+				tryApMode();
+			// tryEasyConnect();
+		}
+		lvl_ = lvl;
+
+		if (wifi_state != wifi_state_last) {
+			init_print();
+			show_wifi_state();
+			wifi_state_last = wifi_state;
+			restore_print();
+			vTaskDelay(2000 / portTICK_PERIOD_MS);
+		}
 
 		cycles++;
 		vTaskDelayUntil(&xLastWakeTime, 1000 / portTICK_PERIOD_MS);

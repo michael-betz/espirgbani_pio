@@ -30,8 +30,11 @@ void push_str(
 // Simplified clock string drawing
 void drawStrCentered(const char *c, unsigned c_outline, unsigned c_fill);
 
-// Like printf but to layer 1. Uses spiffs/lemon.fnt
+// Enable console mode, switch font to spiffs/lemon.fnt
+void init_print();
+// Print a status message like in a console, shifting previous content up.
 void push_print(unsigned color, const char *format, ...);
-
+// Restore previous font, before console mode was enabled
+void restore_print();
 
 #endif

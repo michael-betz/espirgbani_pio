@@ -43,6 +43,8 @@ static FILE *fntFile = NULL;
 static font_header_t fntHeader;
 static unsigned pix_mode = 0;
 
+static char *fontFileName = NULL;
+static int fontFileNameLen = 0;
 static char *fontName = NULL;
 static unsigned *map_unicode_table = NULL;
 static glyph_description_t *glyph_description_table = NULL;
@@ -205,6 +207,10 @@ void freeFont() {
 		fclose(fntFile);
 	fntFile = NULL;
 
+	free(fontFileName);
+	fontFileName = NULL;
+	fontFileNameLen = 0;
+
 	free(fontName);
 	fontName = NULL;
 
@@ -238,7 +244,13 @@ static bool load_helper(void **target, int len, const char *name) {
 bool initFont(const char *fileName) {
 	freeFont();
 
-	ESP_LOGD(T, "loading %s", fileName);
+	fontFileNameLen = strlen(fileName) + 1;
+	fontFileName = malloc(fontFileNameLen);
+	if (fontFileName == NULL)
+		return false;
+	memcpy(fontFileName, fileName, fontFileNameLen);
+
+	ESP_LOGD(T, "loading %s", fontFileName);
 
 	fntFile = fopen(fileName, "r");
 	if (fntFile == NULL) {
@@ -513,6 +525,31 @@ void push_str(
 		push_char(codepoint, layer, color, is_outline);
 	}
 	utf8_dec('\0'); // reset internal state
+}
+
+static char *backupFileName = NULL;
+
+void init_print() {
+	if (backupFileName != NULL) {
+		free(backupFileName);
+		backupFileName = NULL;
+	}
+
+	if (fontFileName != NULL && fontFileNameLen > 0) {
+		backupFileName = malloc(fontFileNameLen);
+		memcpy(backupFileName, fontFileName, fontFileNameLen);
+	}
+
+	initFont("/spiffs/lemon.fnt");
+	cursor_x = 0;
+}
+
+void restore_print() {
+	if (backupFileName != NULL) {
+		initFont(backupFileName);
+		free(backupFileName);
+		backupFileName = NULL;
+	}
 }
 
 void push_print(unsigned color, const char *format, ...) {

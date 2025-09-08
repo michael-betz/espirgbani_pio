@@ -22,6 +22,8 @@
 static const char *T = "WIFI";
 
 int wifi_state = WIFI_NOT_CONNECTED;
+esp_ip4_addr_t wifi_ip = {0};
+char wifi_ssid[32] = {0};
 
 // -----------------------------------------------
 //  Websocket logger
@@ -175,6 +177,7 @@ static void scan_done(
 		wifi_config_t cfg;
 		memset(&cfg, 0, sizeof(cfg));
 		strncpy((char *)cfg.sta.ssid, ssid, 31);
+		strncpy(wifi_ssid, ssid, sizeof(wifi_ssid));
 		strncpy((char *)cfg.sta.password, pw, 63);
 		cfg.sta.scan_method = WIFI_FAST_SCAN;
 		cfg.sta.bssid_set = true;
@@ -197,6 +200,7 @@ static void got_ip(
 	void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data
 ) {
 	ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+	wifi_ip = event->ip_info.ip;
 	ESP_LOGI(T, "Got ip " IPSTR, IP2STR(&event->ip_info.ip));
 
 	// trigger time sync
@@ -333,13 +337,14 @@ void tryJsonConnect() {
 	E(esp_wifi_set_mode(WIFI_MODE_STA));
 	E(esp_wifi_scan_start(NULL, false));
 	// fires SYSTEM_EVENT_SCAN_DONE when done, calls scan_done() ...
-	wifi_state = WIFI_SCANNING;
+	// wifi_state = WIFI_SCANNING;
 }
 
 void tryApMode() {
 	E(esp_wifi_set_mode(WIFI_MODE_AP));
 	E(esp_wifi_set_config(WIFI_IF_AP, &wifi_ap_config));
-	ESP_LOGI(T, "started AP mode. SSID: %s", jGetS(getSettings(), "hostname", "espirgbani"));
+	ESP_LOGI(T, "started AP mode. SSID: %s", wifi_ap_config.ap.ssid);
+	strncpy(wifi_ssid, (const char *)wifi_ap_config.ap.ssid, sizeof(wifi_ssid));
 	wifi_state = WIFI_AP_MODE;
 }
 
