@@ -169,12 +169,15 @@ void init_rgb() {
 }
 
 void updateFrame() {
-	// Check if we need to limit led brightness due to USB PD not giving 12 V
 	int br = ledBrightness;
-	bool is_bad = gpio_get_level(GPIO_PD_BAD);
-	gpio_set_level(GPIO_LED, !is_bad);
-	if (is_bad && br > low_power_brightness)
-		br = low_power_brightness;
+
+	#ifdef GPIO_PD_BAD
+		// Check if we need to limit led brightness due to USB PD not giving 12 V
+		bool is_bad = gpio_get_level(GPIO_PD_BAD);
+		gpio_set_level(GPIO_LED, !is_bad);
+		if (is_bad && br > low_power_brightness)
+			br = low_power_brightness;
+	#endif
 
 	// center the output enable between 2 strobes
 	int oe_start = (DISPLAY_WIDTH - br) / 2;

@@ -219,17 +219,23 @@ void app_main(void) {
 	//------------------------------
 	// Power LED will be enabled by updateFrame loop if PD is not bad
 	gpio_config_t cfg_o = {
-		.pin_bit_mask = (1LL << GPIO_LED), .mode = GPIO_MODE_OUTPUT};
+		.pin_bit_mask = (1LL << GPIO_LED), .mode = GPIO_MODE_OUTPUT
+	};
 	ESP_ERROR_CHECK(gpio_config(&cfg_o));
 	gpio_set_level(GPIO_LED, 0);
 
 	// PD_BAD GPIO. If this is high we don't have juice. Run in low power mode
 	// Wifi button will switch to hotspot mode
 	gpio_config_t cfg_i = {
+#ifdef GPIO_PD_BAD
 		.pin_bit_mask = (1LL << GPIO_PD_BAD) | (1LL << GPIO_WIFI),
+#else
+		.pin_bit_mask = (1LL << GPIO_WIFI),
+#endif
 		.mode = GPIO_MODE_INPUT,
 		.pull_up_en = GPIO_PULLUP_ENABLE,
-		.pull_down_en = GPIO_PULLDOWN_DISABLE};
+		.pull_down_en = GPIO_PULLDOWN_DISABLE
+	};
 	ESP_ERROR_CHECK(gpio_config(&cfg_i));
 
 	// report initial status
@@ -244,7 +250,8 @@ void app_main(void) {
 		.base_path = "/spiffs",
 		.partition_label = "filesys",
 		.max_files = 4,
-		.format_if_mount_failed = false};
+		.format_if_mount_failed = false
+	};
 	ESP_ERROR_CHECK(esp_vfs_spiffs_register(&conf));
 	list_files("/spiffs");
 

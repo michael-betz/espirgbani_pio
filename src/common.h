@@ -50,8 +50,11 @@ extern TaskHandle_t t_pinb;
 // -----------------
 //  Misc GPIOs
 // -----------------
-// USB-PD failed to negotiate
-#define GPIO_PD_BAD GPIO_NUM_35
+// This pin is set high by the CH224K chip if USB-PD failed to negotiate and we're
+// running from 5 V instead of 12 V. The clock will enter low-power mode and limit its
+// max. brightness.
+// If this define is commented, the clock will never enter low-power mode.
+// #define GPIO_PD_BAD GPIO_NUM_35
 
 // Ambient light sensor (ALS-PDIC144-6C/L378)
 #define GPIO_LIGHT_SENSOR GPIO_NUM_36

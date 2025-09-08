@@ -369,12 +369,13 @@ void aniPinballTask(void *pvParameters) {
 	setAll(1, 0);
 
 	init_print();
-	push_print(WHITE, "\nUSB power level: ");
-	if (gpio_get_level(GPIO_PD_BAD))
-		push_print(RED, "Low");
-	else
-		push_print(GREEN, "High");
-
+	#ifdef GPIO_PD_BAD
+		push_print(WHITE, "\nUSB power level: ");
+		if (gpio_get_level(GPIO_PD_BAD))
+			push_print(RED, "Low");
+		else
+			push_print(GREEN, "High");
+	#endif
 	//------------------------------
 	// Open animation file on SD card
 	//------------------------------

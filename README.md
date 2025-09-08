@@ -73,7 +73,7 @@ Once the clock is connected to the network, `settings.json` can be edited in the
         "offset": 0,
         "divider": 400,
         "max_limit": 100,
-        "min_limit": 1,
+        "min_limit": 2,
         "day": {
             "h": 9,
             "m": 0,
