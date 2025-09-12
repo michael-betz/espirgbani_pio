@@ -84,20 +84,26 @@ void init_rgb() {
 	i2s_parallel_buffer_desc_t bufdesc[1 << BITPLANE_CNT];
 	i2s_parallel_config_t cfg;
 
-	cfg.gpio_clk = GPIO_CLK;
-	cfg.gpio_bus[0] = GPIO_R1;
-	cfg.gpio_bus[1] = GPIO_G1;
-	cfg.gpio_bus[2] = GPIO_B1;
-	cfg.gpio_bus[3] = GPIO_R2;
-	cfg.gpio_bus[4] = GPIO_G2;
-	cfg.gpio_bus[5] = GPIO_B2;
-	cfg.gpio_bus[6] = GPIO_A;
-	cfg.gpio_bus[7] = GPIO_B;
-	cfg.gpio_bus[8] = GPIO_C;
-	cfg.gpio_bus[9] = GPIO_D;
-	cfg.gpio_bus[10] = GPIO_E;
-	cfg.gpio_bus[11] = GPIO_LAT;
-	cfg.gpio_bus[12] = GPIO_OE_N;
+	//--------------------------
+	// IO pins configuration
+	//--------------------------
+	// get `panel_io` dictionary
+	cJSON *jPio = jGet(getSettings(), "panel_io");
+
+	cfg.gpio_clk = jGetI(jPio, "CLK", GPIO_CLK);
+	cfg.gpio_bus[0] = jGetI(jPio, "R1", GPIO_R1);
+	cfg.gpio_bus[1] = jGetI(jPio, "G1", GPIO_G1);
+	cfg.gpio_bus[2] = jGetI(jPio, "B1", GPIO_B1);
+	cfg.gpio_bus[3] = jGetI(jPio, "R2", GPIO_R2);
+	cfg.gpio_bus[4] = jGetI(jPio, "G2", GPIO_G2);
+	cfg.gpio_bus[5] = jGetI(jPio, "B2", GPIO_B2);
+	cfg.gpio_bus[6] = jGetI(jPio, "A", GPIO_A);
+	cfg.gpio_bus[7] = jGetI(jPio, "B", GPIO_B);
+	cfg.gpio_bus[8] = jGetI(jPio, "C", GPIO_C);
+	cfg.gpio_bus[9] = jGetI(jPio, "D", GPIO_D);
+	cfg.gpio_bus[10] = jGetI(jPio, "E", GPIO_E);
+	cfg.gpio_bus[11] = jGetI(jPio, "LAT", GPIO_LAT);
+	cfg.gpio_bus[12] = jGetI(jPio, "OE_N", GPIO_OE_N);
 	cfg.gpio_bus[13] = (gpio_num_t)(-1);
 	cfg.gpio_bus[14] = (gpio_num_t)(-1);
 	cfg.gpio_bus[15] = (gpio_num_t)(-1);
@@ -225,17 +231,17 @@ void updateFrame() {
 				// bitmask for pixel data in input for this bitplane
 				unsigned mask = (1 << (8 - BITPLANE_CNT + pl));
 
-				if (c1 & (mask << 16))
+				if (c1 & (mask << 0))
 					v_ |= BIT_R1;
 				if (c1 & (mask << 8))
 					v_ |= BIT_G1;
-				if (c1 & (mask << 0))
+				if (c1 & (mask << 16))
 					v_ |= BIT_B1;
-				if (c2 & (mask << 16))
+				if (c2 & (mask << 0))
 					v_ |= BIT_R2;
 				if (c2 & (mask << 8))
 					v_ |= BIT_G2;
-				if (c2 & (mask << 0))
+				if (c2 & (mask << 16))
 					v_ |= BIT_B2;
 
 				// Save the calculated value to the bitplane memory
@@ -303,17 +309,17 @@ void tp_task(void *pvParameters) {
 		tp_stripes_sequence(false);
 
 		ESP_LOGD(T, "All red");
-		setAll(2, 0xFF0000FF);
+		setAll(2, RED);
 		updateFrame();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		ESP_LOGD(T, "All green");
-		setAll(2, 0xFF00FF00);
+		setAll(2, GREEN);
 		updateFrame();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 
 		ESP_LOGD(T, "All blue");
-		setAll(2, 0xFFFF0000);
+		setAll(2, BLUE);
 		updateFrame();
 		vTaskDelay(1000 / portTICK_PERIOD_MS);
 	}

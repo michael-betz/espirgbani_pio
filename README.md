@@ -52,6 +52,22 @@ Once the clock is connected to the network, `settings.json` can be edited in the
 
 ```json
 {
+    "panel_io": {
+        "CLK": 13,
+        "R1": 22,
+        "G1": 23,
+        "B1": 21,
+        "R2": 18,
+        "G2": 19,
+        "B2": 5,
+        "A": 16,
+        "B": 17,
+        "C": 2,
+        "D": 4,
+        "E": 32,
+        "LAT": 15,
+        "OE_N": 33
+    },
     "panel": {
         "test_pattern": true,
         "tp_brightness": 10,
@@ -104,6 +120,22 @@ Once the clock is connected to the network, `settings.json` can be edited in the
     "timezone": "CET-1CEST,M3.5.0,M10.5.0/3",
     "ntp_host": "pool.ntp.org"
 }
+```
+
+### `panel_io` section
+This section allows you to customize which pins are used on the ESP32 to connect to the panel pins.
+The numbers are ESP32 GPIO numbers.
+
+For example, if you run the test-pattern and notice that the red and green colors are swapped,
+you can swap their pins on the ESP32 like so:
+
+```json
+    "panel_io": {
+        "R1": 23,
+        "G1": 22,
+        "R2": 19,
+        "G2": 18
+    }
 ```
 
 ### `panel` section
