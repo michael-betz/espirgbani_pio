@@ -4,15 +4,16 @@
 #include "esp_http_server.h"
 #include "esp_wifi.h"
 
-enum e_wifi {
+typedef enum {
+	WIFI_DISABLED,
 	WIFI_NOT_CONNECTED,
-	// WIFI_SCANNING,
+	WIFI_SCANNING,
 	WIFI_DPP_LISTENING,
 	WIFI_CONNECTED,
 	WIFI_AP_MODE,
-};
+} t_wifi_state;
 
-extern int wifi_state;
+extern t_wifi_state wifi_state;
 extern esp_ip4_addr_t wifi_ip;
 extern char wifi_ssid[32];
 

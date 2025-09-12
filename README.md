@@ -186,6 +186,10 @@ Brightness is set according to the current time. There is a `day` and `night` va
 Add one or more wifi credentials. The key should be set to the SSID, the value to the wifi password.
 If disconnected, the ESP will try to connect to the known wifi with the strongest signal every minute.
 
+If the wifis section is empty or does not exist, the ESP will not try to connect to any wifis.
+
+In any case, push the button on the PCB for > 1 s to toggle between Access Point and station mode.
+
 ### `hostname`
 The hostname, which is the address where the ESP is reachable from the browser, can be customized here.
 

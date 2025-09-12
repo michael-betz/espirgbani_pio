@@ -21,7 +21,7 @@
 
 static const char *T = "WIFI";
 
-int wifi_state = WIFI_NOT_CONNECTED;
+t_wifi_state wifi_state = WIFI_NOT_CONNECTED;
 esp_ip4_addr_t wifi_ip = {0};
 char wifi_ssid[32] = {0};
 
@@ -329,15 +329,24 @@ void initWifi() {
 	wifi_ap_config.ap.ssid_len = l;
 	memcpy(wifi_ap_config.ap.ssid, hostname, l);
 
+	E(esp_wifi_set_mode(WIFI_MODE_STA));
 	E(esp_wifi_start());
 }
 
 void tryJsonConnect() {
+	// Disable wifi if there are no entries in settings.json
+	cJSON *jWifis = jGet(getSettings(), "wifis");
+	if (!jWifis || cJSON_GetArraySize(jWifis) <= 0) {
+		ESP_LOGW(T, "No wifis defined in .json. Disabling wifi.");
+		wifi_state = WIFI_DISABLED;
+		return;
+	}
+
 	// Initialize and start WiFi scan
 	E(esp_wifi_set_mode(WIFI_MODE_STA));
 	E(esp_wifi_scan_start(NULL, false));
 	// fires SYSTEM_EVENT_SCAN_DONE when done, calls scan_done() ...
-	// wifi_state = WIFI_SCANNING;
+	wifi_state = WIFI_SCANNING;
 }
 
 void tryApMode() {

@@ -328,12 +328,15 @@ static int cntFntFiles(const char *path) {
 static void show_wifi_state() {
 	push_print(WHITE, "\nWIFI: ");
 	switch (wifi_state) {
+	case WIFI_DISABLED:
+		push_print(WHITE, "disabled");
+		break;
 	case WIFI_NOT_CONNECTED:
 		push_print(RED, "disconnected");
 		break;
-	// case WIFI_SCANNING:
-	// 	push_print(BLUE, "scanning ...");
-	// 	break;
+	case WIFI_SCANNING:
+		push_print(BLUE, "scanning ...");
+		break;
 	case WIFI_DPP_LISTENING:
 		push_print(BLUE, "DPP mode ...");
 		break;
@@ -369,13 +372,13 @@ void aniPinballTask(void *pvParameters) {
 	setAll(1, 0);
 
 	init_print();
-	#ifdef GPIO_PD_BAD
-		push_print(WHITE, "\nUSB power level: ");
-		if (gpio_get_level(GPIO_PD_BAD))
-			push_print(RED, "Low");
-		else
-			push_print(GREEN, "High");
-	#endif
+#ifdef GPIO_PD_BAD
+	push_print(WHITE, "\nUSB power level: ");
+	if (gpio_get_level(GPIO_PD_BAD))
+		push_print(RED, "Low");
+	else
+		push_print(GREEN, "High");
+#endif
 	//------------------------------
 	// Open animation file on SD card
 	//------------------------------
@@ -495,22 +498,33 @@ void aniPinballTask(void *pvParameters) {
 
 		// Button toggles between AP mode and Client mode
 		static bool lvl_ = false;
-		bool lvl = gpio_get_level(GPIO_WIFI); // active low
-		if (cycles > 0 && lvl_ && !lvl) {
+		const bool lvl = gpio_get_level(GPIO_WIFI); // active low
+		const bool is_pushed = lvl_ && !lvl;
+		lvl_ = lvl;
+
+		if (cycles > 0 && is_pushed) {
 			if (wifi_state == WIFI_AP_MODE)
 				tryJsonConnect();
 			else
 				tryApMode();
 			// tryEasyConnect();
 		}
-		lvl_ = lvl;
 
 		if (wifi_state != wifi_state_last) {
-			init_print();
-			show_wifi_state();
+			if (is_pushed || !((wifi_state_last == WIFI_SCANNING &&
+								wifi_state == WIFI_NOT_CONNECTED) ||
+							   (wifi_state_last == WIFI_NOT_CONNECTED &&
+								wifi_state == WIFI_SCANNING))) {
+				// don't show `WIFI: scanning ...` and `WIFI: disconnected`
+				// messages for the periodic re-connection attempts. Otherwise a
+				// offline wifi connection can lead to lots of distracting
+				// prints to the background layer
+				init_print();
+				show_wifi_state();
+				restore_print();
+				vTaskDelay(2000 / portTICK_PERIOD_MS);
+			}
 			wifi_state_last = wifi_state;
-			restore_print();
-			vTaskDelay(2000 / portTICK_PERIOD_MS);
 		}
 
 		cycles++;
