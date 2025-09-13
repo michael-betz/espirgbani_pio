@@ -6270,18 +6270,6 @@
 		)
 		(uuid "d7e5e739-ce16-4d69-a6aa-5f0554c9a63c")
 	)
-	(text "3.3 V flash efuse might\nneed to be burned"
-		(exclude_from_sim no)
-		(at 335.534 165.608 0)
-		(effects
-			(font
-				(size 1.524 1.524)
-			)
-			(justify left)
-			(href "https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/peripherals/sd_pullup_requirements.html#conflicts-between-bootstrap-and-sdio-on-dat2")
-		)
-		(uuid "e2752744-c2db-4d91-8956-02052fad2e52")
-	)
 	(text "S"
 		(exclude_from_sim no)
 		(at 309.372 159.004 0)
@@ -6837,16 +6825,6 @@
 			(type default)
 		)
 		(uuid "228af1c7-e756-4280-81fc-66244028eb17")
-	)
-	(wire
-		(pts
-			(xy 317.5 153.67) (xy 328.93 153.67)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "25b0c8cd-d376-4c14-9f6c-549a14757c8c")
 	)
 	(wire
 		(pts
@@ -7547,6 +7525,16 @@
 			(type default)
 		)
 		(uuid "8d41c079-8ae5-43a0-8ddb-9ac5458241a0")
+	)
+	(wire
+		(pts
+			(xy 317.5 153.67) (xy 328.93 153.67)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "90757509-34f2-4da8-8f25-d61f40356a3c")
 	)
 	(wire
 		(pts
@@ -8368,16 +8356,6 @@
 		)
 		(uuid "031520f3-8e32-42f0-aa17-f1178d113ea7")
 	)
-	(label "SD_D1"
-		(at 246.38 78.74 0)
-		(effects
-			(font
-				(size 1.524 1.524)
-			)
-			(justify left bottom)
-		)
-		(uuid "076597bf-7de0-411a-b97a-1149ac0efc02")
-	)
 	(label "STB"
 		(at 328.93 186.69 180)
 		(effects
@@ -8407,6 +8385,16 @@
 			(justify left bottom)
 		)
 		(uuid "112368eb-1d37-496e-bf1b-558eb22d34c0")
+	)
+	(label "E"
+		(at 328.93 153.67 180)
+		(effects
+			(font
+				(size 1.524 1.524)
+			)
+			(justify right bottom)
+		)
+		(uuid "16ae41c1-df87-4dec-b3ae-66b9eb72d5e6")
 	)
 	(label "B0"
 		(at 328.93 179.07 180)
@@ -8507,16 +8495,6 @@
 			(justify right bottom)
 		)
 		(uuid "41331d7b-2d82-4199-8202-2eaffff0e91e")
-	)
-	(label "SD_D1"
-		(at 328.93 153.67 180)
-		(effects
-			(font
-				(size 1.524 1.524)
-			)
-			(justify right bottom)
-		)
-		(uuid "48e0f9e0-1aec-403b-8494-8313c4e10d39")
 	)
 	(label "USB_N_S"
 		(at 53.34 186.69 0)
