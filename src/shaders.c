@@ -224,48 +224,51 @@ void aniBackgroundTask(void *pvParameters) {
 	cJSON *jDelay = jGet(getSettings(), "delays");
 	int shader_delay = jGetI(jDelay, "shader", 300); // [s]
 	shader_delay = shader_delay * 1000 / _f_del;	 // [cycles]
-	ESP_LOGI(T, "started aniBackgroundTask(), shader_delay: %d", shader_delay);
+	ESP_LOGI(T, "randomizing every %d frames", shader_delay);
 
 	TickType_t xLastWakeTime = xTaskGetTickCount();
 	while (1) {
 		uint64_t t = esp_timer_get_time();
 
 		if ((shader_delay > 0) && (frm % shader_delay == 0)) {
-			aniMode = RAND_AB(0, 8); // choose black screen more often
-			if (aniMode == 0 || aniMode > 5)
-				setAll(0, 0xFF000000);
+			// choose a black screen more often
+			aniMode = RAND_AB(0, 8);
+			ESP_LOGD(T, "selected: %d%s", aniMode, aniMode < 4 ? " (off)" : "");
 		}
 
 		switch (aniMode) {
-		case 1:
+		case 4:
 			// cool square patterns
 			drawXorFrame(frm);
 			break;
 
-		case 2:
+		case 5:
 			// slowly bending zebra curves
 			drawBendyFrame(frm);
 			break;
 
-		case 3:
+		case 6:
 			// RGB pixelated smoke
 			drawAlienFlameFrame(frm);
 			break;
 
-		case 4:
+		case 7:
 			// doom fire with different palettes
 			drawDoomFlameFrame(frm);
 			break;
 
-		case 5:
+		case 8:
 			// radial lasers
 			drawLasers(frm);
 			break;
+
+		default:
+			setAll(0, 0xFF000000);
 		}
 
 		unsigned dt = esp_timer_get_time() - t;
-		if (aniMode <= 5 && frm % 1000 == 0)
-			ESP_LOGI(T, "shader: %d, dt = %d us, frm = %d", aniMode, dt, frm);
+		if (aniMode >= 4 && frm % 1000 == 0)
+			ESP_LOGD(T, "shader %d took %d us to render, frm = %d", aniMode, dt, frm);
 
 		// maximum global frame-rate: 1 / f_del kHz
 		vTaskDelayUntil(&xLastWakeTime, _f_del);

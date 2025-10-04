@@ -47,17 +47,22 @@ static int getFileHeader(FILE *f, fileHeader_t *fh) {
 }
 
 // Fills the headerEntry struct with data.
-// Specify an `headerIndex` from 0 to nAnimations
-static int _cur_hi = 0;
-static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex) {
+// Specify an `aniId` from 0 to nAnimations
+static int readHeaderEntry(FILE *f, headerEntry_t *h, unsigned aniId) {
 	if (f == NULL || h == NULL)
 		return -1;
 
-	_cur_hi = headerIndex;
-
 	// Copys header info into h. Note that h->nFrameEntries must be freed!
-	fseek(f, HEADER_OFFS + HEADER_SIZE * headerIndex, SEEK_SET);
-	fread(h, sizeof(*h), 1, f);
+	int ret = fseek(f, HEADER_OFFS + HEADER_SIZE * aniId, SEEK_SET);
+	if (ret < 0) {
+		ESP_LOGE(T, "Seeking to header failed. Animation file corrupt? %s", strerror(errno));
+		return -1;
+	}
+	ret = fread(h, 1, sizeof(headerEntry_t), f);
+	if (ret < 0) {
+		ESP_LOGE(T, "Reading header failed. Animation file corrupt? %d vs %d", ret, sizeof(*h));
+		return -1;
+	}
 	h->name[31] = '\0';
 	h->frameHeader = NULL;
 	h->animationId = SWAP16(h->animationId);
@@ -71,13 +76,21 @@ static int readHeaderEntry(FILE *f, headerEntry_t *h, int headerIndex) {
 		return -1;
 	}
 	h->frameHeader = fh;
-	fseek(f, h->byteOffset, SEEK_SET);
+	ret = fseek(f, h->byteOffset, SEEK_SET);
+	if (ret < 0) {
+		ESP_LOGE(T, "Seeking to frame-header failed. Animation file corrupt? %s", strerror(errno));
+		free(h->frameHeader);
+		h->frameHeader = NULL;
+		return -1;
+	}
 	for (int i = 0; i < h->nFrameEntries; i++) {
-		fread(&fh->frameId, 1, 1, f);
-		fread(&fh->frameDur, 1, 1, f);
+		int ret1 = fread(&fh->frameId, 1, 1, f);
+		int ret2 = fread(&fh->frameDur, 1, 1, f);
 		// Hack to sort out invalid headers
-		if (fh->frameDur <= 0 || fh->frameId > h->nStoredFrames) {
-			ESP_LOGE(T, "Invalid header!");
+		if (ret1 != 1 || ret2 != 1 || fh->frameDur <= 0 || fh->frameId > h->nStoredFrames) {
+			ESP_LOGE(T, "Invalid animation header!");
+			free(h->frameHeader);
+			h->frameHeader = NULL;
 			return -1;
 		}
 		fh++;
@@ -97,7 +110,7 @@ static void seekToFrame(FILE *f, int byteOffset, int frameId) {
 }
 
 // play a single animation, start to finish
-static void playAni(FILE *f, headerEntry_t *h) {
+static void playAni(FILE *f, headerEntry_t *h, unsigned aniId) {
 	int64_t seek_time = 0;
 	int max_seek_time = 0;
 
@@ -152,8 +165,8 @@ static void playAni(FILE *f, headerEntry_t *h) {
 		cur_delay = fh.frameDur;
 	}
 	ESP_LOGD(
-		T, "%d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
-		_cur_hi, h->name, h->nStoredFrames, h->nFrameEntries,
+		T, "aniId: %d, %s, f: %d / %d, d: %d ms, seek: %d ms, draw: %d / %d ms",
+		aniId, h->name, h->nStoredFrames, h->nFrameEntries,
 		h->frameHeader->frameDur, max_seek_time / 1000,
 		sum_draw_time / h->nFrameEntries / 1000, max_draw_time / 1000
 	);
@@ -168,8 +181,13 @@ static void run_animation(FILE *f, unsigned aniId) {
 	if (f == NULL)
 		return;
 
-	readHeaderEntry(f, &myHeader, aniId);
-	playAni(f, &myHeader);
+	int ret = readHeaderEntry(f, &myHeader, aniId);
+	if (ret < 0) {
+		ESP_LOGE(T,"Failed to read header of animation %d", aniId);
+		return;
+	}
+
+	playAni(f, &myHeader, aniId);
 	free(myHeader.frameHeader);
 	myHeader.frameHeader = NULL;
 

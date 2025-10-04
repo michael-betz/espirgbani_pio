@@ -53,7 +53,9 @@
     },
     "hostname": "espirgbani",
     "log_level": {
-        "*": 3
+        "*": 3,
+        "ANIMATIONS": 4,
+        "SHADERS": 4
     },
     "timezone": "CET-1CEST,M3.5.0,M10.5.0/3",
     "ntp_host": "pool.ntp.org"
